@@ -1,0 +1,13 @@
+<meta>
+  canonical: auto
+  og:type: website
+  og:site_name: Quotarelay
+</meta>
+
+<template>
+  <div class="shell">
+    <div class="frame">
+      <slot />
+    </div>
+  </div>
+</template>

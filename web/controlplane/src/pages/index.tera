@@ -1,0 +1,132 @@
+<meta>
+  title: Quotarelay Control Plane
+  description: Thin frontend proof for shipped Quotarelay backend capabilities and proof state.
+</meta>
+
+<template>
+  <section class="hero">
+    <p class="eyebrow">Quotarelay control plane</p>
+    <h1 class="title">Backend truth, not product theater.</h1>
+    <p class="subtitle">
+      This frontend is a thin proof surface over the shipped Rust seams: stdio MCP transport, local repository sync,
+      bounded code search, and explainable context assembly.
+    </p>
+
+    <div class="hero-grid">
+      <article class="stat">
+        <span class="stat-label">Current sprint</span>
+        <div class="stat-value">S1 / T5</div>
+      </article>
+      <article class="stat">
+        <span class="stat-label">Shipped tools</span>
+        <div class="stat-value">4</div>
+      </article>
+      <article class="stat">
+        <span class="stat-label">Proof mode</span>
+        <div class="stat-value">Focused boundary</div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Live backend surface</h2>
+    <div class="panel-grid">
+      <article class="panel" v-for="capability in capabilities" :key="capability.name">
+        <span class="panel-label">{{ capability.state }}</span>
+        <h3>{{ capability.name }}</h3>
+        <p>{{ capability.description }}</p>
+        <div class="chip-row">
+          <span class="chip" v-for="signal in capability.signals" :key="signal">{{ signal }}</span>
+        </div>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Recent proof runs</h2>
+    <div class="proof-grid">
+      <article class="proof" v-for="proof in proofs" :key="proof.command">
+        <span class="proof-label" :class="proof.statusClass">{{ proof.status }}</span>
+        <h3>{{ proof.title }}</h3>
+        <p>{{ proof.summary }}</p>
+        <p class="command">{{ proof.command }}</p>
+      </article>
+    </div>
+  </section>
+
+  <section class="section">
+    <h2 class="section-title">Current limits</h2>
+    <div class="panel-grid">
+      <article class="panel">
+        <span class="panel-label status-warn">Deferred</span>
+        <h3>No persistence beyond local index artifacts</h3>
+        <p>The current backend keeps index artifacts on the local filesystem only. Postgres and durable memory stay out of scope here.</p>
+      </article>
+      <article class="panel">
+        <span class="panel-label status-warn">Deferred</span>
+        <h3>No invented analytics</h3>
+        <p>This page does not claim savings, retrieval quality, or readiness that the backend does not expose and prove.</p>
+      </article>
+    </div>
+  </section>
+</template>
+
+<script>
+  const capabilities = [
+    {
+      state: 'Shipped',
+      name: 'stdio MCP transport',
+      description: 'The server handles initialize, tools listing, and tool invocation over framed stdio messages.',
+      signals: ['initialize', 'tools/list', 'tools/call']
+    },
+    {
+      state: 'Shipped',
+      name: 'sync_repo',
+      description: 'Scans a local repository and persists a bounded index under .quotarelay/index.json.',
+      signals: ['local filesystem', 'persisted index', 'bounded output']
+    },
+    {
+      state: 'Shipped',
+      name: 'search_code',
+      description: 'Queries the persisted index with explicit hit limits and returns matching lines only.',
+      signals: ['limit clamp', 'line hits', 'simple text match']
+    },
+    {
+      state: 'Shipped',
+      name: 'assemble_context',
+      description: 'Builds a bounded context pack and explains why each included line was selected.',
+      signals: ['reason strings', 'limit clamp', 'MCP boundary proof']
+    }
+  ]
+
+  const proofs = [
+    {
+      status: 'Passed',
+      statusClass: 'status-ok',
+      title: 'Repo index proof',
+      summary: 'Local sync persists index data and bounded search returns the expected hits.',
+      command: 'cargo test -p repo-index'
+    },
+    {
+      status: 'Passed',
+      statusClass: 'status-ok',
+      title: 'Context engine proof',
+      summary: 'Context assembly stays bounded and emits explicit inclusion reasons.',
+      command: 'cargo test -p context-engine'
+    },
+    {
+      status: 'Passed',
+      statusClass: 'status-ok',
+      title: 'MCP boundary proof',
+      summary: 'stdio transport round-trips initialize, tool calls, sync/search, and assemble_context.',
+      command: 'cargo test -p mcp-server'
+    },
+    {
+      status: 'Passed',
+      statusClass: 'status-ok',
+      title: 'Workspace compile proof',
+      summary: 'The active backend workspace compiles cleanly after the current control-plane slice.',
+      command: 'cargo check'
+    }
+  ]
+</script>

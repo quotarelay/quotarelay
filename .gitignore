@@ -5,7 +5,10 @@
 /.github/copilot-instructions.md
 /.github/instructions/
 /node_modules/
+/web/node_modules/
+/web/controlplane/node_modules/
 /.terajs/
 /dist/
+/web/controlplane/dist/
 /.env
 .DS_Store
