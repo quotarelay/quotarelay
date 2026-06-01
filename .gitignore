@@ -1,0 +1,11 @@
+/target/
+/.quotarelay/
+/tmp/
+/EXECUTION_TRACKER.md
+/.github/copilot-instructions.md
+/.github/instructions/
+/node_modules/
+/.terajs/
+/dist/
+/.env
+.DS_Store

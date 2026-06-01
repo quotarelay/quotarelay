@@ -1,0 +1,19 @@
+{
+  "name": "quotarelay",
+  "version": "0.0.1",
+  "description": "Reserved package name for future QuotaRelay releases.",
+  "main": "index.js",
+  "files": [
+    "index.js",
+    "README.md"
+  ],
+  "keywords": [
+    "quotarelay",
+    "reservation"
+  ],
+  "license": "UNLICENSED",
+  "private": false,
+  "publishConfig": {
+    "access": "public"
+  }
+}
