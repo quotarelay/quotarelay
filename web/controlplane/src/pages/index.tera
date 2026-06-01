@@ -6,37 +6,37 @@
 <template>
   <section class="hero">
     <p class="eyebrow">Quotarelay control plane</p>
-    <h1 class="title">Backend truth, not product theater.</h1>
+    <h1 class="title">Backend truth, mirrored into view.</h1>
     <p class="subtitle">
-      This frontend is a thin proof surface over the shipped Rust seams: stdio MCP transport, local repository sync,
-      bounded code search, and explainable context assembly.
+      This page mirrors the current MCP tool registry and the focused proofs behind it: stdio transport, local repo
+      sync, repository inventory, bounded code search, bounded context assembly, and bounded context run history.
     </p>
 
     <div class="hero-grid">
       <article class="stat">
         <span class="stat-label">Current sprint</span>
-        <div class="stat-value">S1 / T5</div>
+        <div class="stat-value">{{ currentSprint }}</div>
       </article>
       <article class="stat">
         <span class="stat-label">Shipped tools</span>
-        <div class="stat-value">4</div>
+        <div class="stat-value">{{ backendTools.length }}</div>
       </article>
       <article class="stat">
         <span class="stat-label">Proof mode</span>
-        <div class="stat-value">Focused boundary</div>
+        <div class="stat-value">Registry mirror</div>
       </article>
     </div>
   </section>
 
   <section class="section">
-    <h2 class="section-title">Live backend surface</h2>
+    <h2 class="section-title">Backend contract</h2>
     <div class="panel-grid">
-      <article class="panel" v-for="capability in capabilities" :key="capability.name">
-        <span class="panel-label">{{ capability.state }}</span>
-        <h3>{{ capability.name }}</h3>
-        <p>{{ capability.description }}</p>
+      <article class="panel" v-for="tool in backendTools" :key="tool.name">
+        <span class="panel-label">{{ tool.state }}</span>
+        <h3>{{ tool.name }}</h3>
+        <p>{{ tool.description }}</p>
         <div class="chip-row">
-          <span class="chip" v-for="signal in capability.signals" :key="signal">{{ signal }}</span>
+          <span class="chip" v-for="signal in tool.signals" :key="signal">{{ signal }}</span>
         </div>
       </article>
     </div>
@@ -57,33 +57,36 @@
   <section class="section">
     <h2 class="section-title">Current limits</h2>
     <div class="panel-grid">
-      <article class="panel">
-        <span class="panel-label status-warn">Deferred</span>
-        <h3>No persistence beyond local index artifacts</h3>
-        <p>The current backend keeps index artifacts on the local filesystem only. Postgres and durable memory stay out of scope here.</p>
-      </article>
-      <article class="panel">
-        <span class="panel-label status-warn">Deferred</span>
-        <h3>No invented analytics</h3>
-        <p>This page does not claim savings, retrieval quality, or readiness that the backend does not expose and prove.</p>
+      <article class="panel" v-for="limit in limits" :key="limit.title">
+        <span class="panel-label status-warn">{{ limit.state }}</span>
+        <h3>{{ limit.title }}</h3>
+        <p>{{ limit.description }}</p>
       </article>
     </div>
   </section>
 </template>
 
 <script>
-  const capabilities = [
+  const currentSprint = 'S2 / T8'
+
+  const backendTools = [
     {
       state: 'Shipped',
-      name: 'stdio MCP transport',
-      description: 'The server handles initialize, tools listing, and tool invocation over framed stdio messages.',
-      signals: ['initialize', 'tools/list', 'tools/call']
+      name: 'bootstrap_status',
+      description: 'Returns the current Quotarelay bootstrap banner over the MCP tools boundary.',
+      signals: ['tools/list', 'tools/call', 'stdio MCP']
     },
     {
       state: 'Shipped',
       name: 'sync_repo',
-      description: 'Scans a local repository and persists a bounded index under .quotarelay/index.json.',
+      description: 'Scans a local repository and persists index artifacts under .quotarelay/.',
       signals: ['local filesystem', 'persisted index', 'bounded output']
+    },
+    {
+      state: 'Shipped',
+      name: 'repo_inventory',
+      description: 'Returns repository inventory truth from the persisted index with a bounded path sample.',
+      signals: ['indexed_files', 'sample_paths', 'indexed_at_epoch_ms']
     },
     {
       state: 'Shipped',
@@ -93,9 +96,15 @@
     },
     {
       state: 'Shipped',
+      name: 'context_run_history',
+      description: 'Returns recent bounded context runs with the inclusion and omission reasons that were recorded.',
+      signals: ['recent runs', 'omission reasons', 'history clamp']
+    },
+    {
+      state: 'Shipped',
       name: 'assemble_context',
-      description: 'Builds a bounded context pack and explains why each included line was selected.',
-      signals: ['reason strings', 'limit clamp', 'MCP boundary proof']
+      description: 'Builds a bounded context pack, records the run locally, and explains included and omitted results.',
+      signals: ['reason strings', 'run history', 'limit clamp']
     }
   ]
 
@@ -103,30 +112,48 @@
     {
       status: 'Passed',
       statusClass: 'status-ok',
-      title: 'Repo index proof',
-      summary: 'Local sync persists index data and bounded search returns the expected hits.',
-      command: 'cargo test -p repo-index'
+      title: 'Tool registry proof',
+      summary: 'The MCP tools list exposes the exact backend contract mirrored on this page.',
+      command: 'cargo test -p mcp-server tools_list_exposes_current_backend_truth_surface'
     },
     {
       status: 'Passed',
       statusClass: 'status-ok',
-      title: 'Context engine proof',
-      summary: 'Context assembly stays bounded and emits explicit inclusion reasons.',
-      command: 'cargo test -p context-engine'
+      title: 'Repository inventory proof',
+      summary: 'The MCP boundary returns bounded repository inventory truth from the persisted local index.',
+      command: 'cargo test -p mcp-server repo_inventory_works_over_stdio'
     },
     {
       status: 'Passed',
       statusClass: 'status-ok',
-      title: 'MCP boundary proof',
-      summary: 'stdio transport round-trips initialize, tool calls, sync/search, and assemble_context.',
-      command: 'cargo test -p mcp-server'
+      title: 'Context history proof',
+      summary: 'Bounded context history keeps inclusion and omission reasons at the engine and MCP boundary.',
+      command: 'cargo test -p context-engine context_run_history_is_bounded_and_keeps_omission_reasons && cargo test -p mcp-server context_run_history_works_over_stdio'
     },
     {
-      status: 'Passed',
-      statusClass: 'status-ok',
-      title: 'Workspace compile proof',
-      summary: 'The active backend workspace compiles cleanly after the current control-plane slice.',
-      command: 'cargo check'
+      status: 'Pending build',
+      statusClass: 'status-warn',
+      title: 'Control-plane build proof',
+      summary: 'The Terajs control plane must still build cleanly against the mirrored backend contract.',
+      command: 'npm run build'
+    }
+  ]
+
+  const limits = [
+    {
+      state: 'Bounded',
+      title: 'Local artifacts only',
+      description: 'Repository index and context run history stay on the local filesystem under .quotarelay/.'
+    },
+    {
+      state: 'Honest',
+      title: 'No invented readiness',
+      description: 'This page mirrors the checked-in backend contract and proof status rather than claiming live metrics or hidden state.'
+    },
+    {
+      state: 'Deferred',
+      title: 'No live backend polling',
+      description: 'The current control plane reflects backend truth surfaces and proof state, not a long-running runtime feed.'
     }
   ]
 </script>

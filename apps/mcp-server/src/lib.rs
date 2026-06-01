@@ -1,8 +1,8 @@
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
-use context_engine::{assemble_context, EngineInfo};
-use repo_index::{search_code, sync_repo};
+use context_engine::{assemble_context, context_run_history, ContextAssembly, EngineInfo};
+use repo_index::{repo_inventory, search_code, sync_repo};
 use serde_json::{json, Value};
 
 pub fn run() -> io::Result<()> {
@@ -94,7 +94,14 @@ fn handle_message(message: &str) -> Option<String> {
             "jsonrpc": "2.0",
             "id": id,
             "result": {
-                "tools": [bootstrap_tool(), sync_repo_tool(), search_code_tool(), assemble_context_tool()]
+                "tools": [
+                    bootstrap_tool(),
+                    sync_repo_tool(),
+                    repo_inventory_tool(),
+                    search_code_tool(),
+                    context_run_history_tool(),
+                    assemble_context_tool()
+                ]
             }
         }),
         "tools/call" => json!({
@@ -161,6 +168,37 @@ fn search_code_tool() -> Value {
     })
 }
 
+fn repo_inventory_tool() -> Value {
+    json!({
+        "name": "repo_inventory",
+        "description": "Returns bounded repository inventory truth from the persisted local repository index.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn context_run_history_tool() -> Value {
+    json!({
+        "name": "context_run_history",
+        "description": "Returns bounded recent context runs with inclusion and omission reasons.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 5 }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
 fn assemble_context_tool() -> Value {
     json!({
         "name": "assemble_context",
@@ -215,10 +253,30 @@ fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("repo_inventory") => match repo_inventory_from_args(&arguments) {
+            Ok(inventory) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&inventory).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("context_run_history") => match context_run_history_from_args(&arguments) {
+            Ok(history) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&history).unwrap_or_else(|_| "[]".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("assemble_context") => match assemble_context_from_args(&arguments) {
             Ok(results) => json!({
                 "type": "text",
-                "text": serde_json::to_string(&results).unwrap_or_else(|_| "[]".to_string())
+                "text": serde_json::to_string(&results).unwrap_or_else(|_| "{}".to_string())
             }),
             Err(error) => json!({
                 "type": "text",
@@ -256,7 +314,23 @@ fn search_code_from_args(arguments: &Value) -> Result<Vec<repo_index::SearchHit>
     search_code(&root, query, limit).map_err(|error| format!("search_code failed: {error}"))
 }
 
-fn assemble_context_from_args(arguments: &Value) -> Result<Vec<context_engine::ContextSnippet>, String> {
+fn repo_inventory_from_args(arguments: &Value) -> Result<repo_index::RepoInventory, String> {
+    let root = parse_root(arguments)?;
+    repo_inventory(&root).map_err(|error| format!("repo_inventory failed: {error}"))
+}
+
+fn context_run_history_from_args(arguments: &Value) -> Result<Vec<ContextAssembly>, String> {
+    let root = parse_root(arguments)?;
+    let limit = arguments
+        .get("limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(3);
+
+    context_run_history(&root, limit).map_err(|error| format!("context_run_history failed: {error}"))
+}
+
+fn assemble_context_from_args(arguments: &Value) -> Result<ContextAssembly, String> {
     let root = parse_root(arguments)?;
     let query = arguments
         .get("query")
@@ -317,6 +391,36 @@ mod tests {
     }
 
     #[test]
+    fn tools_list_exposes_current_backend_truth_surface() {
+        let request = r#"{"jsonrpc":"2.0","id":12,"method":"tools/list","params":{}}"#;
+        let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("tools list should succeed");
+
+        let response = decode_response(&output);
+        let tools = response["result"]["tools"]
+            .as_array()
+            .expect("tools should be an array");
+        let names = tools
+            .iter()
+            .map(|tool| tool["name"].as_str().expect("tool name should exist"))
+            .collect::<Vec<_>>();
+
+        assert_eq!(
+            names,
+            vec![
+                "bootstrap_status",
+                "sync_repo",
+                "repo_inventory",
+                "search_code",
+                "context_run_history",
+                "assemble_context",
+            ]
+        );
+    }
+
+    #[test]
     fn sync_and_search_work_over_stdio() {
         let repo_root = temp_repo();
         fs::write(repo_root.join("src.txt"), "bootstrap marker\nsearch target\n").expect("repo file should write");
@@ -369,6 +473,55 @@ mod tests {
     }
 
     #[test]
+    fn repo_inventory_works_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "bootstrap marker\nsearch target\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            7,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let inventory_request = json_rpc_request(
+            8,
+            "tools/call",
+            json!({
+                "name": "repo_inventory",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            inventory_request.len(),
+            inventory_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("inventory call should succeed");
+
+        let responses = decode_responses(&output);
+        assert_eq!(responses[1]["id"], 8);
+        let inventory: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("inventory text should exist"),
+        )
+        .expect("inventory payload should be valid json");
+        assert_eq!(inventory["indexed_files"], 1);
+        assert_eq!(inventory["sample_paths"][0], "src.txt");
+        assert!(inventory["indexed_at_epoch_ms"].as_u64().is_some());
+    }
+
+    #[test]
     fn assemble_context_works_over_stdio() {
         let repo_root = temp_repo();
         fs::write(repo_root.join("src.txt"), "alpha needle\nbeta needle\ngamma needle\n").expect("repo file should write");
@@ -408,10 +561,92 @@ mod tests {
 
         let responses = decode_responses(&output);
         assert_eq!(responses[1]["id"], 6);
-        let text = responses[1]["result"]["content"][0]["text"]
+        let assembly: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("assemble text should exist"),
+        )
+        .expect("assembly payload should be valid json");
+        assert_eq!(assembly["snippets"].as_array().map(|items| items.len()), Some(2));
+        assert!(assembly["snippets"][0]["reason"]
             .as_str()
-            .expect("assemble text should exist");
-        assert!(text.contains("Included because this line matched query 'needle'."));
+            .expect("reason should exist")
+            .contains("matched query 'needle'"));
+        assert!(assembly["omissions"][0]
+            .as_str()
+            .expect("omission should exist")
+            .contains("limit 2 was reached"));
+    }
+
+    #[test]
+    fn context_run_history_works_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "alpha needle\nbeta needle\ngamma needle\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            9,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            10,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let history_request = json_rpc_request(
+            11,
+            "tools/call",
+            json!({
+                "name": "context_run_history",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "limit": 1
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request,
+            history_request.len(),
+            history_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("history call should succeed");
+
+        let responses = decode_responses(&output);
+        assert_eq!(responses[2]["id"], 11);
+        let history: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("history text should exist"),
+        )
+        .expect("history payload should be valid json");
+        assert_eq!(history.as_array().map(|items| items.len()), Some(1));
+        assert_eq!(history[0]["query"], "needle");
+        assert!(history[0]["snippets"][0]["reason"]
+            .as_str()
+            .expect("reason should exist")
+            .contains("matched query 'needle'"));
+        assert!(history[0]["omissions"][0]
+            .as_str()
+            .expect("omission should exist")
+            .contains("limit 2 was reached"));
     }
 
     fn decode_response(output: &[u8]) -> Value {

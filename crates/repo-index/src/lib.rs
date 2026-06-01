@@ -18,6 +18,13 @@ struct StoredIndex {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepoInventory {
+    pub indexed_at_epoch_ms: u128,
+    pub indexed_files: usize,
+    pub sample_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncResult {
     pub indexed_files: usize,
     pub index_path: String,
@@ -77,6 +84,22 @@ pub fn search_code(root: &Path, query: &str, limit: usize) -> io::Result<Vec<Sea
     Ok(hits)
 }
 
+pub fn repo_inventory(root: &Path) -> io::Result<RepoInventory> {
+    let index = load_index(root)?;
+    let sample_paths = index
+        .files
+        .iter()
+        .take(5)
+        .map(|file| file.path.clone())
+        .collect();
+
+    Ok(RepoInventory {
+        indexed_at_epoch_ms: index.indexed_at_epoch_ms,
+        indexed_files: index.files.len(),
+        sample_paths,
+    })
+}
+
 fn load_index(root: &Path) -> io::Result<StoredIndex> {
     let bytes = fs::read(index_path(root))?;
     serde_json::from_slice(&bytes).map_err(io::Error::other)
@@ -127,7 +150,7 @@ fn index_path(root: &Path) -> PathBuf {
 
 #[cfg(test)]
 mod tests {
-    use super::{search_code, sync_repo};
+    use super::{repo_inventory, search_code, sync_repo};
     use std::fs;
     use std::path::PathBuf;
     use std::time::{SystemTime, UNIX_EPOCH};
@@ -146,6 +169,11 @@ mod tests {
         assert_eq!(hits.len(), 2);
         assert_eq!(hits[0].path, "alpha.txt");
         assert_eq!(hits[0].line_number, 1);
+
+        let inventory = repo_inventory(&root).expect("inventory should succeed");
+        assert_eq!(inventory.indexed_files, 2);
+        assert_eq!(inventory.sample_paths, vec!["alpha.txt", "beta.txt"]);
+        assert!(inventory.indexed_at_epoch_ms > 0);
     }
 
     fn temp_repo() -> PathBuf {
