@@ -1,0 +1,9 @@
+[package]
+name = "context-engine"
+edition.workspace = true
+license.workspace = true
+version.workspace = true
+
+[dependencies]
+repo-index = { path = "../repo-index" }
+serde = { version = "1", features = ["derive"] }

@@ -1,0 +1,12 @@
+[workspace]
+members = [
+    "apps/mcp-server",
+    "crates/context-engine",
+    "crates/repo-index",
+]
+resolver = "2"
+
+[workspace.package]
+edition = "2021"
+license = "UNLICENSED"
+version = "0.1.0"
