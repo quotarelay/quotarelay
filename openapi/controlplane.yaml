@@ -1,0 +1,171 @@
+openapi: 3.1.0
+info:
+  title: Quotarelay Control Plane API
+  version: 0.1.0
+  description: Shipped backend truth surface for the Quotarelay control plane.
+paths:
+  /truth:
+    get:
+      operationId: getBackendTruth
+      summary: Return the current backend truth payload for the control plane.
+      responses:
+        '200':
+          description: Current backend tool registry, retrieval contract, and proof commands.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BackendTruthPayload'
+components:
+  schemas:
+    BackendTruthPayload:
+      type: object
+      additionalProperties: false
+      required:
+        - tools
+        - retrieval
+        - proofs
+      properties:
+        tools:
+          type: array
+          items:
+            $ref: '#/components/schemas/ToolDescriptor'
+        retrieval:
+          $ref: '#/components/schemas/RetrievalTruth'
+        proofs:
+          type: array
+          items:
+            $ref: '#/components/schemas/BackendProof'
+    ToolDescriptor:
+      type: object
+      additionalProperties: false
+      required:
+        - name
+        - description
+        - inputSchema
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        inputSchema:
+          $ref: '#/components/schemas/ToolInputSchema'
+    ToolInputSchema:
+      type: object
+      description: JSON schema fragment serialized by the MCP tool registry.
+      required:
+        - type
+        - properties
+        - additionalProperties
+      properties:
+        type:
+          type: string
+          const: object
+        properties:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/ToolInputProperty'
+        required:
+          type: array
+          items:
+            type: string
+        additionalProperties:
+          type: boolean
+      additionalProperties: true
+    ToolInputProperty:
+      type: object
+      properties:
+        type:
+          type: string
+        enum:
+          type: array
+          items:
+            type: string
+        default: {}
+        minimum:
+          type: integer
+        maximum:
+          type: integer
+        items:
+          oneOf:
+            - $ref: '#/components/schemas/ToolInputProperty'
+            - type: object
+              additionalProperties: true
+      additionalProperties: true
+    RetrievalTruth:
+      type: object
+      additionalProperties: false
+      required:
+        - modes
+        - inclusion_reason_kinds
+        - omission_reason_kinds
+        - limits
+        - durable_memory_enabled
+      properties:
+        modes:
+          type: array
+          items:
+            $ref: '#/components/schemas/RetrievalMode'
+        inclusion_reason_kinds:
+          type: array
+          items:
+            $ref: '#/components/schemas/InclusionReasonKind'
+        omission_reason_kinds:
+          type: array
+          items:
+            $ref: '#/components/schemas/OmissionReasonKind'
+        limits:
+          $ref: '#/components/schemas/RetrievalLimits'
+        durable_memory_enabled:
+          type: boolean
+    RetrievalLimits:
+      type: object
+      additionalProperties: false
+      required:
+        - max_context_items
+        - max_snippet_pack_bytes
+        - max_document_pack_bytes
+        - max_memory_pack_bytes
+        - max_history_runs
+      properties:
+        max_context_items:
+          type: integer
+        max_snippet_pack_bytes:
+          type: integer
+        max_document_pack_bytes:
+          type: integer
+        max_memory_pack_bytes:
+          type: integer
+        max_history_runs:
+          type: integer
+    BackendProof:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - command
+      properties:
+        id:
+          type: string
+        command:
+          type: string
+    RetrievalMode:
+      type: string
+      enum:
+        - exact_search
+        - overview
+        - task_capsule
+    InclusionReasonKind:
+      type: string
+      enum:
+        - query_line_match
+        - overview_document
+        - task_capsule_match
+        - memory_note_match
+    OmissionReasonKind:
+      type: string
+      enum:
+        - no_line_matches
+        - no_document_matches
+        - no_memory_matches
+        - item_limit_reached
+        - byte_budget_reached
