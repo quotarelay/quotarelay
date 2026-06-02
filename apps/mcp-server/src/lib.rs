@@ -1,7 +1,10 @@
 use std::io::{self, BufRead, Write};
 use std::path::PathBuf;
 
-use context_engine::{assemble_context, context_run_history, ContextAssembly, EngineInfo};
+use context_engine::{
+    context_run_history, retrieve_context, ContextAssembly, EngineInfo, RetrievalMode,
+    RetrievedContext,
+};
 use repo_index::{repo_inventory, search_code, sync_repo};
 use serde_json::{json, Value};
 
@@ -202,15 +205,20 @@ fn context_run_history_tool() -> Value {
 fn assemble_context_tool() -> Value {
     json!({
         "name": "assemble_context",
-        "description": "Builds a bounded context pack from the persisted local repository index with explainable inclusion reasons.",
+        "description": "Builds a bounded context pack from the persisted local repository index using explicit retrieval modes.",
         "inputSchema": {
             "type": "object",
             "properties": {
                 "root": { "type": "string" },
+                "mode": {
+                    "type": "string",
+                    "enum": ["exact_search", "overview", "task_capsule"],
+                    "default": "exact_search"
+                },
                 "query": { "type": "string" },
                 "limit": { "type": "integer", "minimum": 1, "maximum": 5 }
             },
-            "required": ["root", "query"],
+            "required": ["root"],
             "additionalProperties": false
         }
     })
@@ -330,19 +338,30 @@ fn context_run_history_from_args(arguments: &Value) -> Result<Vec<ContextAssembl
     context_run_history(&root, limit).map_err(|error| format!("context_run_history failed: {error}"))
 }
 
-fn assemble_context_from_args(arguments: &Value) -> Result<ContextAssembly, String> {
+fn assemble_context_from_args(arguments: &Value) -> Result<RetrievedContext, String> {
     let root = parse_root(arguments)?;
-    let query = arguments
-        .get("query")
-        .and_then(Value::as_str)
-        .ok_or_else(|| "assemble_context requires a string query".to_string())?;
+    let mode = parse_retrieval_mode(arguments)?;
+    let query = arguments.get("query").and_then(Value::as_str);
     let limit = arguments
         .get("limit")
         .and_then(Value::as_u64)
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or(3);
 
-    assemble_context(&root, query, limit).map_err(|error| format!("assemble_context failed: {error}"))
+    retrieve_context(&root, mode, query, limit)
+        .map_err(|error| format!("assemble_context failed: {error}"))
+}
+
+fn parse_retrieval_mode(arguments: &Value) -> Result<RetrievalMode, String> {
+    match arguments.get("mode").and_then(Value::as_str) {
+        None => Ok(RetrievalMode::ExactSearch),
+        Some("exact_search") => Ok(RetrievalMode::ExactSearch),
+        Some("overview") => Ok(RetrievalMode::Overview),
+        Some("task_capsule") => Ok(RetrievalMode::TaskCapsule),
+        Some(other) => Err(format!(
+            "assemble_context mode must be one of exact_search, overview, task_capsule; got {other}"
+        )),
+    }
 }
 
 fn parse_root(arguments: &Value) -> Result<PathBuf, String> {
@@ -417,6 +436,15 @@ mod tests {
                 "context_run_history",
                 "assemble_context",
             ]
+        );
+
+        let assemble_tool = tools
+            .iter()
+            .find(|tool| tool["name"] == "assemble_context")
+            .expect("assemble_context tool should exist");
+        assert_eq!(
+            assemble_tool["inputSchema"]["properties"]["mode"]["enum"],
+            json!(["exact_search", "overview", "task_capsule"])
         );
     }
 
@@ -543,6 +571,7 @@ mod tests {
                 "name": "assemble_context",
                 "arguments": {
                     "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
                     "query": "needle",
                     "limit": 2
                 }
@@ -567,15 +596,147 @@ mod tests {
                 .expect("assemble text should exist"),
         )
         .expect("assembly payload should be valid json");
+        assert_eq!(assembly["mode"], "exact_search");
         assert_eq!(assembly["snippets"].as_array().map(|items| items.len()), Some(2));
-        assert!(assembly["snippets"][0]["reason"]
+        assert_eq!(assembly["snippets"][0]["reason"]["kind"], "query_line_match");
+        assert_eq!(assembly["omissions"][0]["kind"], "item_limit_reached");
+    }
+
+    #[test]
+    fn assemble_context_supports_overview_and_task_capsule_modes_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(
+            repo_root.join("lib.rs"),
+            "struct Widget {\n    id: usize,\n}\n\nfn plan() -> usize {\n    let body_only_term = 7;\n    body_only_term\n}\n",
+        )
+        .expect("rust file should write");
+
+        let sync_request = json_rpc_request(
+            13,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let overview_request = json_rpc_request(
+            14,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "overview",
+                    "limit": 2
+                }
+            }),
+        );
+        let task_request = json_rpc_request(
+            15,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "task_capsule",
+                    "query": "Widget",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            overview_request.len(),
+            overview_request,
+            task_request.len(),
+            task_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("mode-specific assemble_context calls should succeed");
+
+        let responses = decode_responses(&output);
+        let overview: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("overview text should exist"),
+        )
+        .expect("overview payload should be valid json");
+        assert_eq!(overview["mode"], "overview");
+        assert_eq!(overview["documents"].as_array().map(|items| items.len()), Some(1));
+
+        let task: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("task text should exist"),
+        )
+        .expect("task payload should be valid json");
+        assert_eq!(task["mode"], "task_capsule");
+        assert_eq!(task["documents"][0]["reason"]["kind"], "task_capsule_match");
+        assert!(task["documents"][0]["contents"]
             .as_str()
-            .expect("reason should exist")
-            .contains("matched query 'needle'"));
-        assert!(assembly["omissions"][0]
+            .expect("task contents should exist")
+            .contains("struct Widget { id: usize }"));
+    }
+
+    #[test]
+    fn assemble_context_reports_byte_budget_omissions_over_stdio() {
+        let repo_root = temp_repo();
+        let long_line = format!("needle {}", "x".repeat(300));
+        fs::write(repo_root.join("alpha.txt"), format!("{long_line}\n")).expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            16,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            17,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("assemble_context should succeed");
+
+        let responses = decode_responses(&output);
+        let assembly: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("assembly text should exist"),
+        )
+        .expect("assembly payload should be valid json");
+        assert_eq!(assembly["omissions"][0]["kind"], "byte_budget_reached");
+        assert!(assembly["snippets"][0]["line"]
             .as_str()
-            .expect("omission should exist")
-            .contains("limit 2 was reached"));
+            .expect("snippet line should exist")
+            .ends_with("..."));
     }
 
     #[test]
@@ -600,6 +761,7 @@ mod tests {
                 "name": "assemble_context",
                 "arguments": {
                     "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
                     "query": "needle",
                     "limit": 2
                 }
@@ -639,14 +801,8 @@ mod tests {
         .expect("history payload should be valid json");
         assert_eq!(history.as_array().map(|items| items.len()), Some(1));
         assert_eq!(history[0]["query"], "needle");
-        assert!(history[0]["snippets"][0]["reason"]
-            .as_str()
-            .expect("reason should exist")
-            .contains("matched query 'needle'"));
-        assert!(history[0]["omissions"][0]
-            .as_str()
-            .expect("omission should exist")
-            .contains("limit 2 was reached"));
+        assert_eq!(history[0]["snippets"][0]["reason"]["kind"], "query_line_match");
+        assert_eq!(history[0]["omissions"][0]["kind"], "item_limit_reached");
     }
 
     fn decode_response(output: &[u8]) -> Value {

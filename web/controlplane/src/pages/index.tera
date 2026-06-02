@@ -8,8 +8,9 @@
     <p class="eyebrow">Quotarelay control plane</p>
     <h1 class="title">Backend truth, mirrored into view.</h1>
     <p class="subtitle">
-      This page mirrors the current MCP tool registry and the focused proofs behind it: stdio transport, local repo
-      sync, repository inventory, bounded code search, bounded context assembly, and bounded context run history.
+      This page mirrors the current MCP tool registry and the focused proofs behind it: structural Rust capsules,
+      incremental local sync, symbol-first retrieval, explicit retrieval modes, typed explainability, hard packing
+      budgets, and bounded context run history.
     </p>
 
     <div class="hero-grid">
@@ -23,7 +24,7 @@
       </article>
       <article class="stat">
         <span class="stat-label">Proof mode</span>
-        <div class="stat-value">Registry mirror</div>
+        <div class="stat-value">Checked-in mirror</div>
       </article>
     </div>
   </section>
@@ -55,12 +56,12 @@
   </section>
 
   <section class="section">
-    <h2 class="section-title">Current limits</h2>
+    <h2 class="section-title">Retrieval truth</h2>
     <div class="panel-grid">
-      <article class="panel" v-for="limit in limits" :key="limit.title">
-        <span class="panel-label status-warn">{{ limit.state }}</span>
-        <h3>{{ limit.title }}</h3>
-        <p>{{ limit.description }}</p>
+      <article class="panel" v-for="detail in retrievalTruth" :key="detail.title">
+        <span class="panel-label">{{ detail.state }}</span>
+        <h3>{{ detail.title }}</h3>
+        <p>{{ detail.description }}</p>
       </article>
     </div>
   </section>
@@ -79,8 +80,8 @@
     {
       state: 'Shipped',
       name: 'sync_repo',
-      description: 'Scans a local repository and persists index artifacts under .quotarelay/.',
-      signals: ['local filesystem', 'persisted index', 'bounded output']
+      description: 'Scans a local repository, writes Rust structural capsules, reuses unchanged files, and prunes deleted ones under .quotarelay/.',
+      signals: ['local filesystem', 'incremental add/change/delete', '8192-byte per-file cap']
     },
     {
       state: 'Shipped',
@@ -91,20 +92,20 @@
     {
       state: 'Shipped',
       name: 'search_code',
-      description: 'Queries the persisted index with explicit hit limits and returns matching lines only.',
-      signals: ['limit clamp', 'line hits', 'simple text match']
+      description: 'Queries the persisted index with explicit hit limits and returns matching lines with symbol-first ordering before raw substring matches.',
+      signals: ['limit clamp', 'symbol-first ordering', 'line hits only']
     },
     {
       state: 'Shipped',
       name: 'context_run_history',
-      description: 'Returns recent bounded context runs with the inclusion and omission reasons that were recorded.',
-      signals: ['recent runs', 'omission reasons', 'history clamp']
+      description: 'Returns recent bounded exact-search context runs with typed inclusion and omission reasons that were recorded locally.',
+      signals: ['recent runs', 'typed reasons', 'history clamp 10']
     },
     {
       state: 'Shipped',
       name: 'assemble_context',
-      description: 'Builds a bounded context pack, records the run locally, and explains included and omitted results.',
-      signals: ['reason strings', 'run history', 'limit clamp']
+      description: 'Builds exact_search, overview, or task_capsule context packs with typed explainability and hard item and byte budgets.',
+      signals: ['exact_search / overview / task_capsule', 'typed reasons', 'item + byte budgets']
     }
   ]
 
@@ -119,16 +120,30 @@
     {
       status: 'Passed',
       statusClass: 'status-ok',
-      title: 'Repository inventory proof',
-      summary: 'The MCP boundary returns bounded repository inventory truth from the persisted local index.',
-      command: 'cargo test -p mcp-server repo_inventory_works_over_stdio'
+      title: 'Incremental sync proof',
+      summary: 'Repo sync now reuses unchanged files and handles add, change, and delete flows in the persisted local index.',
+      command: 'cargo test -p repo-index sync_repo_updates_incrementally_for_add_change_delete'
     },
     {
       status: 'Passed',
       statusClass: 'status-ok',
-      title: 'Context history proof',
-      summary: 'Bounded context history keeps inclusion and omission reasons at the engine and MCP boundary.',
-      command: 'cargo test -p context-engine context_run_history_is_bounded_and_keeps_omission_reasons && cargo test -p mcp-server context_run_history_works_over_stdio'
+      title: 'Retrieval mode proof',
+      summary: 'The stdio MCP boundary exposes exact_search, overview, and task_capsule without moving retrieval logic out of the engine.',
+      command: 'cargo test -p mcp-server assemble_context_supports_overview_and_task_capsule_modes_over_stdio'
+    },
+    {
+      status: 'Passed',
+      statusClass: 'status-ok',
+      title: 'Budget and explainability proof',
+      summary: 'Typed omission kinds and byte-budget truncation are preserved across the engine and stdio MCP boundary.',
+      command: 'cargo test -p context-engine && cargo test -p mcp-server assemble_context_reports_byte_budget_omissions_over_stdio'
+    },
+    {
+      status: 'Passed',
+      statusClass: 'status-ok',
+      title: 'Symbol-first proof',
+      summary: 'Symbol-bearing declaration lines now beat earlier raw text mentions in search and task capsule assembly.',
+      command: 'cargo test -p repo-index search_and_document_matching_prefer_symbol_hits && cargo test -p context-engine task_capsule_prefers_symbol_matches_before_raw_text_mentions'
     },
     {
       status: 'Pending build',
@@ -139,21 +154,36 @@
     }
   ]
 
-  const limits = [
+  const retrievalTruth = [
     {
-      state: 'Bounded',
-      title: 'Local artifacts only',
-      description: 'Repository index and context run history stay on the local filesystem under .quotarelay/.'
+      state: 'Modes',
+      title: 'Retrieval modes are explicit',
+      description: 'assemble_context exposes exact_search, overview, and task_capsule. exact_search and task_capsule require a query; overview does not.'
     },
     {
-      state: 'Honest',
-      title: 'No invented readiness',
-      description: 'This page mirrors the checked-in backend contract and proof status rather than claiming live metrics or hidden state.'
+      state: 'Explainability',
+      title: 'Reason kinds are typed',
+      description: 'Inclusion kinds are query_line_match, overview_document, and task_capsule_match. Omission kinds are no_line_matches, no_document_matches, item_limit_reached, and byte_budget_reached.'
     },
     {
-      state: 'Deferred',
-      title: 'No live backend polling',
-      description: 'The current control plane reflects backend truth surfaces and proof state, not a long-running runtime feed.'
+      state: 'Budgets',
+      title: 'Packing is hard-bounded',
+      description: 'Exact-search packing clamps to 5 snippets and 160 bytes of line text. Overview and task capsules clamp to 5 documents and 640 bytes of document text.'
+    },
+    {
+      state: 'Index',
+      title: 'Stored artifacts stay bounded',
+      description: 'Sync stores Rust structural capsules when parsing succeeds, falls back to raw text when it does not, and caps stored per-file contents at 8192 bytes.'
+    },
+    {
+      state: 'Ordering',
+      title: 'Retrieval is symbol-first',
+      description: 'search_code and task capsule matching prefer declaration-like symbol lines before generic substring matches.'
+    },
+    {
+      state: 'Mirror',
+      title: 'No invented runtime state',
+      description: 'This page mirrors checked-in backend contract and proof state. It does not claim live polling, savings metrics, or hidden readiness.'
     }
   ]
 </script>
