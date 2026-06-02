@@ -6,10 +6,10 @@ use axum::{routing::get, Json, Router};
 use context_engine::{
     context_run_history, list_registered_repositories, memory_read, memory_search,
     memory_write, register_repository, registered_repository_state, remove_registered_repository,
-    ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult, MemoryWriteResult,
-    RegisteredRepository, RegisteredRepositoryState, RepositoryRegistrationResult,
-    RepositoryRemovalResult, RetrievalMode, RetrievedContext, RetrievalTruth,
-    retrieve_context, retrieval_truth,
+    invalidate_exact_match_cache, ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult,
+    MemoryWriteResult, RegisteredRepository, RegisteredRepositoryState,
+    RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
+    RetrievalTruth, retrieve_context, retrieval_truth,
 };
 use repo_index::{repo_inventory, search_code, sync_repo};
 use serde_json::{json, Value};
@@ -17,8 +17,24 @@ use serde_json::{json, Value};
 #[derive(Debug, Clone, serde::Serialize)]
 struct BackendTruthPayload {
     tools: Vec<Value>,
-    retrieval: RetrievalTruth,
+    retrieval: BackendRetrievalTruth,
+    cache: CacheTruth,
     proofs: Vec<BackendProof>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+struct BackendRetrievalTruth {
+    #[serde(flatten)]
+    base: RetrievalTruth,
+    cache: CacheTruth,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+struct CacheTruth {
+    exact_search_enabled: bool,
+    overview_enabled: bool,
+    task_capsule_enabled: bool,
+    sync_invalidates_caches: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -51,9 +67,15 @@ async fn truth_handler() -> Json<BackendTruthPayload> {
 }
 
 fn backend_truth_payload() -> BackendTruthPayload {
+    let cache = cache_truth();
+
     BackendTruthPayload {
         tools: current_tool_registry(),
-        retrieval: retrieval_truth(),
+        retrieval: BackendRetrievalTruth {
+            base: retrieval_truth(),
+            cache: cache.clone(),
+        },
+        cache,
         proofs: vec![
             BackendProof {
                 id: "tools_list",
@@ -75,7 +97,20 @@ fn backend_truth_payload() -> BackendTruthPayload {
                 id: "repository_state",
                 command: "cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio",
             },
+            BackendProof {
+                id: "local_operator_workflow",
+                command: "cargo test -p mcp-server local_operator_workflow_is_visible_through_truth_and_stdio",
+            },
         ],
+    }
+}
+
+fn cache_truth() -> CacheTruth {
+    CacheTruth {
+        exact_search_enabled: true,
+        overview_enabled: true,
+        task_capsule_enabled: true,
+        sync_invalidates_caches: true,
     }
 }
 
@@ -565,7 +600,10 @@ fn bootstrap_tool_call(request: &Value) -> Value {
 
 fn sync_repo_from_args(arguments: &Value) -> Result<repo_index::SyncResult, String> {
     let root = parse_root(arguments)?;
-    sync_repo(&root).map_err(|error| format!("sync_repo failed: {error}"))
+    let result = sync_repo(&root).map_err(|error| format!("sync_repo failed: {error}"))?;
+    invalidate_exact_match_cache(&root)
+        .map_err(|error| format!("sync_repo cache invalidation failed: {error}"))?;
+    Ok(result)
 }
 
 fn search_code_from_args(arguments: &Value) -> Result<Vec<repo_index::SearchHit>, String> {
@@ -1366,6 +1404,436 @@ mod tests {
         assert_eq!(assembly["memory_notes"][0]["title"], "Needle note");
     }
 
+    #[test]
+    fn assemble_context_exact_search_cache_honors_sync_invalidation_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "needle in repo\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            31,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            32,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("initial exact_search should succeed");
+
+        let responses = decode_responses(&output);
+        let first: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("first assembly text should exist"),
+        )
+        .expect("first assembly payload should be valid json");
+
+        fs::write(repo_root.join("src.txt"), "fresh needle after sync\n")
+            .expect("repo file should rewrite");
+        let resync_request = json_rpc_request(
+            33,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+
+        let mut second_output = Vec::new();
+        let second_request = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            resync_request.len(),
+            resync_request,
+            assemble_request.len(),
+            assemble_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        run_stdio(Cursor::new(second_request.into_bytes()), &mut second_output)
+            .expect("repeated exact_search should succeed");
+
+        let second_responses = decode_responses(&second_output);
+        let cached: Value = serde_json::from_str(
+            second_responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("cached assembly text should exist"),
+        )
+        .expect("cached assembly payload should be valid json");
+        let refreshed: Value = serde_json::from_str(
+            second_responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("refreshed assembly text should exist"),
+        )
+        .expect("refreshed assembly payload should be valid json");
+
+        assert_eq!(cached, refreshed);
+        assert_eq!(cached["snippets"][0]["line"], "fresh needle after sync");
+        assert_ne!(cached, first);
+    }
+
+    #[test]
+    fn assemble_context_exact_search_cache_normalizes_equivalent_queries_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "needle in repo\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            31,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let first_assemble_request = json_rpc_request(
+            32,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "Needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let second_assemble_request = json_rpc_request(
+            33,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "  needle  ",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            first_assemble_request.len(),
+            first_assemble_request,
+            second_assemble_request.len(),
+            second_assemble_request,
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("canonicalized exact_search should succeed");
+
+        let responses = decode_responses(&output);
+        let first: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("first assembly text should exist"),
+        )
+        .expect("first assembly payload should be valid json");
+        let second: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("second assembly text should exist"),
+        )
+        .expect("second assembly payload should be valid json");
+
+        assert_eq!(first["query"], second["query"]);
+        assert_eq!(first["generated_at_epoch_ms"], second["generated_at_epoch_ms"]);
+        assert_eq!(first["snippets"], second["snippets"]);
+    }
+
+    #[test]
+    fn assemble_context_overview_and_task_capsule_responses_are_repeatable_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "alpha overview\n").expect("alpha file should write");
+        fs::write(
+            repo_root.join("lib.rs"),
+            "struct Widget {\n    id: usize,\n}\n",
+        )
+        .expect("rust file should write");
+
+        let sync_request = json_rpc_request(
+            35,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let overview_request = json_rpc_request(
+            36,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "overview",
+                    "limit": 2
+                }
+            }),
+        );
+        let task_request = json_rpc_request(
+            37,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "task_capsule",
+                    "query": "Widget",
+                    "limit": 2
+                }
+            }),
+        );
+        let repeated_overview_request = json_rpc_request(
+            38,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "overview",
+                    "limit": 2
+                }
+            }),
+        );
+        let repeated_task_request = json_rpc_request(
+            39,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "task_capsule",
+                    "query": "Widget",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            overview_request.len(),
+            overview_request,
+            task_request.len(),
+            task_request,
+            repeated_overview_request.len(),
+            repeated_overview_request,
+            repeated_task_request.len(),
+            repeated_task_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("repeatable overview and task capsule responses should succeed");
+
+        let responses = decode_responses(&output);
+        let first_overview: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("overview text should exist"),
+        )
+        .expect("overview payload should be valid json");
+        let first_task: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("task text should exist"),
+        )
+        .expect("task payload should be valid json");
+        let second_overview: Value = serde_json::from_str(
+            responses[3]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("second overview text should exist"),
+        )
+        .expect("second overview payload should be valid json");
+        let second_task: Value = serde_json::from_str(
+            responses[4]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("second task text should exist"),
+        )
+        .expect("second task payload should be valid json");
+
+        assert_eq!(first_overview, second_overview);
+        assert_eq!(first_task, second_task);
+    }
+
+    #[test]
+    fn assemble_context_capsule_caches_honor_sync_invalidation_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "alpha overview\n").expect("alpha file should write");
+        fs::write(
+            repo_root.join("lib.rs"),
+            "struct Widget {\n    id: usize,\n}\n",
+        )
+        .expect("rust file should write");
+
+        let sync_request = json_rpc_request(
+            51,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let overview_request = json_rpc_request(
+            52,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "overview",
+                    "limit": 2
+                }
+            }),
+        );
+        let task_request = json_rpc_request(
+            53,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "task_capsule",
+                    "query": "Widget",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            overview_request.len(),
+            overview_request,
+            task_request.len(),
+            task_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("initial capsule modes should succeed");
+
+        let responses = decode_responses(&output);
+        let first_overview: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("overview text should exist"),
+        )
+        .expect("overview payload should be valid json");
+        let first_task: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("task text should exist"),
+        )
+        .expect("task payload should be valid json");
+
+        fs::write(repo_root.join("alpha.txt"), "fresh overview after sync\n")
+            .expect("alpha file should rewrite");
+        fs::write(
+            repo_root.join("lib.rs"),
+            "struct Widget {\n    id: u32,\n}\n",
+        )
+        .expect("rust file should rewrite");
+        let resync_request = json_rpc_request(
+            54,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let second_framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            resync_request.len(),
+            resync_request,
+            overview_request.len(),
+            overview_request,
+            overview_request.len(),
+            overview_request,
+            task_request.len(),
+            task_request,
+            task_request.len(),
+            task_request
+        );
+        let mut second_output = Vec::new();
+
+        run_stdio(Cursor::new(second_framed.into_bytes()), &mut second_output)
+            .expect("refreshed capsule modes should succeed");
+
+        let second_responses = decode_responses(&second_output);
+        let refreshed_overview: Value = serde_json::from_str(
+            second_responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("refreshed overview text should exist"),
+        )
+        .expect("refreshed overview payload should be valid json");
+        let cached_overview: Value = serde_json::from_str(
+            second_responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("cached overview text should exist"),
+        )
+        .expect("cached overview payload should be valid json");
+        let refreshed_task: Value = serde_json::from_str(
+            second_responses[3]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("refreshed task text should exist"),
+        )
+        .expect("refreshed task payload should be valid json");
+        let cached_task: Value = serde_json::from_str(
+            second_responses[4]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("cached task text should exist"),
+        )
+        .expect("cached task payload should be valid json");
+
+        assert_eq!(refreshed_overview, cached_overview);
+        assert_eq!(refreshed_task, cached_task);
+        assert_eq!(refreshed_overview["documents"][0]["contents"], "fresh overview after sync\n");
+        assert!(refreshed_task["documents"][0]["contents"]
+            .as_str()
+            .expect("refreshed task contents should exist")
+            .contains("id: u32"));
+        assert_ne!(refreshed_overview, first_overview);
+        assert_ne!(refreshed_task, first_task);
+    }
+
     #[tokio::test]
     async fn backend_truth_endpoint_exposes_current_contract() {
         let response = http_router()
@@ -1382,7 +1850,103 @@ mod tests {
         assert_eq!(payload["retrieval"]["modes"], json!(["exact_search", "overview", "task_capsule"]));
         assert_eq!(payload["retrieval"]["limits"]["max_context_items"], 5);
         assert_eq!(payload["retrieval"]["durable_memory_enabled"], true);
+        assert_eq!(payload["retrieval"]["cache"]["exact_search_enabled"], true);
+        assert_eq!(payload["retrieval"]["cache"]["overview_enabled"], true);
+        assert_eq!(payload["retrieval"]["cache"]["task_capsule_enabled"], true);
+        assert_eq!(payload["retrieval"]["cache"]["sync_invalidates_caches"], true);
+        assert_eq!(payload["cache"]["exact_search_enabled"], true);
+        assert_eq!(payload["cache"]["overview_enabled"], true);
+        assert_eq!(payload["cache"]["task_capsule_enabled"], true);
+        assert_eq!(payload["cache"]["sync_invalidates_caches"], true);
         assert!(payload["proofs"].as_array().map(|items| items.len()).unwrap_or_default() >= 5);
+    }
+
+    #[tokio::test]
+    async fn local_operator_workflow_is_visible_through_truth_and_stdio() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+
+        let register_request = json_rpc_request(
+            41,
+            "tools/call",
+            json!({
+                "name": "register_repository",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let sync_request = json_rpc_request(
+            42,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            43,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            register_request.len(),
+            register_request,
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("local operator workflow should succeed");
+
+        let responses = decode_responses(&output);
+        let registered: Value = serde_json::from_str(
+            responses[0]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("register text should exist"),
+        )
+        .expect("register payload should be valid json");
+        let assembly: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("assembly text should exist"),
+        )
+        .expect("assembly payload should be valid json");
+
+        assert_eq!(registered["repository"]["name"], repo_root.file_name().and_then(|value| value.to_str()).unwrap_or_default());
+        assert_eq!(assembly["query"], "needle");
+        assert_eq!(assembly["snippets"].as_array().map(|items| items.len()), Some(1));
+
+        let response = http_router()
+            .oneshot(Request::builder().uri("/truth").body(Body::empty()).expect("request should build"))
+            .await
+            .expect("truth endpoint should respond");
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body should read");
+        let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
+
+        assert!(payload["proofs"]
+            .as_array()
+            .expect("proofs should be an array")
+            .iter()
+            .any(|proof| proof["id"] == "local_operator_workflow"));
     }
 
     #[test]

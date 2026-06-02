@@ -19,7 +19,7 @@ pub struct EngineInfo {
     mode: &'static str,
 }
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, PartialOrd, Ord)]
 #[serde(rename_all = "snake_case")]
 pub enum RetrievalMode {
     ExactSearch,
@@ -203,6 +203,29 @@ struct StoredMemoryNotes {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct StoredExactMatchCache {
+    entries: Vec<StoredExactMatchCacheEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredExactMatchCacheEntry {
+    query: String,
+    assembly: ContextAssembly,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct StoredCapsuleCache {
+    entries: Vec<StoredCapsuleCacheEntry>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+struct StoredCapsuleCacheEntry {
+    mode: RetrievalMode,
+    query: Option<String>,
+    capsule: ContextCapsule,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct StoredRegisteredRepositories {
     repositories: Vec<RegisteredRepository>,
 }
@@ -220,21 +243,36 @@ impl EngineInfo {
     }
 }
 
+fn normalize_query(query: &str) -> String {
+    query
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ")
+        .to_ascii_lowercase()
+}
+
 pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<ContextAssembly> {
+    let query = normalize_query(query);
     let capped_limit = limit.clamp(1, 5);
-    let hits = search_code(root, query, capped_limit + 1)?;
-    let (snippets, omissions) = pack_snippets(query, hits, capped_limit);
-    let (memory_notes, memory_omissions) = pack_memory_notes(query, find_memory_notes(root, query)?, capped_limit);
+    if let Some(assembly) = read_exact_match_cache(root, &query)? {
+        append_history(root, &assembly)?;
+        return Ok(assembly);
+    }
+
+    let hits = search_code(root, &query, capped_limit + 1)?;
+    let (snippets, omissions) = pack_snippets(&query, hits, capped_limit);
+    let (memory_notes, memory_omissions) = pack_memory_notes(&query, find_memory_notes(root, &query)?, capped_limit);
     let mut omissions = omissions;
     omissions.extend(memory_omissions);
     let assembly = ContextAssembly {
-        query: query.to_string(),
+        query: query.clone(),
         generated_at_epoch_ms: now_epoch_ms()?,
         snippets,
         memory_notes,
         omissions,
     };
 
+    persist_exact_match_cache(root, &query, &assembly)?;
     append_history(root, &assembly)?;
 
     Ok(assembly)
@@ -290,10 +328,11 @@ pub fn retrieve_context(
             let query = query.ok_or_else(|| {
                 io::Error::new(io::ErrorKind::InvalidInput, "task_capsule requires a query")
             })?;
-            let capsule = assemble_task_capsule(root, query, limit)?;
+            let normalized_query = normalize_query(query);
+            let capsule = assemble_task_capsule(root, &normalized_query, limit)?;
             Ok(RetrievedContext {
                 mode,
-                query: Some(query.to_string()),
+                query: Some(normalized_query),
                 generated_at_epoch_ms: capsule.generated_at_epoch_ms,
                 snippets: Vec::new(),
                 memory_notes: Vec::new(),
@@ -427,7 +466,16 @@ pub fn registered_repository_state(
         .collect()
 }
 
+pub fn invalidate_exact_match_cache(root: &Path) -> io::Result<()> {
+    clear_exact_match_cache(root)?;
+    clear_capsule_cache(root)
+}
+
 pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule> {
+    if let Some(capsule) = read_capsule_cache(root, RetrievalMode::Overview, None)? {
+        return Ok(capsule);
+    }
+
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
     let documents = indexed_documents(root, capped_limit + 1)?;
     let (documents, omissions) = pack_documents(
@@ -437,16 +485,23 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
         "Indexed document supports repository overview.",
         "repository overview",
     );
-    Ok(ContextCapsule {
+    let capsule = ContextCapsule {
         generated_at_epoch_ms: now_epoch_ms()?,
         documents,
         omissions,
-    })
+    };
+    persist_capsule_cache(root, RetrievalMode::Overview, None, &capsule)?;
+    Ok(capsule)
 }
 
 pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Result<ContextCapsule> {
+    let query = normalize_query(query);
+    if let Some(capsule) = read_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query))? {
+        return Ok(capsule);
+    }
+
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
-    let documents = matching_documents(root, query, capped_limit + 1)?;
+    let documents = matching_documents(root, &query, capped_limit + 1)?;
     let reason_detail = format!("Indexed document contents matched query '{query}'.");
     let scope = format!("query '{query}'");
     let (documents, omissions) = pack_documents(
@@ -456,11 +511,13 @@ pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Resu
         &reason_detail,
         &scope,
     );
-    Ok(ContextCapsule {
+    let capsule = ContextCapsule {
         generated_at_epoch_ms: now_epoch_ms()?,
         documents,
         omissions,
-    })
+    };
+    persist_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query), &capsule)?;
+    Ok(capsule)
 }
 
 pub fn memory_write(root: &Path, title: &str, content: &str, tags: &[String]) -> io::Result<MemoryWriteResult> {
@@ -725,6 +782,14 @@ fn history_path(root: &Path) -> PathBuf {
     root.join(".quotarelay").join("context_runs.json")
 }
 
+fn exact_match_cache_path(root: &Path) -> PathBuf {
+    root.join(".quotarelay").join("exact_match_cache.json")
+}
+
+fn capsule_cache_path(root: &Path) -> PathBuf {
+    root.join(".quotarelay").join("retrieval_capsules.json")
+}
+
 fn memory_notes_path(root: &Path) -> PathBuf {
     root.join(".quotarelay").join("memory_notes.json")
 }
@@ -749,6 +814,118 @@ fn persist_memory_notes(root: &Path, notes: &StoredMemoryNotes) -> io::Result<()
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(notes).map_err(io::Error::other)?)
+}
+
+fn load_exact_match_cache(root: &Path) -> io::Result<StoredExactMatchCache> {
+    let path = exact_match_cache_path(root);
+    if !path.exists() {
+        return Ok(StoredExactMatchCache::default());
+    }
+
+    let bytes = fs::read(path)?;
+    serde_json::from_slice(&bytes).map_err(io::Error::other)
+}
+
+fn load_capsule_cache(root: &Path) -> io::Result<StoredCapsuleCache> {
+    let path = capsule_cache_path(root);
+    if !path.exists() {
+        return Ok(StoredCapsuleCache::default());
+    }
+
+    let bytes = fs::read(path)?;
+    serde_json::from_slice(&bytes).map_err(io::Error::other)
+}
+
+fn read_exact_match_cache(root: &Path, query: &str) -> io::Result<Option<ContextAssembly>> {
+    let query = normalize_query(query);
+    let stored = load_exact_match_cache(root)?;
+    Ok(stored
+        .entries
+        .into_iter()
+        .find(|entry| entry.query == query)
+        .map(|entry| entry.assembly))
+}
+
+fn persist_exact_match_cache(root: &Path, query: &str, assembly: &ContextAssembly) -> io::Result<()> {
+    let query = normalize_query(query);
+    let mut stored = load_exact_match_cache(root)?;
+    if let Some(entry) = stored.entries.iter_mut().find(|entry| entry.query == query) {
+        entry.assembly = assembly.clone();
+    } else {
+        stored.entries.push(StoredExactMatchCacheEntry {
+            query: query.to_string(),
+            assembly: assembly.clone(),
+        });
+        stored.entries.sort_by(|left, right| left.query.cmp(&right.query));
+    }
+
+    let path = exact_match_cache_path(root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(&stored).map_err(io::Error::other)?)
+}
+
+fn read_capsule_cache(root: &Path, mode: RetrievalMode, query: Option<&str>) -> io::Result<Option<ContextCapsule>> {
+    let query = query.map(normalize_query);
+    let stored = load_capsule_cache(root)?;
+    Ok(stored
+        .entries
+        .into_iter()
+        .find(|entry| entry.mode == mode && entry.query.as_deref() == query.as_deref())
+        .map(|entry| entry.capsule))
+}
+
+fn persist_capsule_cache(
+    root: &Path,
+    mode: RetrievalMode,
+    query: Option<&str>,
+    capsule: &ContextCapsule,
+) -> io::Result<()> {
+    let query = query.map(normalize_query);
+    let mut stored = load_capsule_cache(root)?;
+    if let Some(entry) = stored
+        .entries
+        .iter_mut()
+        .find(|entry| entry.mode == mode && entry.query.as_deref() == query.as_deref())
+    {
+        entry.capsule = capsule.clone();
+    } else {
+        stored.entries.push(StoredCapsuleCacheEntry {
+            mode,
+            query: query.clone(),
+            capsule: capsule.clone(),
+        });
+        stored.entries.sort_by(|left, right| {
+            left.mode
+                .cmp(&right.mode)
+                .then_with(|| left.query.cmp(&right.query))
+        });
+    }
+
+    let path = capsule_cache_path(root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(&stored).map_err(io::Error::other)?)
+}
+
+fn clear_exact_match_cache(root: &Path) -> io::Result<()> {
+    let path = exact_match_cache_path(root);
+    if !path.exists() {
+        return Ok(());
+    }
+
+    fs::remove_file(path)
+}
+
+fn clear_capsule_cache(root: &Path) -> io::Result<()> {
+    let path = capsule_cache_path(root);
+    if !path.exists() {
+        return Ok(());
+    }
+
+    fs::remove_file(path)
 }
 
 fn load_registered_repositories(state_root: &Path) -> io::Result<StoredRegisteredRepositories> {
@@ -809,6 +986,7 @@ mod tests {
 
     use super::{
         assemble_context, assemble_overview, assemble_task_capsule, context_run_history,
+        invalidate_exact_match_cache,
         list_registered_repositories, memory_read, memory_search, memory_write,
         register_repository, registered_repository_state, remove_registered_repository,
         retrieve_context, EngineInfo, InclusionReasonKind, OmissionReasonKind,
@@ -1054,6 +1232,182 @@ mod tests {
         assert_eq!(assembly.memory_notes[0].reason.kind, InclusionReasonKind::MemoryNoteMatch);
         assert!(assembly.memory_notes[0].content.ends_with(TRUNCATED_PACK_MARKER));
         assert!(assembly.omissions.iter().any(|item| item.kind == OmissionReasonKind::ByteBudgetReached));
+    }
+
+    #[test]
+    fn exact_search_cache_persists_and_reuses_previous_payload() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("alpha file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let first = assemble_context(&root, "needle", 2).expect("first assembly should succeed");
+        fs::write(root.join("alpha.txt"), "changed contents without the query\n")
+            .expect("repo file should rewrite");
+
+        let second = assemble_context(&root, "needle", 2).expect("second assembly should succeed");
+
+        assert_eq!(second.query, first.query);
+        assert_eq!(second.generated_at_epoch_ms, first.generated_at_epoch_ms);
+        assert_eq!(second.snippets.len(), first.snippets.len());
+        assert_eq!(second.snippets[0].path, first.snippets[0].path);
+        assert_eq!(second.snippets[0].line_number, first.snippets[0].line_number);
+        assert_eq!(second.snippets[0].line, first.snippets[0].line);
+        assert_eq!(second.snippets[0].reason.kind, first.snippets[0].reason.kind);
+        assert_eq!(second.snippets[0].reason.detail, first.snippets[0].reason.detail);
+        assert_eq!(second.memory_notes.len(), first.memory_notes.len());
+        assert_eq!(second.omissions, first.omissions);
+        assert!(root.join(".quotarelay").join("exact_match_cache.json").exists());
+    }
+
+    #[test]
+    fn exact_search_cache_misses_for_different_queries() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("alpha file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let cached = assemble_context(&root, "needle", 2).expect("needle assembly should succeed");
+        let miss = assemble_context(&root, "missing", 2).expect("missing assembly should succeed");
+
+        assert_eq!(cached.snippets.len(), 1);
+        assert!(miss.snippets.is_empty());
+        assert!(miss.omissions.iter().any(|item| item.kind == OmissionReasonKind::NoLineMatches));
+    }
+
+    #[test]
+    fn exact_search_cache_canonicalizes_equivalent_queries() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("alpha file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let first = assemble_context(&root, "Needle", 2).expect("first assembly should succeed");
+        fs::write(root.join("alpha.txt"), "changed contents without the query\n").expect("repo file should rewrite");
+
+        let second = assemble_context(&root, "  needle  ", 2).expect("second assembly should succeed");
+
+        assert_eq!(second.generated_at_epoch_ms, first.generated_at_epoch_ms);
+        assert_eq!(second.query, first.query);
+        assert_eq!(second.snippets[0].path, first.snippets[0].path);
+        assert_eq!(second.snippets[0].line, first.snippets[0].line);
+    }
+
+    #[test]
+    fn task_capsule_cache_canonicalizes_equivalent_queries() {
+        let root = temp_repo();
+        fs::write(
+            root.join("lib.rs"),
+            "struct Widget {\n    id: usize,\n}\n",
+        )
+        .expect("rust file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let first = assemble_task_capsule(&root, "Widget", 2).expect("first task capsule should succeed");
+        fs::write(
+            root.join("lib.rs"),
+            "struct Widget {\n    id: u32,\n}\n",
+        )
+        .expect("rust file should rewrite");
+
+        let second = assemble_task_capsule(&root, " widget ", 2).expect("second task capsule should succeed");
+
+        assert_eq!(second.generated_at_epoch_ms, first.generated_at_epoch_ms);
+        assert_eq!(second.documents[0].path, first.documents[0].path);
+        assert_eq!(second.documents[0].contents, first.documents[0].contents);
+    }
+
+    #[test]
+    fn exact_search_cache_is_cleared_on_sync_invalidation() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("alpha file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let cached = assemble_context(&root, "needle", 2).expect("initial assembly should succeed");
+        fs::write(root.join("alpha.txt"), "fresh needle after sync\n").expect("repo file should rewrite");
+        repo_index::sync_repo(&root).expect("resync should succeed");
+        invalidate_exact_match_cache(&root).expect("cache invalidation should succeed");
+
+        let refreshed = assemble_context(&root, "needle", 2).expect("refreshed assembly should succeed");
+
+        assert_ne!(refreshed.generated_at_epoch_ms, cached.generated_at_epoch_ms);
+        assert_ne!(refreshed.snippets[0].line, cached.snippets[0].line);
+        assert_eq!(refreshed.snippets[0].line, "fresh needle after sync");
+    }
+
+    #[test]
+    fn overview_cache_persists_and_reuses_previous_payload() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "alpha overview\n").expect("alpha file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let first = assemble_overview(&root, 2).expect("first overview should succeed");
+        fs::write(root.join("alpha.txt"), "changed overview without sync\n")
+            .expect("alpha file should rewrite");
+
+        let second = assemble_overview(&root, 2).expect("second overview should succeed");
+
+        assert_eq!(second.generated_at_epoch_ms, first.generated_at_epoch_ms);
+        assert_eq!(second.documents.len(), first.documents.len());
+        assert_eq!(second.documents[0].path, first.documents[0].path);
+        assert_eq!(second.documents[0].contents, first.documents[0].contents);
+        assert!(root.join(".quotarelay").join("retrieval_capsules.json").exists());
+    }
+
+    #[test]
+    fn task_capsule_cache_persists_and_reuses_previous_payload() {
+        let root = temp_repo();
+        fs::write(
+            root.join("lib.rs"),
+            "struct Widget {\n    id: usize,\n}\n",
+        )
+        .expect("rust file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let first = assemble_task_capsule(&root, "Widget", 2).expect("first task capsule should succeed");
+        fs::write(
+            root.join("lib.rs"),
+            "struct Widget {\n    id: u32,\n}\n",
+        )
+        .expect("rust file should rewrite");
+
+        let second = assemble_task_capsule(&root, "Widget", 2).expect("second task capsule should succeed");
+
+        assert_eq!(second.generated_at_epoch_ms, first.generated_at_epoch_ms);
+        assert_eq!(second.documents.len(), first.documents.len());
+        assert_eq!(second.documents[0].path, first.documents[0].path);
+        assert_eq!(second.documents[0].contents, first.documents[0].contents);
+    }
+
+    #[test]
+    fn capsule_caches_are_cleared_on_sync_invalidation() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "alpha overview\n").expect("alpha file should write");
+        fs::write(
+            root.join("lib.rs"),
+            "struct Widget {\n    id: usize,\n}\n",
+        )
+        .expect("rust file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let cached_overview = assemble_overview(&root, 2).expect("cached overview should succeed");
+        let cached_task = assemble_task_capsule(&root, "Widget", 2).expect("cached task capsule should succeed");
+
+        fs::write(root.join("alpha.txt"), "fresh overview after sync\n").expect("alpha file should rewrite");
+        fs::write(
+            root.join("lib.rs"),
+            "struct Widget {\n    id: u32,\n}\n",
+        )
+        .expect("rust file should rewrite");
+        repo_index::sync_repo(&root).expect("resync should succeed");
+        invalidate_exact_match_cache(&root).expect("cache invalidation should succeed");
+
+        let refreshed_overview = assemble_overview(&root, 2).expect("refreshed overview should succeed");
+        let refreshed_task = assemble_task_capsule(&root, "Widget", 2).expect("refreshed task capsule should succeed");
+
+        assert_ne!(refreshed_overview.generated_at_epoch_ms, cached_overview.generated_at_epoch_ms);
+        assert_ne!(refreshed_overview.documents[0].contents, cached_overview.documents[0].contents);
+        assert_eq!(refreshed_overview.documents[0].contents, "fresh overview after sync\n");
+        assert_ne!(refreshed_task.generated_at_epoch_ms, cached_task.generated_at_epoch_ms);
+        assert_ne!(refreshed_task.documents[0].contents, cached_task.documents[0].contents);
+        assert!(refreshed_task.documents[0].contents.contains("id: u32"));
     }
 
     #[test]

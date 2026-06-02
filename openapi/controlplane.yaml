@@ -23,6 +23,7 @@ components:
       required:
         - tools
         - retrieval
+        - cache
         - proofs
       properties:
         tools:
@@ -31,6 +32,8 @@ components:
             $ref: '#/components/schemas/ToolDescriptor'
         retrieval:
           $ref: '#/components/schemas/RetrievalTruth'
+        cache:
+          $ref: '#/components/schemas/CacheTruth'
         proofs:
           type: array
           items:
@@ -100,6 +103,7 @@ components:
         - omission_reason_kinds
         - limits
         - durable_memory_enabled
+        - cache
       properties:
         modes:
           type: array
@@ -116,6 +120,25 @@ components:
         limits:
           $ref: '#/components/schemas/RetrievalLimits'
         durable_memory_enabled:
+          type: boolean
+        cache:
+          $ref: '#/components/schemas/CacheTruth'
+    CacheTruth:
+      type: object
+      additionalProperties: false
+      required:
+        - exact_search_enabled
+        - overview_enabled
+        - task_capsule_enabled
+        - sync_invalidates_caches
+      properties:
+        exact_search_enabled:
+          type: boolean
+        overview_enabled:
+          type: boolean
+        task_capsule_enabled:
+          type: boolean
+        sync_invalidates_caches:
           type: boolean
     RetrievalLimits:
       type: object

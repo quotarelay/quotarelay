@@ -70,6 +70,7 @@
 <script>
   import { ref, shallowRef } from '@terajs/reactivity'
   import { onMounted } from '@terajs/runtime'
+  import { loadBackendTruth, proofTitle, toolSignals } from '../truth'
 
   const truthRouteRef = ref('/truth')
   const fetchStateRef = ref('Loading')
@@ -102,105 +103,18 @@
     return retrievalTruthRef.value
   }
 
-  function formatList(values) {
-    return values.length > 0 ? values.join(', ') : 'none'
-  }
-
-  function toolSignals(tool) {
-    const schema = tool?.inputSchema
-    if (!schema || typeof schema !== 'object') {
-      return ['no schema']
-    }
-
-    const required = Array.isArray(schema.required) ? schema.required : []
-    const properties = schema.properties && typeof schema.properties === 'object'
-      ? Object.keys(schema.properties)
-      : []
-
-    if (required.length === 0 && properties.length === 0) {
-      return ['no input']
-    }
-
-    const chips = []
-    if (required.length > 0) {
-      chips.push(`required: ${required.join(', ')}`)
-    }
-    if (properties.length > 0) {
-      chips.push(`fields: ${properties.join(', ')}`)
-    }
-    return chips
-  }
-
-  function proofTitle(proof) {
-    return String(proof?.id ?? 'proof').replaceAll('_', ' ')
-  }
-
-  function toRetrievalTruthItems(retrieval) {
-    const limits = retrieval?.limits ?? {}
-    return [
-      {
-        state: 'Modes',
-        title: 'Retrieval modes',
-        description: formatList(Array.isArray(retrieval?.modes) ? retrieval.modes : [])
-      },
-      {
-        state: 'Inclusion',
-        title: 'Inclusion reason kinds',
-        description: formatList(Array.isArray(retrieval?.inclusion_reason_kinds) ? retrieval.inclusion_reason_kinds : [])
-      },
-      {
-        state: 'Omission',
-        title: 'Omission reason kinds',
-        description: formatList(Array.isArray(retrieval?.omission_reason_kinds) ? retrieval.omission_reason_kinds : [])
-      },
-      {
-        state: 'Limits',
-        title: 'Hard limits',
-        description: `items ${limits.max_context_items ?? 0}; snippet bytes ${limits.max_snippet_pack_bytes ?? 0}; document bytes ${limits.max_document_pack_bytes ?? 0}; memory bytes ${limits.max_memory_pack_bytes ?? 0}; history runs ${limits.max_history_runs ?? 0}`
-      },
-      {
-        state: 'Memory',
-        title: 'Durable memory',
-        description: retrieval?.durable_memory_enabled ? 'enabled' : 'disabled'
-      },
-      {
-        state: 'Mirror',
-        title: 'Truth source',
-        description: 'Rendered from the live backend /truth payload.'
-      }
-    ]
-  }
-
   async function loadBackendTruth() {
     fetchStateRef.value = 'Loading'
     fetchErrorRef.value = ''
-
-    try {
-      const response = await fetch(truthRouteRef.value, {
-        headers: {
-          accept: 'application/json'
-        }
-      })
-
-      if (!response.ok) {
-        throw new Error(`GET ${truthRouteRef.value} returned ${response.status}`)
-      }
-
-      const payload = await response.json()
-      backendToolsRef.value = Array.isArray(payload?.tools) ? payload.tools : []
-      proofsRef.value = Array.isArray(payload?.proofs) ? payload.proofs : []
-      retrievalTruthRef.value = toRetrievalTruthItems(payload?.retrieval)
-      fetchStateRef.value = 'Live'
-    } catch (error) {
-      backendToolsRef.value = []
-      proofsRef.value = []
-      retrievalTruthRef.value = []
-      fetchStateRef.value = 'Unavailable'
-      fetchErrorRef.value = error instanceof Error ? error.message : 'Failed to load /truth'
-    }
+    const state = await loadBackendTruth(fetch, truthRouteRef.value)
+    backendToolsRef.value = state.backendTools
+    proofsRef.value = state.proofs
+    retrievalTruthRef.value = state.retrievalTruth
+    fetchStateRef.value = state.fetchState
+    fetchErrorRef.value = state.fetchError
   }
 
   onMounted(() => {
-    void loadBackendTruth()
+    void loadTruthIntoState()
   })
 </script>
