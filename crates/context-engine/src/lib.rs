@@ -13,6 +13,7 @@ const TRUNCATED_PACK_MARKER: &str = "...";
 const MAX_CONTEXT_ITEMS: usize = 5;
 const MAX_HISTORY_RUNS: usize = 10;
 const MAX_REGISTERED_REPOSITORIES: usize = 20;
+const MAX_MEMORY_TRANSFER_NOTES: usize = 50;
 
 pub struct EngineInfo {
     name: &'static str,
@@ -121,6 +122,34 @@ pub struct MemoryNote {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MemoryWriteResult {
     pub note: MemoryNote,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MemoryUpdateResult {
+    pub note: MemoryNote,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MemoryDeleteResult {
+    pub note: Option<MemoryNote>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MemoryExportPayload {
+    pub notes: Vec<MemoryNote>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MemoryExportResult {
+    pub payload: MemoryExportPayload,
+    pub omitted_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct MemoryImportResult {
+    pub imported_count: usize,
+    pub replaced_count: usize,
+    pub omitted_count: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -304,6 +333,17 @@ pub fn context_run_history(root: &Path, limit: usize) -> io::Result<Vec<ContextA
         .rev()
         .take(capped_limit)
         .collect())
+}
+
+pub fn context_run_detail(root: &Path, generated_at_epoch_ms: u128) -> io::Result<Option<ContextAssembly>> {
+    let history = load_history(root)?;
+
+    Ok(history
+        .runs
+        .into_iter()
+        .rev()
+        .take(MAX_HISTORY_RUNS)
+        .find(|run| run.generated_at_epoch_ms == generated_at_epoch_ms))
 }
 
 pub fn retrieve_context(
@@ -550,6 +590,107 @@ pub fn memory_write(root: &Path, title: &str, content: &str, tags: &[String]) ->
     stored.notes.push(note.clone());
     persist_memory_notes(root, &stored)?;
     Ok(MemoryWriteResult { note })
+}
+
+pub fn memory_update(
+    root: &Path,
+    id: &str,
+    title: Option<&str>,
+    content: Option<&str>,
+    tags: Option<&[String]>,
+) -> io::Result<MemoryUpdateResult> {
+    let mut stored = load_memory_notes(root)?;
+    let note = stored
+        .notes
+        .iter_mut()
+        .find(|note| note.id == id)
+        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, format!("memory note {id} not found")))?;
+
+    let mut changed = false;
+
+    if let Some(title) = title {
+        note.title = title.to_string();
+        changed = true;
+    }
+    if let Some(content) = content {
+        note.content = content.to_string();
+        changed = true;
+    }
+    if let Some(tags) = tags {
+        note.tags = tags.to_vec();
+        changed = true;
+    }
+
+    if !changed {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "memory update requires at least one field to change",
+        ));
+    }
+
+    note.updated_at_epoch_ms = now_epoch_ms()?;
+    let updated = note.clone();
+    persist_memory_notes(root, &stored)?;
+
+    Ok(MemoryUpdateResult { note: updated })
+}
+
+pub fn memory_delete(root: &Path, id: &str) -> io::Result<MemoryDeleteResult> {
+    let mut stored = load_memory_notes(root)?;
+    let removed = stored
+        .notes
+        .iter()
+        .position(|note| note.id == id)
+        .map(|index| stored.notes.remove(index));
+
+    if removed.is_some() {
+        persist_memory_notes(root, &stored)?;
+    }
+
+    Ok(MemoryDeleteResult { note: removed })
+}
+
+pub fn memory_export(root: &Path, limit: usize) -> io::Result<MemoryExportResult> {
+    let stored = load_memory_notes(root)?;
+    let capped_limit = limit.clamp(1, MAX_MEMORY_TRANSFER_NOTES);
+    let total_count = stored.notes.len();
+    let notes = stored.notes.into_iter().take(capped_limit).collect::<Vec<_>>();
+
+    Ok(MemoryExportResult {
+        payload: MemoryExportPayload { notes },
+        omitted_count: total_count.saturating_sub(capped_limit),
+    })
+}
+
+pub fn memory_import(root: &Path, payload: MemoryExportPayload) -> io::Result<MemoryImportResult> {
+    let mut stored = load_memory_notes(root)?;
+    let incoming_count = payload.notes.len();
+    let mut imported_count = 0;
+    let mut replaced_count = 0;
+    let mut omitted_count = incoming_count.saturating_sub(MAX_MEMORY_TRANSFER_NOTES);
+
+    for note in payload.notes.into_iter().take(MAX_MEMORY_TRANSFER_NOTES) {
+        if let Some(existing) = stored.notes.iter_mut().find(|existing| existing.id == note.id) {
+            *existing = note;
+            replaced_count += 1;
+        } else {
+            stored.notes.push(note);
+            imported_count += 1;
+        }
+    }
+
+    if stored.notes.len() > MAX_MEMORY_TRANSFER_NOTES {
+        omitted_count += stored.notes.len() - MAX_MEMORY_TRANSFER_NOTES;
+        stored.notes.truncate(MAX_MEMORY_TRANSFER_NOTES);
+    }
+
+    persist_memory_notes(root, &stored)?;
+
+    Ok(MemoryImportResult {
+        imported_count,
+        replaced_count,
+        omitted_count,
+    })
 }
 
 pub fn memory_read(root: &Path, id: &str) -> io::Result<Option<MemoryNote>> {
@@ -1044,9 +1185,11 @@ mod tests {
     use std::time::{SystemTime, UNIX_EPOCH};
 
     use super::{
-        assemble_context, assemble_overview, assemble_task_capsule, context_run_history,
+        assemble_context, assemble_overview, assemble_task_capsule, context_run_detail,
+        context_run_history,
         inspect_local_state, invalidate_exact_match_cache,
-        list_registered_repositories, memory_read, memory_search, memory_write,
+        list_registered_repositories, memory_delete, memory_export, memory_import, memory_read,
+        memory_search, memory_update, memory_write, MemoryExportPayload,
         register_repository, registered_repository_state, remove_registered_repository,
         retrieve_context, EngineInfo, InclusionReasonKind, OmissionReasonKind,
         RepositorySyncStatus, RetrievalMode, TRUNCATED_PACK_MARKER,
@@ -1093,6 +1236,24 @@ mod tests {
         assert!(history[0].memory_notes.is_empty());
         assert!(history[0].omissions.iter().any(|item| item.kind == OmissionReasonKind::NoLineMatches));
         assert!(history[0].omissions.iter().any(|item| item.kind == OmissionReasonKind::NoMemoryMatches));
+    }
+
+    #[test]
+    fn context_run_detail_reads_one_recent_run_by_timestamp() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("alpha file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let run = assemble_context(&root, "needle", 2).expect("assembly should succeed");
+        let detail = context_run_detail(&root, run.generated_at_epoch_ms)
+            .expect("detail lookup should succeed")
+            .expect("run detail should exist");
+
+        assert_eq!(detail.generated_at_epoch_ms, run.generated_at_epoch_ms);
+        assert_eq!(detail.snippets[0].reason.kind, InclusionReasonKind::QueryLineMatch);
+        assert!(context_run_detail(&root, run.generated_at_epoch_ms + 1)
+            .expect("missing detail lookup should succeed")
+            .is_none());
     }
 
     #[test]
@@ -1250,6 +1411,112 @@ mod tests {
 
         assert_eq!(loaded.title, "Design note");
         assert_eq!(loaded.tags, vec!["memory", "design"]);
+    }
+
+    #[test]
+    fn durable_memory_updates_and_deletes_notes() {
+        let root = temp_repo();
+
+        let created = memory_write(
+            &root,
+            "Design note",
+            "Durable memory must survive process restarts.",
+            &["memory".to_string(), "design".to_string()],
+        )
+        .expect("memory write should succeed");
+
+        let updated = memory_update(
+            &root,
+            &created.note.id,
+            Some("Updated note"),
+            Some("Updated memory content."),
+            Some(&["updated".to_string()]),
+        )
+        .expect("memory update should succeed");
+
+        assert_eq!(updated.note.id, created.note.id);
+        assert_eq!(updated.note.title, "Updated note");
+        assert_eq!(updated.note.content, "Updated memory content.");
+        assert_eq!(updated.note.tags, vec!["updated"]);
+        assert!(updated.note.updated_at_epoch_ms >= created.note.updated_at_epoch_ms);
+
+        let loaded = memory_read(&root, &created.note.id)
+            .expect("memory read should succeed")
+            .expect("updated note should exist");
+
+        assert_eq!(loaded.title, "Updated note");
+        assert_eq!(loaded.content, "Updated memory content.");
+        assert_eq!(loaded.tags, vec!["updated"]);
+
+        let deleted = memory_delete(&root, &created.note.id).expect("memory delete should succeed");
+        assert_eq!(deleted.note.as_ref().map(|note| note.id.as_str()), Some(created.note.id.as_str()));
+        assert!(memory_read(&root, &created.note.id).expect("memory read should succeed").is_none());
+    }
+
+    #[test]
+    fn durable_memory_exports_and_imports_bounded_json() {
+        let source = temp_repo();
+        let target = temp_repo();
+
+        let first = memory_write(
+            &source,
+            "Design note",
+            "Durable memory must survive migration.",
+            &["memory".to_string()],
+        )
+        .expect("first memory write should succeed");
+        memory_write(
+            &source,
+            "Second note",
+            "Second migrated memory.",
+            &["migration".to_string()],
+        )
+        .expect("second memory write should succeed");
+
+        let exported = memory_export(&source, 10).expect("memory export should succeed");
+        assert_eq!(exported.payload.notes.len(), 2);
+        assert_eq!(exported.omitted_count, 0);
+
+        let imported = memory_import(&target, exported.payload).expect("memory import should succeed");
+        assert_eq!(imported.imported_count, 2);
+        assert_eq!(imported.replaced_count, 0);
+        assert_eq!(imported.omitted_count, 0);
+
+        let loaded = memory_read(&target, &first.note.id)
+            .expect("memory read should succeed")
+            .expect("imported note should exist");
+        assert_eq!(loaded.title, "Design note");
+    }
+
+    #[test]
+    fn durable_memory_import_replaces_duplicate_ids() {
+        let root = temp_repo();
+
+        let created = memory_write(
+            &root,
+            "Original note",
+            "Original content.",
+            &["original".to_string()],
+        )
+        .expect("memory write should succeed");
+
+        let mut replacement = created.note.clone();
+        replacement.title = "Replacement note".to_string();
+        replacement.content = "Replacement content.".to_string();
+        replacement.tags = vec!["replacement".to_string()];
+
+        let imported = memory_import(&root, MemoryExportPayload { notes: vec![replacement] })
+            .expect("memory import should succeed");
+        assert_eq!(imported.imported_count, 0);
+        assert_eq!(imported.replaced_count, 1);
+        assert_eq!(imported.omitted_count, 0);
+
+        let loaded = memory_read(&root, &created.note.id)
+            .expect("memory read should succeed")
+            .expect("replacement note should exist");
+        assert_eq!(loaded.title, "Replacement note");
+        assert_eq!(loaded.content, "Replacement content.");
+        assert_eq!(loaded.tags, vec!["replacement"]);
     }
 
     #[test]

@@ -21,7 +21,12 @@ Today the backend exposes these MCP tools:
 - `search_code`
 - `memory_write`
 - `memory_read`
+- `memory_update`
+- `memory_delete`
+- `memory_export`
+- `memory_import`
 - `memory_search`
+- `context_run_detail`
 - `context_run_history`
 - `assemble_context`
 

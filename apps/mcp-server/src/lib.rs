@@ -4,10 +4,12 @@ use std::path::PathBuf;
 
 use axum::{routing::get, Json, Router};
 use context_engine::{
-    context_run_history, inspect_local_state, list_registered_repositories, memory_read, memory_search,
-    memory_write, register_repository, registered_repository_state, remove_registered_repository,
+    context_run_detail, context_run_history, inspect_local_state, list_registered_repositories, memory_export,
+    memory_import, memory_read, memory_search, memory_delete, memory_update, memory_write,
+    register_repository, registered_repository_state, remove_registered_repository,
     invalidate_exact_match_cache, ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult,
-    MemoryWriteResult, RegisteredRepository, RegisteredRepositoryState,
+    MemoryWriteResult, RegisteredRepository, RegisteredRepositoryState, MemoryDeleteResult,
+    MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryUpdateResult,
     RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
     RetrievalTruth, retrieve_context, retrieval_truth,
 };
@@ -127,7 +129,12 @@ fn current_tool_registry() -> Vec<Value> {
         search_code_tool(),
         memory_write_tool(),
         memory_read_tool(),
+        memory_update_tool(),
+        memory_delete_tool(),
+        memory_export_tool(),
+        memory_import_tool(),
         memory_search_tool(),
+        context_run_detail_tool(),
         context_run_history_tool(),
         assemble_context_tool(),
     ]
@@ -329,6 +336,22 @@ fn context_run_history_tool() -> Value {
     })
 }
 
+fn context_run_detail_tool() -> Value {
+    json!({
+        "name": "context_run_detail",
+        "description": "Reads one recent context run by generated_at_epoch_ms with inclusion and omission reasons.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "generated_at_epoch_ms": { "type": "integer", "minimum": 0 }
+            },
+            "required": ["root", "generated_at_epoch_ms"],
+            "additionalProperties": false
+        }
+    })
+}
+
 fn register_repository_tool() -> Value {
     json!({
         "name": "register_repository",
@@ -422,6 +445,80 @@ fn memory_read_tool() -> Value {
                 "id": { "type": "string" }
             },
             "required": ["root", "id"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn memory_update_tool() -> Value {
+    json!({
+        "name": "memory_update",
+        "description": "Updates a durable memory note by id in the local Quotarelay state directory.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "id": { "type": "string" },
+                "title": { "type": "string" },
+                "content": { "type": "string" },
+                "tags": { "type": "array", "items": { "type": "string" } }
+            },
+            "required": ["root", "id"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn memory_delete_tool() -> Value {
+    json!({
+        "name": "memory_delete",
+        "description": "Deletes one durable memory note by id from the local Quotarelay state directory.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "id": { "type": "string" }
+            },
+            "required": ["root", "id"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn memory_export_tool() -> Value {
+    json!({
+        "name": "memory_export",
+        "description": "Exports bounded durable memory notes as a local JSON payload for backup or migration.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 50 }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn memory_import_tool() -> Value {
+    json!({
+        "name": "memory_import",
+        "description": "Imports a bounded durable memory JSON payload into the local Quotarelay state directory.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "payload": {
+                    "type": "object",
+                    "properties": {
+                        "notes": { "type": "array" }
+                    },
+                    "required": ["notes"],
+                    "additionalProperties": false
+                }
+            },
+            "required": ["root", "payload"],
             "additionalProperties": false
         }
     })
@@ -523,6 +620,46 @@ fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("memory_update") => match memory_update_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("memory_delete") => match memory_delete_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("memory_export") => match memory_export_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("memory_import") => match memory_import_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("memory_search") => match memory_search_from_args(&arguments) {
             Ok(result) => json!({
                 "type": "text",
@@ -587,6 +724,16 @@ fn bootstrap_tool_call(request: &Value) -> Value {
             Ok(result) => json!({
                 "type": "text",
                 "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("context_run_detail") => match context_run_detail_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "null".to_string())
             }),
             Err(error) => json!({
                 "type": "text",
@@ -736,6 +883,73 @@ fn memory_read_from_args(arguments: &Value) -> Result<Option<MemoryNote>, String
     memory_read(&root, id).map_err(|error| format!("memory_read failed: {error}"))
 }
 
+fn memory_update_from_args(arguments: &Value) -> Result<MemoryUpdateResult, String> {
+    let root = parse_root(arguments)?;
+    let id = arguments
+        .get("id")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "memory_update requires a string id".to_string())?;
+    let title = arguments.get("title").and_then(Value::as_str);
+    let content = arguments.get("content").and_then(Value::as_str);
+    let tags = arguments
+        .get("tags")
+        .map(|values| {
+            values
+                .as_array()
+                .ok_or_else(|| "memory_update tags must be an array of strings".to_string())
+                .and_then(|items| {
+                    items
+                        .iter()
+                        .map(|value| {
+                            value
+                                .as_str()
+                                .map(ToString::to_string)
+                                .ok_or_else(|| "memory_update tags must be an array of strings".to_string())
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                })
+        })
+        .transpose()?;
+
+    memory_update(&root, id, title, content, tags.as_deref())
+        .map_err(|error| format!("memory_update failed: {error}"))
+}
+
+fn memory_delete_from_args(arguments: &Value) -> Result<MemoryDeleteResult, String> {
+    let root = parse_root(arguments)?;
+    let id = arguments
+        .get("id")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "memory_delete requires a string id".to_string())?;
+
+    memory_delete(&root, id).map_err(|error| format!("memory_delete failed: {error}"))
+}
+
+fn memory_export_from_args(arguments: &Value) -> Result<MemoryExportResult, String> {
+    let root = parse_root(arguments)?;
+    let limit = arguments
+        .get("limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(50);
+
+    memory_export(&root, limit).map_err(|error| format!("memory_export failed: {error}"))
+}
+
+fn memory_import_from_args(arguments: &Value) -> Result<MemoryImportResult, String> {
+    let root = parse_root(arguments)?;
+    let payload = arguments
+        .get("payload")
+        .cloned()
+        .ok_or_else(|| "memory_import requires a payload object".to_string())
+        .and_then(|value| {
+            serde_json::from_value::<MemoryExportPayload>(value)
+                .map_err(|error| format!("memory_import payload is invalid: {error}"))
+        })?;
+
+    memory_import(&root, payload).map_err(|error| format!("memory_import failed: {error}"))
+}
+
 fn memory_search_from_args(arguments: &Value) -> Result<MemorySearchResult, String> {
     let root = parse_root(arguments)?;
     let query = arguments
@@ -749,6 +963,18 @@ fn memory_search_from_args(arguments: &Value) -> Result<MemorySearchResult, Stri
         .unwrap_or(3);
 
     memory_search(&root, query, limit).map_err(|error| format!("memory_search failed: {error}"))
+}
+
+fn context_run_detail_from_args(arguments: &Value) -> Result<Option<ContextAssembly>, String> {
+    let root = parse_root(arguments)?;
+    let generated_at_epoch_ms = arguments
+        .get("generated_at_epoch_ms")
+        .and_then(Value::as_u64)
+        .map(u128::from)
+        .ok_or_else(|| "context_run_detail requires a numeric generated_at_epoch_ms".to_string())?;
+
+    context_run_detail(&root, generated_at_epoch_ms)
+        .map_err(|error| format!("context_run_detail failed: {error}"))
 }
 
 fn context_run_history_from_args(arguments: &Value) -> Result<Vec<ContextAssembly>, String> {
@@ -1045,7 +1271,12 @@ mod tests {
                 "search_code",
                 "memory_write",
                 "memory_read",
+                "memory_update",
+                "memory_delete",
+                "memory_export",
+                "memory_import",
                 "memory_search",
+                "context_run_detail",
                 "context_run_history",
                 "assemble_context",
             ]
@@ -1381,6 +1612,211 @@ mod tests {
         .expect("memory search payload should be valid json");
         assert_eq!(search_results["notes"].as_array().map(|items| items.len()), Some(1));
         assert_eq!(search_results["notes"][0]["title"], "Design note");
+    }
+
+    #[test]
+    fn durable_memory_update_and_delete_work_over_stdio() {
+        let repo_root = temp_repo();
+
+        let write_request = json_rpc_request(
+            27,
+            "tools/call",
+            json!({
+                "name": "memory_write",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "title": "Design note",
+                    "content": "Original memory content.",
+                    "tags": ["memory"]
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", write_request.len(), write_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("memory_write should succeed");
+        let created_response = decode_response(&output);
+        let created: Value = serde_json::from_str(
+            created_response["result"]["content"][0]["text"]
+                .as_str()
+                .expect("memory write text should exist"),
+        )
+        .expect("memory write payload should be valid json");
+        let note_id = created["note"]["id"]
+            .as_str()
+            .expect("note id should exist")
+            .to_string();
+
+        let update_request = json_rpc_request(
+            28,
+            "tools/call",
+            json!({
+                "name": "memory_update",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "id": note_id,
+                    "title": "Updated note",
+                    "content": "Updated memory content.",
+                    "tags": ["updated"]
+                }
+            }),
+        );
+        let delete_request = json_rpc_request(
+            29,
+            "tools/call",
+            json!({
+                "name": "memory_delete",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "id": created["note"]["id"]
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            update_request.len(),
+            update_request,
+            delete_request.len(),
+            delete_request
+        );
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("memory update and delete should succeed");
+        let responses = decode_responses(&output);
+        let updated: Value = serde_json::from_str(
+            responses[0]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("update text should exist"),
+        )
+        .expect("update payload should be valid json");
+        let deleted: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("delete text should exist"),
+        )
+        .expect("delete payload should be valid json");
+
+        assert_eq!(updated["note"]["title"], "Updated note");
+        assert_eq!(updated["note"]["content"], "Updated memory content.");
+        assert_eq!(updated["note"]["tags"], json!(["updated"]));
+        assert_eq!(deleted["note"]["id"], updated["note"]["id"]);
+
+        let read_request = json_rpc_request(
+            30,
+            "tools/call",
+            json!({
+                "name": "memory_read",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "id": updated["note"]["id"]
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", read_request.len(), read_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("memory read should succeed");
+        let read_response = decode_response(&output);
+        assert_eq!(read_response["result"]["content"][0]["text"], "null");
+    }
+
+    #[test]
+    fn durable_memory_export_and_import_work_over_stdio() {
+        let source_root = temp_repo();
+        let target_root = temp_repo();
+
+        let write_request = json_rpc_request(
+            31,
+            "tools/call",
+            json!({
+                "name": "memory_write",
+                "arguments": {
+                    "root": source_root.to_string_lossy(),
+                    "title": "Design note",
+                    "content": "Memory content for migration.",
+                    "tags": ["memory"]
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", write_request.len(), write_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("memory_write should succeed");
+
+        let export_request = json_rpc_request(
+            32,
+            "tools/call",
+            json!({
+                "name": "memory_export",
+                "arguments": {
+                    "root": source_root.to_string_lossy(),
+                    "limit": 10
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", export_request.len(), export_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("memory_export should succeed");
+        let export_response = decode_response(&output);
+        let exported: Value = serde_json::from_str(
+            export_response["result"]["content"][0]["text"]
+                .as_str()
+                .expect("export text should exist"),
+        )
+        .expect("export payload should be valid json");
+
+        assert_eq!(exported["payload"]["notes"].as_array().map(Vec::len), Some(1));
+        assert_eq!(exported["omitted_count"], 0);
+
+        let import_request = json_rpc_request(
+            33,
+            "tools/call",
+            json!({
+                "name": "memory_import",
+                "arguments": {
+                    "root": target_root.to_string_lossy(),
+                    "payload": exported["payload"]
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", import_request.len(), import_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("memory_import should succeed");
+        let import_response = decode_response(&output);
+        let imported: Value = serde_json::from_str(
+            import_response["result"]["content"][0]["text"]
+                .as_str()
+                .expect("import text should exist"),
+        )
+        .expect("import payload should be valid json");
+
+        assert_eq!(imported["imported_count"], 1);
+        assert_eq!(imported["replaced_count"], 0);
+        assert_eq!(imported["omitted_count"], 0);
+
+        let invalid_import_request = json_rpc_request(
+            34,
+            "tools/call",
+            json!({
+                "name": "memory_import",
+                "arguments": {
+                    "root": target_root.to_string_lossy(),
+                    "payload": { "notes": [{ "id": 7 }] }
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}",
+            invalid_import_request.len(),
+            invalid_import_request
+        );
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("invalid memory_import request should still produce a response");
+        let invalid_response = decode_response(&output);
+        assert!(
+            invalid_response["result"]["content"][0]["text"]
+                .as_str()
+                .expect("invalid import text should exist")
+                .contains("memory_import payload is invalid")
+        );
     }
 
     #[test]
@@ -2308,7 +2744,7 @@ mod tests {
             .expect("body should read");
         let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
 
-        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(14));
+        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(19));
         assert_eq!(payload["retrieval"]["modes"], json!(["exact_search", "overview", "task_capsule"]));
         assert_eq!(payload["retrieval"]["limits"]["max_context_items"], 5);
         assert_eq!(payload["retrieval"]["durable_memory_enabled"], true);
@@ -2530,6 +2966,78 @@ mod tests {
         assert_eq!(history[0]["query"], "needle");
         assert_eq!(history[0]["snippets"][0]["reason"]["kind"], "query_line_match");
         assert_eq!(history[0]["omissions"][0]["kind"], "item_limit_reached");
+    }
+
+    #[test]
+    fn context_run_detail_works_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "alpha needle\nbeta needle\ngamma needle\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            35,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            36,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("assembly should succeed");
+        let responses = decode_responses(&output);
+        let assembly: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("assembly text should exist"),
+        )
+        .expect("assembly payload should be valid json");
+
+        let detail_request = json_rpc_request(
+            37,
+            "tools/call",
+            json!({
+                "name": "context_run_detail",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "generated_at_epoch_ms": assembly["generated_at_epoch_ms"]
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", detail_request.len(), detail_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("detail call should succeed");
+
+        let detail_response = decode_response(&output);
+        let detail: Value = serde_json::from_str(
+            detail_response["result"]["content"][0]["text"]
+                .as_str()
+                .expect("detail text should exist"),
+        )
+        .expect("detail payload should be valid json");
+        assert_eq!(detail["generated_at_epoch_ms"], assembly["generated_at_epoch_ms"]);
+        assert_eq!(detail["snippets"][0]["reason"]["kind"], "query_line_match");
+        assert_eq!(detail["omissions"][0]["kind"], "item_limit_reached");
     }
 
     fn decode_response(output: &[u8]) -> Value {
