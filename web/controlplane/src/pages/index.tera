@@ -103,7 +103,7 @@
     return retrievalTruthRef.value
   }
 
-  async function loadBackendTruth() {
+  async function loadTruthIntoState() {
     fetchStateRef.value = 'Loading'
     fetchErrorRef.value = ''
     const state = await loadBackendTruth(fetch, truthRouteRef.value)

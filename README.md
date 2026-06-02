@@ -42,3 +42,16 @@ The control plane does not invent readiness, savings, or live health state. It r
 - `cargo test -p mcp-server repository_registration_tools_work_over_stdio`
 - `cargo test -p context-engine registered_repository_state_reports_sync_and_recent_run_truth`
 - `npm --prefix web/controlplane run build`
+
+## Local CLI
+
+The MCP server binary also exposes a non-interactive local CLI for operator workflows. CLI responses are newline-terminated JSON objects with `ok`, `command`, and either `result` or `error`.
+
+- `cargo run -p mcp-server -- --cli truth`
+- `cargo run -p mcp-server -- --cli register <state_root> <repo_root>`
+- `cargo run -p mcp-server -- --cli sync <repo_root>`
+- `cargo run -p mcp-server -- --cli state <repo_root>`
+- `cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]`
+- `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
+- `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`
+- `cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]`

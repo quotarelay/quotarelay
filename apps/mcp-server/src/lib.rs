@@ -4,7 +4,7 @@ use std::path::PathBuf;
 
 use axum::{routing::get, Json, Router};
 use context_engine::{
-    context_run_history, list_registered_repositories, memory_read, memory_search,
+    context_run_history, inspect_local_state, list_registered_repositories, memory_read, memory_search,
     memory_write, register_repository, registered_repository_state, remove_registered_repository,
     invalidate_exact_match_cache, ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult,
     MemoryWriteResult, RegisteredRepository, RegisteredRepositoryState,
@@ -119,6 +119,7 @@ fn current_tool_registry() -> Vec<Value> {
         bootstrap_tool(),
         sync_repo_tool(),
         repo_inventory_tool(),
+        inspect_local_state_tool(),
         register_repository_tool(),
         list_repositories_tool(),
         repository_state_tool(),
@@ -286,6 +287,21 @@ fn repo_inventory_tool() -> Value {
     json!({
         "name": "repo_inventory",
         "description": "Returns bounded repository inventory truth from the persisted local repository index.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn inspect_local_state_tool() -> Value {
+    json!({
+        "name": "inspect_local_state",
+        "description": "Returns bounded local Quotarelay state presence and counts without dumping persisted contents.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -527,6 +543,16 @@ fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("inspect_local_state") => match inspect_local_state_from_args(&arguments) {
+            Ok(state) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&state).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("register_repository") => match register_repository_from_args(&arguments) {
             Ok(result) => json!({
                 "type": "text",
@@ -624,6 +650,13 @@ fn search_code_from_args(arguments: &Value) -> Result<Vec<repo_index::SearchHit>
 fn repo_inventory_from_args(arguments: &Value) -> Result<repo_index::RepoInventory, String> {
     let root = parse_root(arguments)?;
     repo_inventory(&root).map_err(|error| format!("repo_inventory failed: {error}"))
+}
+
+fn inspect_local_state_from_args(
+    arguments: &Value,
+) -> Result<context_engine::LocalStateInspection, String> {
+    let root = parse_root(arguments)?;
+    inspect_local_state(&root).map_err(|error| format!("inspect_local_state failed: {error}"))
 }
 
 fn register_repository_from_args(
@@ -771,6 +804,176 @@ fn parse_repo_root(arguments: &Value) -> Result<PathBuf, String> {
     Ok(PathBuf::from(root))
 }
 
+pub fn run_cli<I, S, W>(args: I, mut stdout: W) -> io::Result<()>
+where
+    I: IntoIterator<Item = S>,
+    S: AsRef<str>,
+    W: Write,
+{
+    let mut args_iter = args.into_iter();
+    let command = match args_iter.next() {
+        Some(arg) => arg.as_ref().to_string(),
+        None => {
+            write_cli_error(&mut stdout, None, "missing command")?;
+            return Ok(());
+        }
+    };
+
+    let result = match command.as_str() {
+        "register" => run_cli_register(&mut args_iter),
+        "sync" => run_cli_sync(&mut args_iter),
+        "state" => run_cli_state(&mut args_iter),
+        "search" => run_cli_search(&mut args_iter),
+        "assemble" => run_cli_assemble(&mut args_iter),
+        "truth" => Ok(json!({"truth": backend_truth_payload()})),
+        _ => return write_cli_error(&mut stdout, Some(&command), &format!("unknown command: {command}")),
+    };
+
+    match result {
+        Ok(result) => {
+            serde_json::to_writer(&mut stdout, &json!({
+                "ok": true,
+                "command": command,
+                "result": result,
+            }))?;
+            stdout.write_all(b"\n")?;
+        }
+        Err(error) => {
+            write_cli_error(&mut stdout, Some(&command), &error)?;
+        }
+    }
+
+    Ok(())
+}
+
+fn run_cli_register<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let state_root = parse_cli_arg(args, "state_root")?;
+    let repo_root = parse_cli_arg(args, "repo_root")?;
+    let registration = register_repository(&PathBuf::from(state_root), &PathBuf::from(repo_root))
+        .map_err(|error| format!("register failed: {error}"))?;
+    Ok(json!({"repository": registration.repository}))
+}
+
+fn run_cli_sync<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let result = sync_repo(&PathBuf::from(&root)).map_err(|error| format!("sync failed: {error}"))?;
+    invalidate_exact_match_cache(&PathBuf::from(&root))
+        .map_err(|error| format!("sync failed to invalidate cache: {error}"))?;
+    Ok(json!({"sync": result}))
+}
+
+fn run_cli_state<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let state = inspect_local_state(&PathBuf::from(&root))
+        .map_err(|error| format!("state failed: {error}"))?;
+    Ok(json!({"state": state}))
+}
+
+fn run_cli_search<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let query = parse_cli_arg(args, "query")?;
+    let limit = parse_cli_limit(args, 5)?;
+    let hits = search_code(&PathBuf::from(&root), &query, limit)
+        .map_err(|error| format!("search failed: {error}"))?;
+    Ok(json!({"hits": hits}))
+}
+
+fn run_cli_assemble<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let mode = parse_cli_arg(args, "mode")?;
+    let query = match mode.as_str() {
+        "overview" => None,
+        "exact_search" | "task_capsule" => Some(parse_cli_arg(args, "query")?),
+        other => return Err(format!(
+            "assemble mode must be exact_search, overview, or task_capsule; got {other}"
+        )),
+    };
+    let limit = parse_cli_limit(args, 3)?;
+    let retrieval = retrieve_context(
+        &PathBuf::from(&root),
+        parse_retrieval_mode_from_str(&mode)?,
+        query.as_deref(),
+        limit,
+    )
+    .map_err(|error| format!("assemble failed: {error}"))?;
+    Ok(json!({"context": retrieval}))
+}
+
+fn parse_cli_arg<I, S>(args: &mut I, name: &str) -> Result<String, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    args
+        .next()
+        .map(|value| value.as_ref().to_string())
+        .ok_or_else(|| format!("{name} is required"))
+}
+
+fn parse_cli_arg_opt<I, S>(args: &mut I) -> Option<String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    args.next().map(|value| value.as_ref().to_string())
+}
+
+fn parse_cli_limit<I, S>(args: &mut I, default: usize) -> Result<usize, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    match parse_cli_arg_opt(args) {
+        Some(value) => value
+            .parse::<usize>()
+            .map_err(|error| format!("limit must be a positive integer: {error}")),
+        None => Ok(default),
+    }
+}
+
+fn parse_retrieval_mode_from_str(mode: &str) -> Result<RetrievalMode, String> {
+    match mode {
+        "exact_search" => Ok(RetrievalMode::ExactSearch),
+        "overview" => Ok(RetrievalMode::Overview),
+        "task_capsule" => Ok(RetrievalMode::TaskCapsule),
+        other => Err(format!(
+            "assemble mode must be exact_search, overview, or task_capsule; got {other}"
+        )),
+    }
+}
+
+fn write_cli_error<W: Write>(stdout: &mut W, command: Option<&str>, message: &str) -> io::Result<()> {
+    serde_json::to_writer(
+        &mut *stdout,
+        &json!({
+            "ok": false,
+            "command": command,
+            "error": message,
+        }),
+    )?;
+    stdout.write_all(b"\n")
+}
+
 #[cfg(test)]
 mod tests {
     use std::io::Cursor;
@@ -834,6 +1037,7 @@ mod tests {
                 "bootstrap_status",
                 "sync_repo",
                 "repo_inventory",
+                "inspect_local_state",
                 "register_repository",
                 "list_repositories",
                 "repository_state",
@@ -1254,6 +1458,264 @@ mod tests {
         assert_eq!(listed.as_array().map(|items| items.len()), Some(1));
         assert_eq!(listed[0]["root"], registered["repository"]["root"]);
         assert_eq!(removed["repository"]["root"], registered["repository"]["root"]);
+    }
+
+    #[test]
+    fn local_cli_register_sync_assemble_and_truth_workflow() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "needle in repo\n").expect("repo file should write");
+
+        let mut output = Vec::new();
+        super::run_cli(
+            [
+                "register".to_string(),
+                state_root.to_string_lossy().to_string(),
+                repo_root.to_string_lossy().to_string(),
+            ],
+            &mut output,
+        )
+        .expect("cli register should succeed");
+
+        let registered: Value = serde_json::from_slice(&output).expect("cli register payload should parse");
+        assert!(registered["ok"].as_bool().unwrap_or(false));
+        assert_eq!(registered["command"], "register");
+
+        output.clear();
+        super::run_cli([
+            "sync".to_string(),
+            repo_root.to_string_lossy().to_string(),
+        ], &mut output)
+        .expect("cli sync should succeed");
+
+        let synced: Value = serde_json::from_slice(&output).expect("cli sync payload should parse");
+        assert!(synced["ok"].as_bool().unwrap_or(false));
+        assert_eq!(synced["command"], "sync");
+        assert_eq!(synced["result"]["sync"]["indexed_files"], 1);
+
+        output.clear();
+        super::run_cli([
+            "state".to_string(),
+            repo_root.to_string_lossy().to_string(),
+        ], &mut output)
+        .expect("cli state should succeed");
+
+        let state: Value = serde_json::from_slice(&output).expect("cli state payload should parse");
+        assert!(state["ok"].as_bool().unwrap_or(false));
+        assert_eq!(state["command"], "state");
+        assert_eq!(state["result"]["state"]["index"]["present"], true);
+        assert_eq!(state["result"]["state"]["index"]["item_count"], 1);
+
+        output.clear();
+        super::run_cli(
+            [
+                "assemble".to_string(),
+                repo_root.to_string_lossy().to_string(),
+                "exact_search".to_string(),
+                "needle".to_string(),
+                "2".to_string(),
+            ],
+            &mut output,
+        )
+        .expect("cli assemble should succeed");
+
+        let assembly: Value = serde_json::from_slice(&output).expect("cli assemble payload should parse");
+        assert!(assembly["ok"].as_bool().unwrap_or(false));
+        assert_eq!(assembly["command"], "assemble");
+        assert_eq!(assembly["result"]["context"]["mode"], "exact_search");
+        assert_eq!(assembly["result"]["context"]["snippets"].as_array().map(|items| items.len()), Some(1));
+
+        output.clear();
+        super::run_cli(["truth".to_string()], &mut output)
+            .expect("cli truth should succeed");
+
+        let truth: Value = serde_json::from_slice(&output).expect("cli truth payload should parse");
+        assert!(truth["ok"].as_bool().unwrap_or(false));
+        assert_eq!(truth["command"], "truth");
+        assert_eq!(truth["result"]["truth"]["cache"]["exact_search_enabled"], true);
+        assert_eq!(truth["result"]["truth"]["cache"]["sync_invalidates_caches"], true);
+    }
+
+    #[test]
+    fn local_cli_uses_stable_json_success_and_error_contract() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "needle in repo\n").expect("repo file should write");
+        repo_index::sync_repo(&repo_root).expect("sync should succeed");
+
+        let mut output = Vec::new();
+        super::run_cli(["truth".to_string()], &mut output)
+            .expect("cli truth should succeed");
+        let truth: Value = serde_json::from_slice(&output).expect("truth payload should parse");
+        assert_eq!(truth["ok"], true);
+        assert_eq!(truth["command"], "truth");
+        assert!(truth["result"]["truth"]["tools"].is_array());
+
+        output.clear();
+        super::run_cli(
+            [
+                "search".to_string(),
+                repo_root.to_string_lossy().to_string(),
+                "needle".to_string(),
+                "1".to_string(),
+            ],
+            &mut output,
+        )
+        .expect("cli search should succeed");
+        let search: Value = serde_json::from_slice(&output).expect("search payload should parse");
+        assert_eq!(search["ok"], true);
+        assert_eq!(search["command"], "search");
+        assert_eq!(search["result"]["hits"].as_array().map(|items| items.len()), Some(1));
+
+        output.clear();
+        super::run_cli(
+            [
+                "assemble".to_string(),
+                repo_root.to_string_lossy().to_string(),
+                "overview".to_string(),
+                "1".to_string(),
+            ],
+            &mut output,
+        )
+        .expect("cli overview should succeed");
+        let overview: Value = serde_json::from_slice(&output).expect("overview payload should parse");
+        assert_eq!(overview["ok"], true);
+        assert_eq!(overview["command"], "assemble");
+        assert_eq!(overview["result"]["context"]["mode"], "overview");
+
+        output.clear();
+        super::run_cli(Vec::<String>::new(), &mut output)
+            .expect("missing command should produce json error");
+        let missing: Value = serde_json::from_slice(&output).expect("missing command payload should parse");
+        assert_eq!(missing["ok"], false);
+        assert!(missing["command"].is_null());
+        assert_eq!(missing["error"], "missing command");
+
+        output.clear();
+        super::run_cli(["unknown".to_string()], &mut output)
+            .expect("unknown command should produce json error");
+        let unknown: Value = serde_json::from_slice(&output).expect("unknown command payload should parse");
+        assert_eq!(unknown["ok"], false);
+        assert_eq!(unknown["command"], "unknown");
+        assert_eq!(unknown["error"], "unknown command: unknown");
+
+        output.clear();
+        super::run_cli(
+            [
+                "search".to_string(),
+                repo_root.to_string_lossy().to_string(),
+                "needle".to_string(),
+                "not-a-number".to_string(),
+            ],
+            &mut output,
+        )
+        .expect("invalid limit should produce json error");
+        let invalid_limit: Value = serde_json::from_slice(&output).expect("invalid limit payload should parse");
+        assert_eq!(invalid_limit["ok"], false);
+        assert_eq!(invalid_limit["command"], "search");
+        assert!(invalid_limit["error"]
+            .as_str()
+            .expect("error should be a string")
+            .starts_with("limit must be a positive integer"));
+    }
+
+    #[test]
+    fn inspect_local_state_works_over_stdio() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "needle in repo\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            61,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let register_request = json_rpc_request(
+            62,
+            "tools/call",
+            json!({
+                "name": "register_repository",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "repo_root": state_root.to_string_lossy()
+                }
+            }),
+        );
+        let memory_request = json_rpc_request(
+            63,
+            "tools/call",
+            json!({
+                "name": "memory_write",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "title": "Needle note",
+                    "content": "needle memory"
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            64,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let inspect_request = json_rpc_request(
+            65,
+            "tools/call",
+            json!({
+                "name": "inspect_local_state",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            register_request.len(),
+            register_request,
+            memory_request.len(),
+            memory_request,
+            assemble_request.len(),
+            assemble_request,
+            inspect_request.len(),
+            inspect_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("local state inspection workflow should succeed");
+
+        let responses = decode_responses(&output);
+        let state: Value = serde_json::from_str(
+            responses[4]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("state text should exist"),
+        )
+        .expect("state payload should be valid json");
+
+        assert_eq!(state["index"]["present"], true);
+        assert_eq!(state["index"]["item_count"], 1);
+        assert_eq!(state["memory_notes"]["present"], true);
+        assert_eq!(state["memory_notes"]["item_count"], 1);
+        assert_eq!(state["context_run_history"]["present"], true);
+        assert_eq!(state["context_run_history"]["item_count"], 1);
+        assert_eq!(state["registered_repositories"]["present"], true);
+        assert_eq!(state["registered_repositories"]["item_count"], 1);
+        assert_eq!(state["exact_search_cache"]["present"], true);
+        assert_eq!(state["exact_search_cache"]["item_count"], 1);
     }
 
     #[test]
@@ -1846,7 +2308,7 @@ mod tests {
             .expect("body should read");
         let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
 
-        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(13));
+        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(14));
         assert_eq!(payload["retrieval"]["modes"], json!(["exact_search", "overview", "task_capsule"]));
         assert_eq!(payload["retrieval"]["limits"]["max_context_items"], 5);
         assert_eq!(payload["retrieval"]["durable_memory_enabled"], true);

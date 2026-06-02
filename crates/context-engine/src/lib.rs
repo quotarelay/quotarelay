@@ -192,6 +192,22 @@ pub struct RetrievalTruth {
     pub durable_memory_enabled: bool,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LocalStateInspection {
+    pub index: LocalStateArtifact,
+    pub memory_notes: LocalStateArtifact,
+    pub context_run_history: LocalStateArtifact,
+    pub registered_repositories: LocalStateArtifact,
+    pub exact_search_cache: LocalStateArtifact,
+    pub retrieval_capsule_cache: LocalStateArtifact,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct LocalStateArtifact {
+    pub present: bool,
+    pub item_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct StoredRunHistory {
     runs: Vec<ContextAssembly>,
@@ -550,6 +566,49 @@ pub fn memory_search(root: &Path, query: &str, limit: usize) -> io::Result<Memor
     Ok(MemorySearchResult {
         notes: matches,
         omitted_count,
+    })
+}
+
+pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
+    let index = match repo_inventory(root) {
+        Ok(inventory) => LocalStateArtifact {
+            present: true,
+            item_count: inventory.indexed_files,
+        },
+        Err(error) if error.kind() == io::ErrorKind::NotFound => LocalStateArtifact {
+            present: false,
+            item_count: 0,
+        },
+        Err(error) => return Err(error),
+    };
+    let memory_notes = load_memory_notes(root)?;
+    let history = load_history(root)?;
+    let registered_repositories = load_registered_repositories(root)?;
+    let exact_cache = load_exact_match_cache(root)?;
+    let capsule_cache = load_capsule_cache(root)?;
+
+    Ok(LocalStateInspection {
+        index,
+        memory_notes: LocalStateArtifact {
+            present: memory_notes_path(root).exists(),
+            item_count: memory_notes.notes.len(),
+        },
+        context_run_history: LocalStateArtifact {
+            present: history_path(root).exists(),
+            item_count: history.runs.len(),
+        },
+        registered_repositories: LocalStateArtifact {
+            present: registered_repositories_path(root).exists(),
+            item_count: registered_repositories.repositories.len(),
+        },
+        exact_search_cache: LocalStateArtifact {
+            present: exact_match_cache_path(root).exists(),
+            item_count: exact_cache.entries.len(),
+        },
+        retrieval_capsule_cache: LocalStateArtifact {
+            present: capsule_cache_path(root).exists(),
+            item_count: capsule_cache.entries.len(),
+        },
     })
 }
 
@@ -986,7 +1045,7 @@ mod tests {
 
     use super::{
         assemble_context, assemble_overview, assemble_task_capsule, context_run_history,
-        invalidate_exact_match_cache,
+        inspect_local_state, invalidate_exact_match_cache,
         list_registered_repositories, memory_read, memory_search, memory_write,
         register_repository, registered_repository_state, remove_registered_repository,
         retrieve_context, EngineInfo, InclusionReasonKind, OmissionReasonKind,
@@ -1460,6 +1519,33 @@ mod tests {
         assert_eq!(state[0].sync.indexed_files, 1);
         assert!(state[0].sync.indexed_at_epoch_ms.is_some());
         assert_eq!(state[0].recent_context_run.as_ref().map(|run| run.query.as_str()), Some("needle"));
+    }
+
+    #[test]
+    fn inspect_local_state_reports_bounded_presence_and_counts() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+        memory_write(&root, "Needle note", "needle memory", &["memory".to_string()])
+            .expect("memory write should succeed");
+        register_repository(&root, &root).expect("repository registration should succeed");
+        assemble_context(&root, "needle", 2).expect("exact assembly should succeed");
+        assemble_overview(&root, 2).expect("overview assembly should succeed");
+
+        let state = inspect_local_state(&root).expect("local state inspection should succeed");
+
+        assert_eq!(state.index.present, true);
+        assert_eq!(state.index.item_count, 1);
+        assert_eq!(state.memory_notes.present, true);
+        assert_eq!(state.memory_notes.item_count, 1);
+        assert_eq!(state.context_run_history.present, true);
+        assert_eq!(state.context_run_history.item_count, 1);
+        assert_eq!(state.registered_repositories.present, true);
+        assert_eq!(state.registered_repositories.item_count, 1);
+        assert_eq!(state.exact_search_cache.present, true);
+        assert_eq!(state.exact_search_cache.item_count, 1);
+        assert_eq!(state.retrieval_capsule_cache.present, true);
+        assert_eq!(state.retrieval_capsule_cache.item_count, 1);
     }
 
     fn temp_repo() -> PathBuf {
