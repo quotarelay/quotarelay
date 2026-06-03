@@ -102,3 +102,7 @@ See `docs/MCP_CLIENT_CONFIG.md` for the local stdio command, generic client JSON
 ## Troubleshooting
 
 See `docs/TROUBLESHOOTING.md` for corrupt local JSON recovery, cache inspect/clear guidance, missing index/repository checks, Windows path notes, and deferred platform boundaries.
+
+## Local state privacy
+
+See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what the local MVP does not send, what not to commit, and current limitations.
