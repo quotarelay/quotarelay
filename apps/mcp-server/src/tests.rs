@@ -3,6 +3,7 @@ mod cache_capsules;
 mod cli;
 mod common;
 mod context;
+mod context_clarification;
 mod context_history;
 mod feedback;
 mod http;

@@ -125,6 +125,20 @@ pub struct RetrievedContext {
     pub budget: ContextBudgetEstimate,
     #[serde(default)]
     pub stale: ContextStaleStatus,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub clarification: Option<ClarificationRequest>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ClarificationRequest {
+    pub reason: String,
+    pub questions: Vec<ClarificationQuestion>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ClarificationQuestion {
+    pub id: String,
+    pub question: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]

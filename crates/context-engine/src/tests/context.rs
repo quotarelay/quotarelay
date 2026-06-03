@@ -83,6 +83,42 @@ fn large_repo_context_assembly_preserves_limits_and_omissions() {
 }
 
 #[test]
+fn underspecified_retrieval_returns_bounded_clarification() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+
+    let missing = retrieve_context(&root, RetrievalMode::ExactSearch, None, 3)
+        .expect("missing query should clarify");
+    assert!(missing.snippets.is_empty());
+    assert_eq!(missing.cache_status.kind, CacheStatusKind::NotApplicable);
+    assert!(
+        missing
+            .clarification
+            .as_ref()
+            .expect("clarification should exist")
+            .questions
+            .len()
+            <= 3
+    );
+
+    let broad = retrieve_context(&root, RetrievalMode::TaskCapsule, Some("fix"), 3)
+        .expect("broad query should clarify");
+    assert_eq!(broad.documents.len(), 0);
+    assert!(broad
+        .clarification
+        .as_ref()
+        .expect("broad clarification should exist")
+        .reason
+        .contains("too broad"));
+
+    let precise = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 3)
+        .expect("precise query should retrieve");
+    assert!(precise.clarification.is_none());
+    assert_eq!(precise.snippets.len(), 1);
+}
+
+#[test]
 fn context_run_history_is_bounded_and_keeps_omission_reasons() {
     let root = temp_repo();
     fs::write(

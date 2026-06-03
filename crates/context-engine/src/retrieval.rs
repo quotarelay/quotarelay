@@ -1,11 +1,10 @@
-use std::io;
-use std::path::Path;
-
-use repo_index::{index_freshness, indexed_documents, matching_documents, search_code};
-
 use super::*;
+use crate::clarification::{clarification_context, clarification_for_request};
 use crate::diff::assemble_diff_aware;
 use crate::memory::{find_memory_notes, pack_memory_notes};
+use repo_index::{index_freshness, indexed_documents, matching_documents, search_code};
+use std::io;
+use std::path::Path;
 
 pub(crate) fn normalize_query(query: &str) -> String {
     query
@@ -60,7 +59,6 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
 pub fn context_run_history(root: &Path, limit: usize) -> io::Result<Vec<ContextAssembly>> {
     let capped_limit = limit.clamp(1, 5);
     let history = load_history(root)?;
-
     Ok(history.runs.into_iter().rev().take(capped_limit).collect())
 }
 
@@ -69,7 +67,6 @@ pub fn context_run_detail(
     generated_at_epoch_ms: u128,
 ) -> io::Result<Option<ContextAssembly>> {
     let history = load_history(root)?;
-
     Ok(history
         .runs
         .into_iter()
@@ -86,9 +83,10 @@ pub fn retrieve_context(
 ) -> io::Result<RetrievedContext> {
     match mode {
         RetrievalMode::ExactSearch => {
-            let query = query.ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidInput, "exact_search requires a query")
-            })?;
+            if let Some(clarification) = clarification_for_request(mode, query) {
+                return clarification_context(mode, query, clarification);
+            }
+            let query = query.expect("clarified missing exact_search query should return early");
             let assembly = assemble_context(root, query, limit)?;
             Ok(RetrievedContext {
                 mode,
@@ -101,6 +99,7 @@ pub fn retrieve_context(
                 cache_status: assembly.cache_status,
                 budget: assembly.budget,
                 stale: assembly.stale,
+                clarification: None,
             })
         }
         RetrievalMode::Overview => {
@@ -116,12 +115,14 @@ pub fn retrieve_context(
                 cache_status: capsule.cache_status,
                 budget: capsule.budget,
                 stale: capsule.stale,
+                clarification: None,
             })
         }
         RetrievalMode::TaskCapsule => {
-            let query = query.ok_or_else(|| {
-                io::Error::new(io::ErrorKind::InvalidInput, "task_capsule requires a query")
-            })?;
+            if let Some(clarification) = clarification_for_request(mode, query) {
+                return clarification_context(mode, query, clarification);
+            }
+            let query = query.expect("clarified missing task_capsule query should return early");
             let normalized_query = normalize_query(query);
             let capsule = assemble_task_capsule(root, &normalized_query, limit)?;
             Ok(RetrievedContext {
@@ -135,6 +136,7 @@ pub fn retrieve_context(
                 cache_status: capsule.cache_status,
                 budget: capsule.budget,
                 stale: capsule.stale,
+                clarification: None,
             })
         }
         RetrievalMode::DiffAware => {
@@ -151,6 +153,7 @@ pub fn retrieve_context(
                 cache_status: capsule.cache_status,
                 budget: capsule.budget,
                 stale: capsule.stale,
+                clarification: None,
             })
         }
     }
