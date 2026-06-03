@@ -191,6 +191,24 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
     assert_eq!(overview["result"]["context"]["mode"], "overview");
 
     output.clear();
+    super::run_cli(
+        [
+            "assemble".to_string(),
+            repo_root.to_string_lossy().to_string(),
+            "task_capsule".to_string(),
+            "needle".to_string(),
+            "1".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli task capsule should succeed");
+    let task_capsule: Value =
+        serde_json::from_slice(&output).expect("task capsule payload should parse");
+    assert_eq!(task_capsule["ok"], true);
+    assert_eq!(task_capsule["command"], "assemble");
+    assert_eq!(task_capsule["result"]["context"]["mode"], "task_capsule");
+
+    output.clear();
     super::run_cli(Vec::<String>::new(), &mut output)
         .expect("missing command should produce json error");
     let missing: Value =
