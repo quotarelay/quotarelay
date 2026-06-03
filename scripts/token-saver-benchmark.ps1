@@ -38,8 +38,13 @@ function Invoke-McpBatch {
     param([object[]]$Requests)
 
     $server = Join-Path (Get-Location) "target\debug\mcp-server.exe"
-    if (-not (Test-Path -LiteralPath $server)) {
-        cargo build -p mcp-server | Out-Null
+    $previousErrorActionPreference = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    cargo build -p mcp-server 2>&1 | Out-Null
+    $buildExitCode = $LASTEXITCODE
+    $ErrorActionPreference = $previousErrorActionPreference
+    if ($buildExitCode -ne 0) {
+        throw "cargo build -p mcp-server failed with exit code $buildExitCode"
     }
 
     $raw = ConvertTo-FramedJson -Requests $Requests | & $server | Out-String
@@ -215,8 +220,12 @@ if (($cacheBefore.exact_search_cache.item_count -ne 0) -or ($cacheAfterFirst.exa
     throw "exact_search cache count did not show the expected miss then stable cached entry"
 }
 
-if ((Get-JsonByteCount $exactFirst) -ne (Get-JsonByteCount $exactSecond)) {
-    throw "repeated exact_search did not return the same cached packet size"
+if (($exactFirst.cache_status.kind -ne "miss") -or ($exactSecond.cache_status.kind -ne "hit")) {
+    throw "repeated exact_search did not expose expected miss then hit cache status; observed first='$($exactFirst.cache_status.kind)' second='$($exactSecond.cache_status.kind)'"
+}
+
+if (($exactFirst.snippets | ConvertTo-Json -Depth 12 -Compress) -ne ($exactSecond.snippets | ConvertTo-Json -Depth 12 -Compress)) {
+    throw "repeated exact_search did not return stable snippet contents"
 }
 
 Add-Content -LiteralPath (Join-Path $repoRoot "src\workflow.rs") -Value "`npub fn changed_needles() -> &'static str { `"changed needle context`" }"
@@ -253,6 +262,8 @@ $summary = [ordered]@{
         exact_items_before = $cacheBefore.exact_search_cache.item_count
         exact_items_after_first = $cacheAfterFirst.exact_search_cache.item_count
         exact_items_after_second = $cacheAfterSecond.exact_search_cache.item_count
+        first_exact_status = $exactFirst.cache_status.kind
+        repeated_exact_status = $exactSecond.cache_status.kind
         repeated_exact_packet_bytes = Get-JsonByteCount $exactSecond
     }
     metrics = $metrics

@@ -19,7 +19,11 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
     let query = normalize_query(query);
     let capped_limit = limit.clamp(1, 5);
     if let Some(assembly) = read_exact_match_cache(root, &query)? {
-        let assembly = assembly_with_budget_and_stale(root, assembly)?;
+        let assembly = assembly_with_cache_status(
+            assembly_with_budget_and_stale(root, assembly)?,
+            CacheStatusKind::Hit,
+            "exact_search cache entry returned this context pack.",
+        );
         append_history(root, &assembly)?;
         return Ok(assembly);
     }
@@ -38,6 +42,10 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
             snippets,
             memory_notes,
             omissions,
+            cache_status: cache_status(
+                CacheStatusKind::Miss,
+                "exact_search cache miss; context pack was assembled and cached.",
+            ),
             budget: ContextBudgetEstimate::default(),
             stale: ContextStaleStatus::default(),
         },
@@ -90,6 +98,7 @@ pub fn retrieve_context(
                 memory_notes: assembly.memory_notes,
                 documents: Vec::new(),
                 omissions: assembly.omissions,
+                cache_status: assembly.cache_status,
                 budget: assembly.budget,
                 stale: assembly.stale,
             })
@@ -104,6 +113,7 @@ pub fn retrieve_context(
                 memory_notes: Vec::new(),
                 documents: capsule.documents,
                 omissions: capsule.omissions,
+                cache_status: capsule.cache_status,
                 budget: capsule.budget,
                 stale: capsule.stale,
             })
@@ -122,6 +132,7 @@ pub fn retrieve_context(
                 memory_notes: Vec::new(),
                 documents: capsule.documents,
                 omissions: capsule.omissions,
+                cache_status: capsule.cache_status,
                 budget: capsule.budget,
                 stale: capsule.stale,
             })
@@ -137,6 +148,7 @@ pub fn retrieve_context(
                 memory_notes: Vec::new(),
                 documents: capsule.documents,
                 omissions: capsule.omissions,
+                cache_status: capsule.cache_status,
                 budget: capsule.budget,
                 stale: capsule.stale,
             })
@@ -188,7 +200,11 @@ pub fn invalidate_exact_match_cache(root: &Path) -> io::Result<()> {
 
 pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule> {
     if let Some(capsule) = read_capsule_cache(root, RetrievalMode::Overview, None)? {
-        return capsule_with_budget_and_stale(root, capsule);
+        return capsule_with_cache_status(
+            capsule_with_budget_and_stale(root, capsule)?,
+            CacheStatusKind::Hit,
+            "overview cache entry returned this context pack.",
+        );
     }
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
@@ -206,6 +222,10 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
             generated_at_epoch_ms: now_epoch_ms()?,
             documents,
             omissions,
+            cache_status: cache_status(
+                CacheStatusKind::Miss,
+                "overview cache miss; context pack was assembled and cached.",
+            ),
             budget: ContextBudgetEstimate::default(),
             stale: ContextStaleStatus::default(),
         },
@@ -217,7 +237,11 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
 pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Result<ContextCapsule> {
     let query = normalize_query(query);
     if let Some(capsule) = read_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query))? {
-        return capsule_with_budget_and_stale(root, capsule);
+        return capsule_with_cache_status(
+            capsule_with_budget_and_stale(root, capsule)?,
+            CacheStatusKind::Hit,
+            "task_capsule cache entry returned this context pack.",
+        );
     }
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
@@ -237,6 +261,10 @@ pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Resu
             generated_at_epoch_ms: now_epoch_ms()?,
             documents,
             omissions,
+            cache_status: cache_status(
+                CacheStatusKind::Miss,
+                "task_capsule cache miss; context pack was assembled and cached.",
+            ),
             budget: ContextBudgetEstimate::default(),
             stale: ContextStaleStatus::default(),
         },
@@ -411,6 +439,15 @@ fn assembly_with_budget_and_stale(
     Ok(assembly)
 }
 
+fn assembly_with_cache_status(
+    mut assembly: ContextAssembly,
+    kind: CacheStatusKind,
+    detail: &str,
+) -> ContextAssembly {
+    assembly.cache_status = cache_status(kind, detail);
+    assembly
+}
+
 fn capsule_with_budget_and_stale(
     root: &Path,
     mut capsule: ContextCapsule,
@@ -423,6 +460,22 @@ fn capsule_with_budget_and_stale(
     capsule.budget = budget_estimate(document_bytes);
     capsule.stale = stale_status(root)?;
     Ok(capsule)
+}
+
+fn capsule_with_cache_status(
+    mut capsule: ContextCapsule,
+    kind: CacheStatusKind,
+    detail: &str,
+) -> io::Result<ContextCapsule> {
+    capsule.cache_status = cache_status(kind, detail);
+    Ok(capsule)
+}
+
+pub(crate) fn cache_status(kind: CacheStatusKind, detail: &str) -> CacheStatus {
+    CacheStatus {
+        kind,
+        detail: detail.to_string(),
+    }
 }
 
 fn budget_estimate(included_bytes: usize) -> ContextBudgetEstimate {

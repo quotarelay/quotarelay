@@ -63,6 +63,10 @@ export type ContextRunState = {
     missing_files?: number
     new_files?: number
   }
+  cache_status?: {
+    kind?: string
+    detail?: string
+  }
   snippets?: Array<{
     path?: string
     reason?: {

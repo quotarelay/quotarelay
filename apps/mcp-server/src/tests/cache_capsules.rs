@@ -120,8 +120,14 @@ fn assemble_context_overview_and_task_capsule_responses_are_repeatable_over_stdi
     )
     .expect("second task payload should be valid json");
 
-    assert_eq!(first_overview, second_overview);
-    assert_eq!(first_task, second_task);
+    assert_eq!(first_overview["cache_status"]["kind"], "miss");
+    assert_eq!(second_overview["cache_status"]["kind"], "hit");
+    assert_eq!(first_overview["documents"], second_overview["documents"]);
+    assert_eq!(first_overview["omissions"], second_overview["omissions"]);
+    assert_eq!(first_task["cache_status"]["kind"], "miss");
+    assert_eq!(second_task["cache_status"]["kind"], "hit");
+    assert_eq!(first_task["documents"], second_task["documents"]);
+    assert_eq!(first_task["omissions"], second_task["omissions"]);
 }
 
 #[test]
@@ -258,8 +264,20 @@ fn assemble_context_capsule_caches_honor_sync_invalidation_over_stdio() {
     )
     .expect("cached task payload should be valid json");
 
-    assert_eq!(refreshed_overview, cached_overview);
-    assert_eq!(refreshed_task, cached_task);
+    assert_eq!(refreshed_overview["cache_status"]["kind"], "miss");
+    assert_eq!(cached_overview["cache_status"]["kind"], "hit");
+    assert_eq!(
+        refreshed_overview["documents"],
+        cached_overview["documents"]
+    );
+    assert_eq!(
+        refreshed_overview["omissions"],
+        cached_overview["omissions"]
+    );
+    assert_eq!(refreshed_task["cache_status"]["kind"], "miss");
+    assert_eq!(cached_task["cache_status"]["kind"], "hit");
+    assert_eq!(refreshed_task["documents"], cached_task["documents"]);
+    assert_eq!(refreshed_task["omissions"], cached_task["omissions"]);
     assert_eq!(
         refreshed_overview["documents"][0]["contents"],
         "fresh overview after sync\n"

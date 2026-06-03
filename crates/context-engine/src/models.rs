@@ -74,6 +74,8 @@ pub struct ContextAssembly {
     pub memory_notes: Vec<ContextMemoryNote>,
     pub omissions: Vec<OmissionReason>,
     #[serde(default)]
+    pub cache_status: CacheStatus,
+    #[serde(default)]
     pub budget: ContextBudgetEstimate,
     #[serde(default)]
     pub stale: ContextStaleStatus,
@@ -101,6 +103,8 @@ pub struct ContextCapsule {
     pub documents: Vec<ContextDocument>,
     pub omissions: Vec<OmissionReason>,
     #[serde(default)]
+    pub cache_status: CacheStatus,
+    #[serde(default)]
     pub budget: ContextBudgetEstimate,
     #[serde(default)]
     pub stale: ContextStaleStatus,
@@ -116,9 +120,28 @@ pub struct RetrievedContext {
     pub documents: Vec<ContextDocument>,
     pub omissions: Vec<OmissionReason>,
     #[serde(default)]
+    pub cache_status: CacheStatus,
+    #[serde(default)]
     pub budget: ContextBudgetEstimate,
     #[serde(default)]
     pub stale: ContextStaleStatus,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct CacheStatus {
+    pub kind: CacheStatusKind,
+    pub detail: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum CacheStatusKind {
+    Hit,
+    Miss,
+    Cleared,
+    Empty,
+    #[default]
+    NotApplicable,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
@@ -377,6 +400,7 @@ pub struct CacheInspection {
 pub struct CacheClearResult {
     pub exact_search_cache_cleared: bool,
     pub retrieval_capsule_cache_cleared: bool,
+    pub status: CacheStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

@@ -299,6 +299,10 @@ describe('control-plane truth boundary', () => {
             missing_files: 0,
             new_files: 1
           },
+          cache_status: {
+            kind: 'hit',
+            detail: 'exact_search cache entry returned this context pack.'
+          },
           snippets: [{ path: 'alpha.txt', reason: { kind: 'query_line_match' } }],
           omissions: [{ kind: 'item_limit_reached' }]
         }
@@ -316,6 +320,7 @@ describe('control-plane truth boundary', () => {
     expect(state.runs).toHaveLength(1)
     expect(state.runs[0].budget?.approximate_tokens).toBe(3)
     expect(state.runs[0].stale?.is_stale).toBe(true)
+    expect(state.runs[0].cache_status?.kind).toBe('hit')
     expect(state.runs[0].omissions?.[0].kind).toBe('item_limit_reached')
   })
 })

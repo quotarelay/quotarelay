@@ -476,6 +476,7 @@ components:
         - snippets
         - memory_notes
         - omissions
+        - cache_status
         - budget
         - stale
       properties:
@@ -495,10 +496,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OmissionReason'
+        cache_status:
+          $ref: '#/components/schemas/CacheStatus'
         budget:
           $ref: '#/components/schemas/ContextBudgetEstimate'
         stale:
           $ref: '#/components/schemas/ContextStaleStatus'
+    CacheStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - detail
+      properties:
+        kind:
+          type: string
+          enum:
+            - hit
+            - miss
+            - cleared
+            - empty
+            - not_applicable
+        detail:
+          type: string
     ContextBudgetEstimate:
       type: object
       additionalProperties: false

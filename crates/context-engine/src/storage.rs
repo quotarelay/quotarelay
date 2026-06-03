@@ -102,6 +102,17 @@ pub fn inspect_retrieval_caches(root: &Path) -> io::Result<CacheInspection> {
 pub fn clear_retrieval_caches(root: &Path) -> io::Result<CacheClearResult> {
     let exact_search_cache_cleared = exact_match_cache_path(root).exists();
     let retrieval_capsule_cache_cleared = capsule_cache_path(root).exists();
+    let status = if exact_search_cache_cleared || retrieval_capsule_cache_cleared {
+        CacheStatus {
+            kind: CacheStatusKind::Cleared,
+            detail: "One or more local retrieval cache files were cleared.".to_string(),
+        }
+    } else {
+        CacheStatus {
+            kind: CacheStatusKind::Empty,
+            detail: "No local retrieval cache files existed to clear.".to_string(),
+        }
+    };
 
     clear_exact_match_cache(root)?;
     clear_capsule_cache(root)?;
@@ -109,6 +120,7 @@ pub fn clear_retrieval_caches(root: &Path) -> io::Result<CacheClearResult> {
     Ok(CacheClearResult {
         exact_search_cache_cleared,
         retrieval_capsule_cache_cleared,
+        status,
     })
 }
 

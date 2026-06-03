@@ -74,6 +74,10 @@ pub fn assemble_diff_aware(
         generated_at_epoch_ms: now_epoch_ms()?,
         documents,
         omissions,
+        cache_status: crate::retrieval::cache_status(
+            CacheStatusKind::NotApplicable,
+            "diff_aware reads current local changes and is not cached.",
+        ),
         budget: ContextBudgetEstimate::default(),
         stale: ContextStaleStatus::default(),
     };

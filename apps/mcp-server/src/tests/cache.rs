@@ -194,7 +194,11 @@ fn assemble_context_exact_search_cache_honors_sync_invalidation_over_stdio() {
     )
     .expect("refreshed assembly payload should be valid json");
 
-    assert_eq!(cached, refreshed);
+    assert_eq!(cached["cache_status"]["kind"], "miss");
+    assert_eq!(refreshed["cache_status"]["kind"], "hit");
+    assert_eq!(cached["snippets"], refreshed["snippets"]);
+    assert_eq!(cached["memory_notes"], refreshed["memory_notes"]);
+    assert_eq!(cached["omissions"], refreshed["omissions"]);
     assert_eq!(cached["snippets"][0]["line"], "fresh needle after sync");
     assert_ne!(cached, first);
 }

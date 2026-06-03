@@ -228,6 +228,7 @@ fn cache_inspect_and_clear_missing_state_are_explicit() {
     let cleared = clear_retrieval_caches(&root).expect("cache clear should succeed");
     assert_eq!(cleared.exact_search_cache_cleared, false);
     assert_eq!(cleared.retrieval_capsule_cache_cleared, false);
+    assert_eq!(cleared.status.kind, CacheStatusKind::Empty);
 
     let after = inspect_retrieval_caches(&root).expect("cache inspection should still succeed");
     assert_eq!(after.exact_search_cache.present, false);
@@ -289,6 +290,7 @@ fn retrieval_cache_inspection_and_clear_are_explicit() {
     let cleared = clear_retrieval_caches(&root).expect("cache clear should succeed");
     assert_eq!(cleared.exact_search_cache_cleared, true);
     assert_eq!(cleared.retrieval_capsule_cache_cleared, true);
+    assert_eq!(cleared.status.kind, CacheStatusKind::Cleared);
 
     let after = inspect_retrieval_caches(&root).expect("cache inspection should succeed");
     assert_eq!(after.exact_search_cache.present, false);

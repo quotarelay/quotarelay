@@ -52,6 +52,7 @@ The retrieval contract is explicit and bounded:
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
 - Budget estimate: context packs include local included-byte counts and approximate tokens derived from those bytes
 - Stale status: context packs report whether indexed files appear changed, missing, or new since the last explicit sync
+- Cache status: context packs report local cache hit, miss, or not-applicable state; cache clear reports cleared or empty state
 - Durable memory: stored locally under `.quotarelay/`
 - Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
 - Registered repository state: stored locally and exposed with sync status, indexed counts, bounded repo maps, and recent run metadata
