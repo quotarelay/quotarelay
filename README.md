@@ -161,6 +161,13 @@ The benchmark creates a temporary fixture, syncs it locally, records decision me
 
 Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1` to build a local-only zip artifact under `target\local-package\`. The script smoke-runs the packaged backend binary with `--cli truth`; it does not publish, sign, install globally, deploy, or contact external services.
 
+After extracting the zip, run the packaged backend locally with:
+
+```powershell
+.\bin\mcp-server.exe --cli truth
+.\bin\mcp-server.exe --http 127.0.0.1:3030
+```
+
 ## Local state privacy
 
 See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what the local MVP does not send, what not to commit, and current limitations.
