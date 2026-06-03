@@ -50,6 +50,7 @@ The control plane does not invent readiness, savings, or live health state. It r
 
 ## Local validation
 
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`
 - `cargo test -p mcp-server backend_truth_endpoint_exposes_current_contract`
 - `cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio`
 - `cargo test -p mcp-server repository_registration_tools_work_over_stdio`
