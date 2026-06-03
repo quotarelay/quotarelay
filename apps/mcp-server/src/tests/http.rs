@@ -11,8 +11,7 @@ use context_engine::{assemble_context, memory_write, register_repository};
 use super::common::{decode_responses, json_rpc_request, temp_repo};
 use crate::{http_router, run_stdio};
 
-#[tokio::test]
-async fn backend_truth_endpoint_exposes_current_contract() {
+async fn truth_payload() -> Value {
     let response = http_router()
         .oneshot(
             Request::builder()
@@ -26,7 +25,12 @@ async fn backend_truth_endpoint_exposes_current_contract() {
     let body = axum::body::to_bytes(response.into_body(), usize::MAX)
         .await
         .expect("body should read");
-    let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
+    serde_json::from_slice(&body).expect("truth payload should be valid json")
+}
+
+#[tokio::test]
+async fn backend_truth_endpoint_exposes_current_contract() {
+    let payload = truth_payload().await;
 
     assert_eq!(
         payload["tools"].as_array().map(|items| items.len()),
@@ -77,6 +81,114 @@ async fn backend_truth_endpoint_exposes_current_contract() {
             .map(|items| items.len())
             .unwrap_or_default()
             >= 5
+    );
+}
+
+#[tokio::test]
+async fn backend_truth_contract_locks_shipped_fields_and_ids() {
+    let payload = truth_payload().await;
+    let mut top_level_fields = payload
+        .as_object()
+        .expect("truth payload should be an object")
+        .keys()
+        .map(String::as_str)
+        .collect::<Vec<_>>();
+    top_level_fields.sort_unstable();
+
+    assert_eq!(
+        top_level_fields,
+        vec!["cache", "cli", "config", "proofs", "retrieval", "tools"]
+    );
+
+    let tool_names = payload["tools"]
+        .as_array()
+        .expect("tools should be an array")
+        .iter()
+        .map(|tool| tool["name"].as_str().expect("tool name should exist"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        tool_names,
+        vec![
+            "bootstrap_status",
+            "sync_repo",
+            "repo_inventory",
+            "inspect_local_state",
+            "cache_inspect",
+            "cache_clear",
+            "register_repository",
+            "list_repositories",
+            "repository_state",
+            "repository_detail",
+            "repository_update_metadata",
+            "remove_repository",
+            "workspace_profile_save",
+            "workspace_profile_list",
+            "search_code",
+            "memory_write",
+            "memory_read",
+            "memory_update",
+            "memory_delete",
+            "memory_export",
+            "memory_import",
+            "memory_search",
+            "context_run_detail",
+            "context_run_history",
+            "multi_repo_assemble_context",
+            "assemble_context",
+        ]
+    );
+
+    assert_eq!(
+        payload["retrieval"]["modes"],
+        json!(["exact_search", "overview", "task_capsule"])
+    );
+    assert_eq!(payload["retrieval"]["cache"], payload["cache"]);
+    assert_eq!(
+        payload["cache"],
+        json!({
+            "exact_search_enabled": true,
+            "overview_enabled": true,
+            "task_capsule_enabled": true,
+            "sync_invalidates_caches": true
+        })
+    );
+    assert_eq!(
+        payload["config"],
+        json!({
+            "workspace_profiles_enabled": true,
+            "workspace_profiles_apply_to_retrieval": false,
+            "max_workspace_profiles": 20,
+            "max_profile_repo_roots": 5,
+            "default_mode": "exact_search",
+            "default_limit": 3,
+            "per_repo_limit": 3
+        })
+    );
+    assert_eq!(payload["cli"]["local_entrypoint_enabled"], true);
+    assert_eq!(
+        payload["cli"]["commands"][0],
+        json!({
+            "label": "Truth",
+            "command": "cargo run -p mcp-server -- --cli truth"
+        })
+    );
+
+    let proof_ids = payload["proofs"]
+        .as_array()
+        .expect("proofs should be an array")
+        .iter()
+        .map(|proof| proof["id"].as_str().expect("proof id should exist"))
+        .collect::<Vec<_>>();
+    assert_eq!(
+        proof_ids,
+        vec![
+            "tools_list",
+            "memory_tools",
+            "memory_aware_context",
+            "registered_repositories",
+            "repository_state",
+            "local_operator_workflow",
+        ]
     );
 }
 
@@ -265,19 +377,7 @@ async fn local_operator_workflow_is_visible_through_truth_and_stdio() {
         Some(1)
     );
 
-    let response = http_router()
-        .oneshot(
-            Request::builder()
-                .uri("/truth")
-                .body(Body::empty())
-                .expect("request should build"),
-        )
-        .await
-        .expect("truth endpoint should respond");
-    let body = axum::body::to_bytes(response.into_body(), usize::MAX)
-        .await
-        .expect("body should read");
-    let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
+    let payload = truth_payload().await;
 
     assert!(payload["proofs"]
         .as_array()
