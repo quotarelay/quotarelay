@@ -8,6 +8,10 @@
 - Keep outputs bounded and explainable before adding broader retrieval or optimization layers.
 - Prefer local filesystem state and explicit contracts over convenience abstractions.
 - Do not publish, deploy, or run release automation from the agent.
+- Free solo-developer local usefulness is a product requirement, not a trial stub.
+- Team and enterprise monetization work must build on shared guardrails, decision memory, validation recipes, onboarding, auditability, support, and savings proof.
+- Do not drift toward provider forwarding, hosted tenancy, telemetry, or cloud sync unless `docs/DECISIONS.md` and `EXECUTION_TRACKER.md` explicitly open that work.
+- Do not claim token savings from pricing or billing. Only claim local context reduction that the repo can estimate or prove.
 
 ## Separation of concerns
 
@@ -19,6 +23,14 @@
 - Do not mix API adapter code with business rules or persistence logic in the same new module.
 - When an existing oversized file already mixes concerns, new work should extract a cohesive seam by responsibility rather than adding another helper pile.
 - Cross-boundary contracts must be explicit data structures or narrow functions, not broad imports of whole adapter modules.
+
+## Team and enterprise boundaries
+
+- Team profiles should be explicit local or checked-in configuration, not hidden mutable global state.
+- Shared decision memory must surface contradictions with tracker/docs instead of silently overriding them.
+- Enterprise policy features must be additive guardrails around local operation, not a reason to make the free core weak.
+- Audit and reporting must stay bounded and local-first until a later decision explicitly opens hosted storage.
+- MCP client presets must be labeled verified or unverified; do not imply support that has not been tested.
 
 ## Maintainability guardrails
 
