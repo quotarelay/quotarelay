@@ -16,3 +16,9 @@
 12. Provider forwarding, hosted multi-user tenancy, enterprise SSO, cloud sync, and BYOK implementation remain closed until explicit decision slices open them.
 13. Product priority is context compression and optimization for coding agents: reduce unnecessary tokens, expose cache reuse, surface stale state, and explain omissions before adding broader feature families.
 14. Ambiguous requests should produce bounded clarifying questions when that will save context, rather than falling back to broad repository dumps.
+15. Auth and authorization are deferred for the local MVP; local HTTP endpoints are operator-local tools, not protected network services.
+16. Operator identity is deferred; current local state is scoped by filesystem root and explicit operator action, not user accounts.
+17. Audit logs are deferred; shipped history and feedback records are local operational records, not compliance audit trails.
+18. BYOK key storage is rejected for the local MVP; no provider keys are stored until a future decision defines storage, encryption, and rotation rules.
+19. Provider capability truth is rejected for the local MVP; Quotarelay does not detect models, route provider calls, or recommend providers.
+20. Hosted multi-user feasibility remains a decision-only topic; no multi-user implementation starts until tenancy, identity, storage, and repository-content boundaries are approved.

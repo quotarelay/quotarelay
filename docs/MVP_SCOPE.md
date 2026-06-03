@@ -25,9 +25,12 @@
 - Broad multi-language parsing beyond the current local index behavior
 - Release or deployment automation from the agent
 - Provider request forwarding or model gateway behavior
+- Provider capability detection or model recommendations
 - Provider pricing recommendations or exact billing claims
 - Hosted SaaS control plane for the local MVP
+- BYOK key storage
 - Enterprise SSO, admin tenancy, or shared cloud policy until explicit decision slices open them
+- Compliance audit logs
 - Telemetry, remote feedback collection, or uploading repository contents
 
 ## Release bar
