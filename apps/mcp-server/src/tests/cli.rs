@@ -77,6 +77,14 @@ fn local_cli_register_sync_assemble_and_truth_workflow() {
             .map(|items| items.len()),
         Some(1)
     );
+    assert_eq!(
+        assembly["result"]["context"]["budget"]["included_bytes"],
+        "needle in repo".len()
+    );
+    assert_eq!(
+        assembly["result"]["context"]["budget"]["approximate_tokens"],
+        4
+    );
 
     output.clear();
     super::run_cli(["truth".to_string()], &mut output).expect("cli truth should succeed");
@@ -154,6 +162,14 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
     assert_eq!(truth["ok"], true);
     assert_eq!(truth["command"], "truth");
     assert!(truth["result"]["truth"]["tools"].is_array());
+    assert_eq!(
+        truth["result"]["truth"]["retrieval"]["budget_estimate_enabled"],
+        true
+    );
+    assert_eq!(
+        truth["result"]["truth"]["retrieval"]["budget_estimate_unit"],
+        "approximate_tokens_from_included_bytes"
+    );
 
     output.clear();
     super::run_cli(

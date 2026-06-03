@@ -215,6 +215,8 @@ components:
         - omission_reason_kinds
         - limits
         - durable_memory_enabled
+        - budget_estimate_enabled
+        - budget_estimate_unit
         - cache
       properties:
         modes:
@@ -233,6 +235,10 @@ components:
           $ref: '#/components/schemas/RetrievalLimits'
         durable_memory_enabled:
           type: boolean
+        budget_estimate_enabled:
+          type: boolean
+        budget_estimate_unit:
+          type: string
         cache:
           $ref: '#/components/schemas/CacheTruth'
     CacheTruth:
@@ -411,6 +417,7 @@ components:
         - snippets
         - memory_notes
         - omissions
+        - budget
       properties:
         query:
           type: string
@@ -428,6 +435,21 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OmissionReason'
+        budget:
+          $ref: '#/components/schemas/ContextBudgetEstimate'
+    ContextBudgetEstimate:
+      type: object
+      additionalProperties: false
+      required:
+        - included_bytes
+        - approximate_tokens
+      properties:
+        included_bytes:
+          type: integer
+          description: Local byte count for text included in the bounded context packet.
+        approximate_tokens:
+          type: integer
+          description: Local approximate token estimate derived from included bytes; not provider billing truth.
     ContextSnippet:
       type: object
       additionalProperties: false

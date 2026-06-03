@@ -40,6 +40,10 @@ export type MemorySearchState = {
 export type ContextRunState = {
   query?: string
   generated_at_epoch_ms?: number
+  budget?: {
+    included_bytes?: number
+    approximate_tokens?: number
+  }
   snippets?: Array<{
     path?: string
     reason?: {
@@ -63,6 +67,8 @@ export type RetrievalTruthPayload = {
     max_history_runs?: number
   } | null
   durable_memory_enabled?: boolean
+  budget_estimate_enabled?: boolean
+  budget_estimate_unit?: string
   cache?: {
     exact_search_enabled?: boolean
     overview_enabled?: boolean
@@ -186,6 +192,13 @@ export function toRetrievalTruthItems(retrieval: RetrievalTruthPayload): Retriev
       state: 'Memory',
       title: 'Durable memory',
       description: retrieval?.durable_memory_enabled ? 'enabled' : 'disabled'
+    },
+    {
+      state: 'Estimate',
+      title: 'Context budget estimate',
+      description: retrieval?.budget_estimate_enabled
+        ? `${retrieval.budget_estimate_unit ?? 'approximate_tokens_from_included_bytes'}`
+        : 'disabled'
     },
     {
       state: 'Cache',

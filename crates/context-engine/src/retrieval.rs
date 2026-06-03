@@ -18,6 +18,7 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
     let query = normalize_query(query);
     let capped_limit = limit.clamp(1, 5);
     if let Some(assembly) = read_exact_match_cache(root, &query)? {
+        let assembly = assembly_with_budget(assembly);
         append_history(root, &assembly)?;
         return Ok(assembly);
     }
@@ -28,13 +29,14 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
         pack_memory_notes(&query, find_memory_notes(root, &query)?, capped_limit);
     let mut omissions = omissions;
     omissions.extend(memory_omissions);
-    let assembly = ContextAssembly {
+    let assembly = assembly_with_budget(ContextAssembly {
         query: query.clone(),
         generated_at_epoch_ms: now_epoch_ms()?,
         snippets,
         memory_notes,
         omissions,
-    };
+        budget: ContextBudgetEstimate::default(),
+    });
 
     persist_exact_match_cache(root, &query, &assembly)?;
     append_history(root, &assembly)?;
@@ -83,6 +85,7 @@ pub fn retrieve_context(
                 memory_notes: assembly.memory_notes,
                 documents: Vec::new(),
                 omissions: assembly.omissions,
+                budget: assembly.budget,
             })
         }
         RetrievalMode::Overview => {
@@ -95,6 +98,7 @@ pub fn retrieve_context(
                 memory_notes: Vec::new(),
                 documents: capsule.documents,
                 omissions: capsule.omissions,
+                budget: capsule.budget,
             })
         }
         RetrievalMode::TaskCapsule => {
@@ -111,6 +115,7 @@ pub fn retrieve_context(
                 memory_notes: Vec::new(),
                 documents: capsule.documents,
                 omissions: capsule.omissions,
+                budget: capsule.budget,
             })
         }
     }
@@ -144,6 +149,8 @@ pub fn retrieval_truth() -> RetrievalTruth {
             max_history_runs: MAX_HISTORY_RUNS,
         },
         durable_memory_enabled: true,
+        budget_estimate_enabled: true,
+        budget_estimate_unit: "approximate_tokens_from_included_bytes".to_string(),
     }
 }
 
@@ -154,7 +161,7 @@ pub fn invalidate_exact_match_cache(root: &Path) -> io::Result<()> {
 
 pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule> {
     if let Some(capsule) = read_capsule_cache(root, RetrievalMode::Overview, None)? {
-        return Ok(capsule);
+        return Ok(capsule_with_budget(capsule));
     }
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
@@ -166,11 +173,12 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
         "Indexed document supports repository overview.",
         "repository overview",
     );
-    let capsule = ContextCapsule {
+    let capsule = capsule_with_budget(ContextCapsule {
         generated_at_epoch_ms: now_epoch_ms()?,
         documents,
         omissions,
-    };
+        budget: ContextBudgetEstimate::default(),
+    });
     persist_capsule_cache(root, RetrievalMode::Overview, None, &capsule)?;
     Ok(capsule)
 }
@@ -178,7 +186,7 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
 pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Result<ContextCapsule> {
     let query = normalize_query(query);
     if let Some(capsule) = read_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query))? {
-        return Ok(capsule);
+        return Ok(capsule_with_budget(capsule));
     }
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
@@ -192,11 +200,12 @@ pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Resu
         &reason_detail,
         &scope,
     );
-    let capsule = ContextCapsule {
+    let capsule = capsule_with_budget(ContextCapsule {
         generated_at_epoch_ms: now_epoch_ms()?,
         documents,
         omissions,
-    };
+        budget: ContextBudgetEstimate::default(),
+    });
     persist_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query), &capsule)?;
     Ok(capsule)
 }
@@ -346,4 +355,36 @@ pub(crate) fn fit_within_budget(
     truncated.push_str(TRUNCATED_PACK_MARKER);
     *remaining_bytes = 0;
     Some((truncated, true))
+}
+
+fn assembly_with_budget(mut assembly: ContextAssembly) -> ContextAssembly {
+    let snippet_bytes = assembly
+        .snippets
+        .iter()
+        .map(|snippet| snippet.line.len())
+        .sum::<usize>();
+    let memory_bytes = assembly
+        .memory_notes
+        .iter()
+        .map(|note| note.content.len())
+        .sum::<usize>();
+    assembly.budget = budget_estimate(snippet_bytes + memory_bytes);
+    assembly
+}
+
+fn capsule_with_budget(mut capsule: ContextCapsule) -> ContextCapsule {
+    let document_bytes = capsule
+        .documents
+        .iter()
+        .map(|document| document.contents.len())
+        .sum::<usize>();
+    capsule.budget = budget_estimate(document_bytes);
+    capsule
+}
+
+fn budget_estimate(included_bytes: usize) -> ContextBudgetEstimate {
+    ContextBudgetEstimate {
+        included_bytes,
+        approximate_tokens: included_bytes.div_ceil(4),
+    }
 }

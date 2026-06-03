@@ -69,6 +69,8 @@ pub struct ContextAssembly {
     pub snippets: Vec<ContextSnippet>,
     pub memory_notes: Vec<ContextMemoryNote>,
     pub omissions: Vec<OmissionReason>,
+    #[serde(default)]
+    pub budget: ContextBudgetEstimate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -91,6 +93,8 @@ pub struct ContextCapsule {
     pub generated_at_epoch_ms: u128,
     pub documents: Vec<ContextDocument>,
     pub omissions: Vec<OmissionReason>,
+    #[serde(default)]
+    pub budget: ContextBudgetEstimate,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -102,6 +106,14 @@ pub struct RetrievedContext {
     pub memory_notes: Vec<ContextMemoryNote>,
     pub documents: Vec<ContextDocument>,
     pub omissions: Vec<OmissionReason>,
+    #[serde(default)]
+    pub budget: ContextBudgetEstimate,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ContextBudgetEstimate {
+    pub included_bytes: usize,
+    pub approximate_tokens: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -247,6 +259,8 @@ pub struct RetrievalTruth {
     pub omission_reason_kinds: Vec<OmissionReasonKind>,
     pub limits: RetrievalLimits,
     pub durable_memory_enabled: bool,
+    pub budget_estimate_enabled: bool,
+    pub budget_estimate_unit: String,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

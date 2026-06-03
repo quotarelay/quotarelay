@@ -235,6 +235,30 @@ fn retrieve_context_exposes_explicit_modes() {
 }
 
 #[test]
+fn context_outputs_include_local_budget_estimates() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "needle bytes\n").expect("alpha file should write");
+    fs::write(root.join("beta.txt"), "overview bytes\n").expect("beta file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+
+    let exact = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 2)
+        .expect("exact_search should succeed");
+    assert_eq!(exact.budget.included_bytes, "needle bytes".len());
+    assert_eq!(exact.budget.approximate_tokens, 3);
+
+    let overview =
+        retrieve_context(&root, RetrievalMode::Overview, None, 1).expect("overview should succeed");
+    assert_eq!(
+        overview.budget.included_bytes,
+        overview.documents[0].contents.len()
+    );
+    assert_eq!(
+        overview.budget.approximate_tokens,
+        overview.budget.included_bytes.div_ceil(4)
+    );
+}
+
+#[test]
 fn exact_search_reports_byte_budget_omission() {
     let root = temp_repo();
     let long_line = format!("needle {}", "x".repeat(300));

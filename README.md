@@ -44,6 +44,7 @@ The retrieval contract is explicit and bounded:
 - Modes: `exact_search`, `overview`, `task_capsule`
 - Hard limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, 10 history runs
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
+- Budget estimate: context packs include local included-byte counts and approximate tokens derived from those bytes
 - Durable memory: stored locally under `.quotarelay/`
 - Registered repository state: stored locally and exposed with sync status, indexed counts, and recent run metadata
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync

@@ -33,6 +33,8 @@ describe('control-plane truth boundary', () => {
             max_history_runs: 10
           },
           durable_memory_enabled: true,
+          budget_estimate_enabled: true,
+          budget_estimate_unit: 'approximate_tokens_from_included_bytes',
           cache: {
             exact_search_enabled: true,
             overview_enabled: true,
@@ -85,6 +87,8 @@ describe('control-plane truth boundary', () => {
         max_history_runs: 10
       },
       durable_memory_enabled: true,
+      budget_estimate_enabled: true,
+      budget_estimate_unit: 'approximate_tokens_from_included_bytes',
       cache: {
         exact_search_enabled: true,
         overview_enabled: true,
@@ -144,7 +148,9 @@ describe('control-plane truth boundary', () => {
             max_memory_pack_bytes: 320,
             max_history_runs: 10
           },
-          durable_memory_enabled: true
+          durable_memory_enabled: true,
+          budget_estimate_enabled: true,
+          budget_estimate_unit: 'approximate_tokens_from_included_bytes'
         },
         cache: {
           exact_search_enabled: true,
@@ -169,6 +175,8 @@ describe('control-plane truth boundary', () => {
         max_history_runs: 10
       },
       durable_memory_enabled: true,
+      budget_estimate_enabled: true,
+      budget_estimate_unit: 'approximate_tokens_from_included_bytes',
       cache: {
         exact_search_enabled: true,
         overview_enabled: false,
@@ -268,6 +276,10 @@ describe('control-plane truth boundary', () => {
         {
           query: 'needle',
           generated_at_epoch_ms: 42,
+          budget: {
+            included_bytes: 12,
+            approximate_tokens: 3
+          },
           snippets: [{ path: 'alpha.txt', reason: { kind: 'query_line_match' } }],
           omissions: [{ kind: 'item_limit_reached' }]
         }
@@ -283,6 +295,7 @@ describe('control-plane truth boundary', () => {
     })
     expect(state.fetchState).toBe('Live')
     expect(state.runs).toHaveLength(1)
+    expect(state.runs[0].budget?.approximate_tokens).toBe(3)
     expect(state.runs[0].omissions?.[0].kind).toBe('item_limit_reached')
   })
 })

@@ -159,6 +159,8 @@
         <h3>{{ run.query }}</h3>
         <p>{{ run.generated_at_epoch_ms }}</p>
         <div class="chip-row">
+          <span class="chip" v-if="run.budget">bytes: {{ run.budget.included_bytes }}</span>
+          <span class="chip" v-if="run.budget">approx tokens: {{ run.budget.approximate_tokens }}</span>
           <span class="chip" v-for="snippet in run.snippets" :key="snippet.path">{{ snippet.reason.kind }}</span>
           <span class="chip" v-for="omission in run.omissions" :key="omission.kind">{{ omission.kind }}</span>
         </div>
