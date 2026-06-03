@@ -132,3 +132,5 @@ Do not make the free version a crippled demo. Community trust and solo-developer
 See `docs/COMMERCIAL_STRATEGY.md` for the open-core gating model, hosted management surface, and savings metrics boundaries.
 
 See `docs/HOSTED_CONTROL_PLANE_PLAN.md` for the privacy and security gates before public login or hosted organization management ships.
+
+See `docs/PLATFORM_SURFACES.md` for the local DOM surfaces, planned deployment management path, and deferred Android/iOS companion preview boundary.

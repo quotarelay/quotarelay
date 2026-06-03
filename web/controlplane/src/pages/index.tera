@@ -26,6 +26,18 @@
     - privacy
 </ai>
 
+<script>
+  import { deploymentSurfaces, surfaceStatusLabel } from '../deploymentSurfaces'
+
+  function surfaces() {
+    return deploymentSurfaces
+  }
+
+  function statusLabel(status) {
+    return surfaceStatusLabel(status)
+  }
+</script>
+
 <template>
   <main class="public-site">
     <section class="public-hero">
@@ -106,6 +118,24 @@
         <li>Aggregate savings and cache-reuse reporting</li>
         <li>Audit logs, SSO, compliance docs, and private deployment</li>
       </ul>
+    </section>
+
+    <section class="public-band">
+      <div class="section-heading">
+        <p class="eyebrow">Platform surfaces</p>
+        <h2>One workspace, separate targets.</h2>
+      </div>
+      <div class="surface-grid">
+        <article class="surface-card" v-for="surface in surfaces()" :key="surface.id">
+          <div class="surface-card__header">
+            <span class="surface-status">{{ statusLabel(surface.status) }}</span>
+            <strong>{{ surface.target }}</strong>
+          </div>
+          <h3>{{ surface.title }}</h3>
+          <p>{{ surface.localPreview }}</p>
+          <p class="surface-boundary">{{ surface.deploymentBoundary }}</p>
+        </article>
+      </div>
     </section>
   </main>
 </template>

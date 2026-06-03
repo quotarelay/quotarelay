@@ -12,6 +12,8 @@ Quotarelay is not currently a hosted service. The shipped surface is local-first
 
 Local operators can run the MCP server over stdio, run CLI workflows, run the HTTP truth surface on `127.0.0.1`, build a local zip artifact with `scripts/local-package.ps1`, and run `scripts/release-check.ps1` to validate the local release surface.
 
+See `docs/PLATFORM_SURFACES.md` for the current split between the public DOM site, local control plane, local MCP engine, planned hosted team console, private deployment, and deferred Android/iOS companion previews.
+
 ## Not Production-Deployment Ready
 
 Before any hosted, LAN, container, package-manager, or enterprise deployment, Quotarelay needs explicit decisions and implementation for:
