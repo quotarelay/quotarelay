@@ -19,7 +19,8 @@ fn durable_memory_tools_work_over_stdio() {
                 "root": repo_root.to_string_lossy(),
                 "title": "Design note",
                 "content": "Persistent memory should survive restarts.",
-                "tags": ["memory", "design"]
+                "tags": ["memory", "design"],
+                "profile": "decision"
             }
         }),
     );
@@ -86,6 +87,7 @@ fn durable_memory_tools_work_over_stdio() {
     )
     .expect("memory read payload should be valid json");
     assert_eq!(loaded["title"], "Design note");
+    assert_eq!(loaded["profile"], "decision");
 
     let search_results: Value = serde_json::from_str(
         responses[1]["result"]["content"][0]["text"]
@@ -98,6 +100,7 @@ fn durable_memory_tools_work_over_stdio() {
         Some(1)
     );
     assert_eq!(search_results["notes"][0]["title"], "Design note");
+    assert_eq!(search_results["notes"][0]["profile"], "decision");
 }
 
 #[test]

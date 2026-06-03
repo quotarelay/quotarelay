@@ -302,7 +302,8 @@ fn memory_write_tool() -> Value {
                 "root": { "type": "string" },
                 "title": { "type": "string" },
                 "content": { "type": "string" },
-                "tags": { "type": "array", "items": { "type": "string" } }
+                "tags": { "type": "array", "items": { "type": "string" } },
+                "profile": { "type": "string", "enum": ["normal", "decision", "guardrail"], "default": "normal" }
             },
             "required": ["root", "title", "content"],
             "additionalProperties": false
@@ -328,7 +329,8 @@ fn memory_update_tool() -> Value {
                 "id": { "type": "string" },
                 "title": { "type": "string" },
                 "content": { "type": "string" },
-                "tags": { "type": "array", "items": { "type": "string" } }
+                "tags": { "type": "array", "items": { "type": "string" } },
+                "profile": { "type": "string", "enum": ["normal", "decision", "guardrail"] }
             },
             "required": ["root", "id"],
             "additionalProperties": false

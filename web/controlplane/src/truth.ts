@@ -33,6 +33,7 @@ export type MemorySearchState = {
     title?: string
     content?: string
     tags?: string[]
+    profile?: string
   }>
   omitted_count: number
 }

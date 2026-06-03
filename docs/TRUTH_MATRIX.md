@@ -21,7 +21,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 |---|---|
 | Docs and release readiness | Bootstrap docs, MCP client setup, local quickstart, troubleshooting, known limitations, changelog, and release rehearsal. |
 | Token-saving clarity | Add cache hit/miss visibility, stale state, and local reduction benchmarks without provider billing claims; local byte counts and approximate token estimates now ship for context packets. |
-| Agent handoff | Bounded handoff packets now ship with active task, context, memory notes, validation commands, blockers, and omission reasons. Future work can add stronger decision-memory prioritization. |
+| Agent handoff | Bounded handoff packets now ship with active task, context, decision/guardrail memory notes, validation commands, blockers, and omission reasons. |
 | Repo intelligence | Add bounded repo maps, diff-aware context, and validation recommendations using local repo state only. |
 | Demo and validation | Provide a local example workspace, demo script, and one-command validation suite with no external services. |
 

@@ -6,6 +6,16 @@ pub fn memory_write(
     content: &str,
     tags: &[String],
 ) -> io::Result<MemoryWriteResult> {
+    memory_write_with_profile(root, title, content, tags, MemoryProfile::Normal)
+}
+
+pub fn memory_write_with_profile(
+    root: &Path,
+    title: &str,
+    content: &str,
+    tags: &[String],
+    profile: MemoryProfile,
+) -> io::Result<MemoryWriteResult> {
     let now = now_epoch_ms()?;
     let mut stored = load_memory_notes(root)?;
     let note = MemoryNote {
@@ -13,6 +23,7 @@ pub fn memory_write(
         title: title.to_string(),
         content: content.to_string(),
         tags: tags.to_vec(),
+        profile,
         created_at_epoch_ms: now,
         updated_at_epoch_ms: now,
     };
@@ -27,6 +38,17 @@ pub fn memory_update(
     title: Option<&str>,
     content: Option<&str>,
     tags: Option<&[String]>,
+) -> io::Result<MemoryUpdateResult> {
+    memory_update_with_profile(root, id, title, content, tags, None)
+}
+
+pub fn memory_update_with_profile(
+    root: &Path,
+    id: &str,
+    title: Option<&str>,
+    content: Option<&str>,
+    tags: Option<&[String]>,
+    profile: Option<MemoryProfile>,
 ) -> io::Result<MemoryUpdateResult> {
     let mut stored = load_memory_notes(root)?;
     let note = stored
@@ -52,6 +74,10 @@ pub fn memory_update(
     }
     if let Some(tags) = tags {
         note.tags = tags.to_vec();
+        changed = true;
+    }
+    if let Some(profile) = profile {
+        note.profile = profile;
         changed = true;
     }
 
@@ -181,7 +207,11 @@ pub(crate) fn find_memory_notes(root: &Path, query: &str) -> io::Result<Vec<Memo
                     .any(|tag| tag.to_ascii_lowercase().contains(&normalized_query))
         })
         .collect::<Vec<_>>();
-    matches.sort_by(|left, right| right.updated_at_epoch_ms.cmp(&left.updated_at_epoch_ms));
+    matches.sort_by(|left, right| {
+        memory_profile_rank(&right.profile)
+            .cmp(&memory_profile_rank(&left.profile))
+            .then_with(|| right.updated_at_epoch_ms.cmp(&left.updated_at_epoch_ms))
+    });
     Ok(matches)
 }
 
@@ -206,6 +236,7 @@ pub(crate) fn pack_memory_notes(
             id: note.id,
             title: note.title,
             content,
+            profile: note.profile,
             reason: InclusionReason {
                 kind: InclusionReasonKind::MemoryNoteMatch,
                 detail: format!("Durable memory matched query '{query}'."),
@@ -239,4 +270,12 @@ pub(crate) fn pack_memory_notes(
     }
 
     (packed, omissions)
+}
+
+fn memory_profile_rank(profile: &MemoryProfile) -> u8 {
+    match profile {
+        MemoryProfile::Guardrail => 2,
+        MemoryProfile::Decision => 1,
+        MemoryProfile::Normal => 0,
+    }
 }

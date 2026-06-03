@@ -12,7 +12,7 @@ mod storage;
 pub use handoff::assemble_handoff_packet;
 pub use memory::{
     memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,
-    memory_write,
+    memory_update_with_profile, memory_write, memory_write_with_profile,
 };
 pub use models::*;
 pub use repositories::{

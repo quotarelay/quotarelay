@@ -11,7 +11,17 @@ pub fn assemble_handoff_packet(
     limit: usize,
 ) -> io::Result<HandoffPacket> {
     let context = retrieve_context(root, mode, query, limit)?;
-    let memory_decisions = context.memory_notes.clone();
+    let memory_decisions = context
+        .memory_notes
+        .iter()
+        .filter(|note| {
+            matches!(
+                note.profile,
+                MemoryProfile::Decision | MemoryProfile::Guardrail
+            )
+        })
+        .cloned()
+        .collect();
     let omissions = context.omissions.clone();
 
     Ok(HandoffPacket {

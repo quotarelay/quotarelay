@@ -391,6 +391,7 @@ components:
         - title
         - content
         - tags
+        - profile
         - created_at_epoch_ms
         - updated_at_epoch_ms
       properties:
@@ -404,6 +405,8 @@ components:
           type: array
           items:
             type: string
+        profile:
+          $ref: '#/components/schemas/MemoryProfile'
         created_at_epoch_ms:
           type: integer
         updated_at_epoch_ms:
@@ -474,6 +477,7 @@ components:
         - id
         - title
         - content
+        - profile
         - reason
       properties:
         id:
@@ -482,6 +486,8 @@ components:
           type: string
         content:
           type: string
+        profile:
+          $ref: '#/components/schemas/MemoryProfile'
         reason:
           $ref: '#/components/schemas/InclusionReason'
     InclusionReason:
@@ -543,6 +549,12 @@ components:
         - exact_search
         - overview
         - task_capsule
+    MemoryProfile:
+      type: string
+      enum:
+        - normal
+        - decision
+        - guardrail
     InclusionReasonKind:
       type: string
       enum:

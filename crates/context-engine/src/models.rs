@@ -78,6 +78,7 @@ pub struct ContextMemoryNote {
     pub id: String,
     pub title: String,
     pub content: String,
+    pub profile: MemoryProfile,
     pub reason: InclusionReason,
 }
 
@@ -138,8 +139,19 @@ pub struct MemoryNote {
     pub title: String,
     pub content: String,
     pub tags: Vec<String>,
+    #[serde(default)]
+    pub profile: MemoryProfile,
     pub created_at_epoch_ms: u128,
     pub updated_at_epoch_ms: u128,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum MemoryProfile {
+    #[default]
+    Normal,
+    Decision,
+    Guardrail,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

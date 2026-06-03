@@ -4,15 +4,16 @@ use context_engine::{
     assemble_context_for_registered_repositories, assemble_handoff_packet, clear_retrieval_caches,
     context_run_detail, context_run_history, inspect_local_state, inspect_retrieval_caches,
     invalidate_exact_match_cache, list_registered_repositories, list_workspace_profiles,
-    memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,
-    memory_write, register_repository, registered_repository_detail, registered_repository_state,
-    remove_registered_repository, retrieve_context, save_workspace_profile,
-    update_registered_repository_metadata, CacheClearResult, CacheInspection, ContextAssembly,
-    HandoffPacket, MemoryDeleteResult, MemoryExportPayload, MemoryExportResult, MemoryImportResult,
-    MemoryNote, MemorySearchResult, MemoryUpdateResult, MemoryWriteResult,
-    MultiRepositoryContextAssembly, RegisteredRepository, RegisteredRepositoryState,
-    RepositoryMetadataUpdateResult, RepositoryRegistrationResult, RepositoryRemovalResult,
-    RetrievalMode, RetrievedContext, WorkspaceProfile, WorkspaceProfileSaveResult,
+    memory_delete, memory_export, memory_import, memory_read, memory_search,
+    memory_update_with_profile, memory_write_with_profile, register_repository,
+    registered_repository_detail, registered_repository_state, remove_registered_repository,
+    retrieve_context, save_workspace_profile, update_registered_repository_metadata,
+    CacheClearResult, CacheInspection, ContextAssembly, HandoffPacket, MemoryDeleteResult,
+    MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryNote, MemoryProfile,
+    MemorySearchResult, MemoryUpdateResult, MemoryWriteResult, MultiRepositoryContextAssembly,
+    RegisteredRepository, RegisteredRepositoryState, RepositoryMetadataUpdateResult,
+    RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
+    WorkspaceProfile, WorkspaceProfileSaveResult,
 };
 use repo_index::{repo_inventory, search_code, sync_repo};
 use serde_json::Value;
@@ -223,8 +224,9 @@ pub(crate) fn memory_write_from_args(arguments: &Value) -> Result<MemoryWriteRes
         })
         .transpose()?
         .unwrap_or_default();
+    let profile = parse_memory_profile(arguments)?;
 
-    memory_write(&root, title, content, &tags)
+    memory_write_with_profile(&root, title, content, &tags, profile)
         .map_err(|error| format!("memory_write failed: {error}"))
 }
 
@@ -264,8 +266,9 @@ pub(crate) fn memory_update_from_args(arguments: &Value) -> Result<MemoryUpdateR
                 })
         })
         .transpose()?;
+    let profile = parse_optional_memory_profile(arguments)?;
 
-    memory_update(&root, id, title, content, tags.as_deref())
+    memory_update_with_profile(&root, id, title, content, tags.as_deref(), profile)
         .map_err(|error| format!("memory_update failed: {error}"))
 }
 
@@ -432,6 +435,22 @@ fn parse_optional_retrieval_mode(
         Some("task_capsule") => Ok(Some(RetrievalMode::TaskCapsule)),
         Some(other) => Err(format!(
             "{field} must be one of exact_search, overview, task_capsule; got {other}"
+        )),
+    }
+}
+
+fn parse_memory_profile(arguments: &Value) -> Result<MemoryProfile, String> {
+    parse_optional_memory_profile(arguments).map(|profile| profile.unwrap_or(MemoryProfile::Normal))
+}
+
+fn parse_optional_memory_profile(arguments: &Value) -> Result<Option<MemoryProfile>, String> {
+    match arguments.get("profile").and_then(Value::as_str) {
+        None => Ok(None),
+        Some("normal") => Ok(Some(MemoryProfile::Normal)),
+        Some("decision") => Ok(Some(MemoryProfile::Decision)),
+        Some("guardrail") => Ok(Some(MemoryProfile::Guardrail)),
+        Some(other) => Err(format!(
+            "profile must be one of normal, decision, guardrail; got {other}"
         )),
     }
 }

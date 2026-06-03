@@ -47,6 +47,7 @@ The retrieval contract is explicit and bounded:
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
 - Budget estimate: context packs include local included-byte counts and approximate tokens derived from those bytes
 - Durable memory: stored locally under `.quotarelay/`
+- Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
 - Registered repository state: stored locally and exposed with sync status, indexed counts, and recent run metadata
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
 

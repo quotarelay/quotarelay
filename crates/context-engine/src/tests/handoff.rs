@@ -8,11 +8,12 @@ fn handoff_packet_is_bounded_and_explained() {
     let root = temp_repo();
     fs::write(root.join("alpha.txt"), "needle handoff\n").expect("alpha file should write");
     repo_index::sync_repo(&root).expect("sync should succeed");
-    memory_write(
+    memory_write_with_profile(
         &root,
         "Decision note",
         "needle memory decision",
         &["decision".to_string()],
+        MemoryProfile::Decision,
     )
     .expect("memory note should write");
 

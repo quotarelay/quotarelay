@@ -263,3 +263,46 @@ fn exact_search_includes_bounded_memory_notes_with_typed_reasons() {
         .iter()
         .any(|item| item.kind == OmissionReasonKind::ByteBudgetReached));
 }
+
+#[test]
+fn decision_memory_profiles_are_prioritized_separately() {
+    let root = temp_repo();
+    memory_write(&root, "Normal note", "needle normal", &[]).expect("normal memory should write");
+    memory_write_with_profile(
+        &root,
+        "Decision note",
+        "needle decision",
+        &["decision".to_string()],
+        MemoryProfile::Decision,
+    )
+    .expect("decision memory should write");
+    memory_write_with_profile(
+        &root,
+        "Guardrail note",
+        "needle guardrail",
+        &["guardrail".to_string()],
+        MemoryProfile::Guardrail,
+    )
+    .expect("guardrail memory should write");
+
+    let search = memory_search(&root, "needle", 3).expect("memory search should succeed");
+    assert_eq!(search.notes[0].profile, MemoryProfile::Guardrail);
+    assert_eq!(search.notes[1].profile, MemoryProfile::Decision);
+    assert_eq!(search.notes[2].profile, MemoryProfile::Normal);
+
+    fs::write(root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+    let packet = assemble_handoff_packet(
+        &root,
+        "Continue T103",
+        RetrievalMode::ExactSearch,
+        Some("needle"),
+        3,
+    )
+    .expect("handoff should succeed");
+    assert_eq!(packet.memory_decisions.len(), 2);
+    assert!(packet
+        .memory_decisions
+        .iter()
+        .all(|note| note.profile != MemoryProfile::Normal));
+}

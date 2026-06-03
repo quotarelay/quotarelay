@@ -139,6 +139,7 @@
         <h3>{{ note.title }}</h3>
         <p>{{ note.content }}</p>
         <div class="chip-row">
+          <span class="chip">{{ note.profile ?? 'normal' }}</span>
           <span class="chip" v-for="tag in note.tags" :key="tag">{{ tag }}</span>
         </div>
       </article>
