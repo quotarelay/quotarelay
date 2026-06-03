@@ -5,6 +5,7 @@ use std::path::{Path, PathBuf};
 use serde::Deserialize;
 
 use super::*;
+use repo_index::repo_inventory;
 
 pub(crate) fn append_history(root: &Path, assembly: &ContextAssembly) -> io::Result<()> {
     let mut history = load_history(root)?;
@@ -32,6 +33,78 @@ pub(crate) fn load_history(root: &Path) -> io::Result<StoredRunHistory> {
 
     let bytes = fs::read(&path)?;
     parse_state_json(&path, &bytes)
+}
+
+pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
+    let index = match repo_inventory(root) {
+        Ok(inventory) => LocalStateArtifact {
+            present: true,
+            item_count: inventory.indexed_files,
+        },
+        Err(error) if error.kind() == io::ErrorKind::NotFound => LocalStateArtifact {
+            present: false,
+            item_count: 0,
+        },
+        Err(error) => return Err(error),
+    };
+    let memory_notes = load_memory_notes(root)?;
+    let history = load_history(root)?;
+    let registered_repositories = load_registered_repositories(root)?;
+    let exact_cache = load_exact_match_cache(root)?;
+    let capsule_cache = load_capsule_cache(root)?;
+
+    Ok(LocalStateInspection {
+        index,
+        memory_notes: LocalStateArtifact {
+            present: memory_notes_path(root).exists(),
+            item_count: memory_notes.notes.len(),
+        },
+        context_run_history: LocalStateArtifact {
+            present: history_path(root).exists(),
+            item_count: history.runs.len(),
+        },
+        registered_repositories: LocalStateArtifact {
+            present: registered_repositories_path(root).exists(),
+            item_count: registered_repositories.repositories.len(),
+        },
+        exact_search_cache: LocalStateArtifact {
+            present: exact_match_cache_path(root).exists(),
+            item_count: exact_cache.entries.len(),
+        },
+        retrieval_capsule_cache: LocalStateArtifact {
+            present: capsule_cache_path(root).exists(),
+            item_count: capsule_cache.entries.len(),
+        },
+    })
+}
+
+pub fn inspect_retrieval_caches(root: &Path) -> io::Result<CacheInspection> {
+    let exact_cache = load_exact_match_cache(root)?;
+    let capsule_cache = load_capsule_cache(root)?;
+
+    Ok(CacheInspection {
+        exact_search_cache: LocalStateArtifact {
+            present: exact_match_cache_path(root).exists(),
+            item_count: exact_cache.entries.len(),
+        },
+        retrieval_capsule_cache: LocalStateArtifact {
+            present: capsule_cache_path(root).exists(),
+            item_count: capsule_cache.entries.len(),
+        },
+    })
+}
+
+pub fn clear_retrieval_caches(root: &Path) -> io::Result<CacheClearResult> {
+    let exact_search_cache_cleared = exact_match_cache_path(root).exists();
+    let retrieval_capsule_cache_cleared = capsule_cache_path(root).exists();
+
+    clear_exact_match_cache(root)?;
+    clear_capsule_cache(root)?;
+
+    Ok(CacheClearResult {
+        exact_search_cache_cleared,
+        retrieval_capsule_cache_cleared,
+    })
 }
 
 pub(crate) fn history_path(root: &Path) -> PathBuf {

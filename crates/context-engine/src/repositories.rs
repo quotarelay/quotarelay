@@ -1,4 +1,5 @@
 use super::*;
+use repo_index::repo_inventory;
 
 pub fn register_repository(
     state_root: &Path,
