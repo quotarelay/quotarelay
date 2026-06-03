@@ -93,6 +93,7 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`
 - `cargo test -p mcp-server backend_truth_endpoint_exposes_current_contract`
@@ -135,6 +136,16 @@ See `CHANGELOG.md` for local MVP release notes, validation commands, known limit
 ## Control plane
 
 See `docs/CONTROL_PLANE_LOCAL.md` for local backend HTTP and frontend commands.
+
+## Token-saver benchmark
+
+Run the local acceptance benchmark with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1
+```
+
+The benchmark creates a temporary fixture, syncs it locally, records decision memory, assembles exact/overview/handoff/diff-aware packets, checks exact-search cache entries across repeated assembly, and reports raw bytes versus packet bytes with approximate tokens. It does not call providers or claim billing savings.
 
 ## Local package smoke
 
