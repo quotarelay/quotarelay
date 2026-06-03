@@ -38,6 +38,7 @@ Today the backend exposes these MCP tools:
 - `context_run_history`
 - `multi_repo_assemble_context`
 - `assemble_context`
+- `handoff_packet`
 
 The retrieval contract is explicit and bounded:
 
@@ -99,6 +100,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]`
+- `cargo run -p mcp-server -- --cli handoff <repo_root> <active_task> exact_search <query> [limit]`
 
 ## MCP client setup
 

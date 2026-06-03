@@ -2,12 +2,14 @@ use std::io;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
+mod handoff;
 mod memory;
 mod models;
 mod repositories;
 mod retrieval;
 mod storage;
 
+pub use handoff::assemble_handoff_packet;
 pub use memory::{
     memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,
     memory_write,

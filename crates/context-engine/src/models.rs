@@ -116,6 +116,22 @@ pub struct ContextBudgetEstimate {
     pub approximate_tokens: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HandoffPacket {
+    pub active_task: String,
+    pub context: RetrievedContext,
+    pub memory_decisions: Vec<ContextMemoryNote>,
+    pub validation_commands: Vec<HandoffValidationCommand>,
+    pub known_blockers: Vec<String>,
+    pub omissions: Vec<OmissionReason>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct HandoffValidationCommand {
+    pub command: String,
+    pub reason: String,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MemoryNote {
     pub id: String,

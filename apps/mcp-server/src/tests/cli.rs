@@ -174,6 +174,32 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
     output.clear();
     super::run_cli(
         [
+            "handoff".to_string(),
+            repo_root.to_string_lossy().to_string(),
+            "Continue T102".to_string(),
+            "exact_search".to_string(),
+            "needle".to_string(),
+            "2".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli handoff should succeed");
+
+    let handoff: Value = serde_json::from_slice(&output).expect("handoff payload should parse");
+    assert!(handoff["ok"].as_bool().unwrap_or(false));
+    assert_eq!(handoff["command"], "handoff");
+    assert_eq!(handoff["result"]["handoff"]["active_task"], "Continue T102");
+    assert_eq!(
+        handoff["result"]["handoff"]["context"]["snippets"]
+            .as_array()
+            .map(|items| items.len()),
+        Some(1)
+    );
+    assert!(handoff["result"]["handoff"]["validation_commands"].is_array());
+
+    output.clear();
+    super::run_cli(
+        [
             "search".to_string(),
             repo_root.to_string_lossy().to_string(),
             "needle".to_string(),

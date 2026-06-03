@@ -1,18 +1,18 @@
 use std::path::PathBuf;
 
 use context_engine::{
-    assemble_context_for_registered_repositories, clear_retrieval_caches, context_run_detail,
-    context_run_history, inspect_local_state, inspect_retrieval_caches,
+    assemble_context_for_registered_repositories, assemble_handoff_packet, clear_retrieval_caches,
+    context_run_detail, context_run_history, inspect_local_state, inspect_retrieval_caches,
     invalidate_exact_match_cache, list_registered_repositories, list_workspace_profiles,
     memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,
     memory_write, register_repository, registered_repository_detail, registered_repository_state,
     remove_registered_repository, retrieve_context, save_workspace_profile,
     update_registered_repository_metadata, CacheClearResult, CacheInspection, ContextAssembly,
-    MemoryDeleteResult, MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryNote,
-    MemorySearchResult, MemoryUpdateResult, MemoryWriteResult, MultiRepositoryContextAssembly,
-    RegisteredRepository, RegisteredRepositoryState, RepositoryMetadataUpdateResult,
-    RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
-    WorkspaceProfile, WorkspaceProfileSaveResult,
+    HandoffPacket, MemoryDeleteResult, MemoryExportPayload, MemoryExportResult, MemoryImportResult,
+    MemoryNote, MemorySearchResult, MemoryUpdateResult, MemoryWriteResult,
+    MultiRepositoryContextAssembly, RegisteredRepository, RegisteredRepositoryState,
+    RepositoryMetadataUpdateResult, RepositoryRegistrationResult, RepositoryRemovalResult,
+    RetrievalMode, RetrievedContext, WorkspaceProfile, WorkspaceProfileSaveResult,
 };
 use repo_index::{repo_inventory, search_code, sync_repo};
 use serde_json::Value;
@@ -389,6 +389,24 @@ pub(crate) fn assemble_context_from_args(arguments: &Value) -> Result<RetrievedC
 
     retrieve_context(&root, mode, query, limit)
         .map_err(|error| format!("assemble_context failed: {error}"))
+}
+
+pub(crate) fn handoff_packet_from_args(arguments: &Value) -> Result<HandoffPacket, String> {
+    let root = parse_root(arguments)?;
+    let active_task = arguments
+        .get("active_task")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "handoff_packet requires active_task string".to_string())?;
+    let mode = parse_retrieval_mode(arguments)?;
+    let query = arguments.get("query").and_then(Value::as_str);
+    let limit = arguments
+        .get("limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(3);
+
+    assemble_handoff_packet(&root, active_task, mode, query, limit)
+        .map_err(|error| format!("handoff_packet failed: {error}"))
 }
 
 fn parse_retrieval_mode(arguments: &Value) -> Result<RetrievalMode, String> {

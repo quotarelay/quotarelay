@@ -28,6 +28,7 @@ pub(crate) fn current_tool_registry() -> Vec<Value> {
         context_run_history_tool(),
         multi_repo_assemble_context_tool(),
         assemble_context_tool(),
+        handoff_packet_tool(),
     ]
 }
 
@@ -433,6 +434,29 @@ fn multi_repo_assemble_context_tool() -> Value {
                 "per_repo_limit": { "type": "integer", "minimum": 1, "maximum": 5 }
             },
             "required": ["root", "repo_roots", "query"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn handoff_packet_tool() -> Value {
+    json!({
+        "name": "handoff_packet",
+        "description": "Builds a bounded agent handoff packet with active task, context, memory notes, validation commands, blockers, and omission reasons.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "active_task": { "type": "string" },
+                "mode": {
+                    "type": "string",
+                    "enum": ["exact_search", "overview", "task_capsule"],
+                    "default": "exact_search"
+                },
+                "query": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 5 }
+            },
+            "required": ["root", "active_task"],
             "additionalProperties": false
         }
     })

@@ -2,8 +2,8 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use context_engine::{
-    inspect_local_state, invalidate_exact_match_cache, register_repository, retrieve_context,
-    RetrievalMode,
+    assemble_handoff_packet, inspect_local_state, invalidate_exact_match_cache,
+    register_repository, retrieve_context, RetrievalMode,
 };
 use repo_index::{search_code, sync_repo};
 use serde_json::{json, Value};
@@ -31,6 +31,7 @@ where
         "state" => run_cli_state(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
+        "handoff" => run_cli_handoff(&mut args_iter),
         "truth" => Ok(json!({"truth": backend_truth_payload()})),
         _ => {
             return write_cli_error(
@@ -135,6 +136,35 @@ where
     )
     .map_err(|error| format!("assemble failed: {error}"))?;
     Ok(json!({"context": retrieval}))
+}
+
+fn run_cli_handoff<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let active_task = parse_cli_arg(args, "active_task")?;
+    let mode = parse_cli_arg(args, "mode")?;
+    let query = match mode.as_str() {
+        "overview" => None,
+        "exact_search" | "task_capsule" => Some(parse_cli_arg(args, "query")?),
+        other => {
+            return Err(format!(
+                "handoff mode must be exact_search, overview, or task_capsule; got {other}"
+            ))
+        }
+    };
+    let limit = parse_cli_limit(args, 3)?;
+    let packet = assemble_handoff_packet(
+        &PathBuf::from(&root),
+        &active_task,
+        parse_retrieval_mode_from_str(&mode)?,
+        query.as_deref(),
+        limit,
+    )
+    .map_err(|error| format!("handoff failed: {error}"))?;
+    Ok(json!({"handoff": packet}))
 }
 
 fn parse_cli_arg<I, S>(args: &mut I, name: &str) -> Result<String, String>

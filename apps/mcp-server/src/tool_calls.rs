@@ -274,6 +274,16 @@ pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("handoff_packet") => match handoff_packet_from_args(&arguments) {
+            Ok(results) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&results).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some(name) => json!({
             "type": "text",
             "text": format!("unknown tool: {name}")

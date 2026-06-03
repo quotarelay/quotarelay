@@ -342,3 +342,64 @@ fn assemble_context_includes_matching_memory_over_stdio() {
     );
     assert_eq!(assembly["memory_notes"][0]["title"], "Needle note");
 }
+
+#[test]
+fn handoff_packet_works_over_stdio() {
+    let root = temp_repo();
+    fs::write(root.join("src.txt"), "needle handoff\n").expect("repo file should write");
+    let sync_request = json_rpc_request(
+        80,
+        "tools/call",
+        json!({
+            "name": "sync_repo",
+            "arguments": {
+                "root": root.to_string_lossy()
+            }
+        }),
+    );
+    let handoff_request = json_rpc_request(
+        81,
+        "tools/call",
+        json!({
+            "name": "handoff_packet",
+            "arguments": {
+                "root": root.to_string_lossy(),
+                "active_task": "Continue T102",
+                "mode": "exact_search",
+                "query": "needle",
+                "limit": 2
+            }
+        }),
+    );
+    let framed = format!(
+        "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+        sync_request.len(),
+        sync_request,
+        handoff_request.len(),
+        handoff_request
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("handoff should succeed");
+
+    let responses = decode_responses(&output);
+    assert_eq!(responses[1]["id"], 81);
+    let packet: Value = serde_json::from_str(
+        responses[1]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("handoff text should exist"),
+    )
+    .expect("handoff payload should be valid json");
+
+    assert_eq!(packet["active_task"], "Continue T102");
+    assert_eq!(packet["context"]["mode"], "exact_search");
+    assert_eq!(
+        packet["context"]["snippets"]
+            .as_array()
+            .map(|items| items.len()),
+        Some(1)
+    );
+    assert!(packet["validation_commands"].is_array());
+    assert!(packet["known_blockers"].is_array());
+    assert!(packet["omissions"].is_array());
+}

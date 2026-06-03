@@ -81,6 +81,7 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "context_run_history",
             "multi_repo_assemble_context",
             "assemble_context",
+            "handoff_packet",
         ]
     );
 

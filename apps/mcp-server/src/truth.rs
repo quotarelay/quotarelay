@@ -145,6 +145,11 @@ fn cli_truth() -> CliTruth {
                 label: "Assemble context",
                 command: "cargo run -p mcp-server -- --cli assemble <repo-root> <query>",
             },
+            CliCommandTruth {
+                label: "Agent handoff",
+                command:
+                    "cargo run -p mcp-server -- --cli handoff <repo-root> <active-task> exact_search <query>",
+            },
         ],
     }
 }
