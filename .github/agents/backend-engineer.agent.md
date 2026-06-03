@@ -50,10 +50,12 @@ Your job is to implement the active backend slice exactly as defined by the live
 ## Output Format
 
 Return:
-- changed seam
+- active seam
+- touched files
 - why it was the controlling backend path
-- focused validation run: exact command, exit status, pass or fail summary, and coverage result if present
+- exact validation proof: focused command, exit status, pass or fail summary, and coverage result if present
 - line-count guardrail result for touched source files, including the exact command result when the slice is decomposition or broad implementation work
 - separation-of-concerns result for touched seams
 - files or seams that QA should verify next
+- next tracker state expected after QA/review
 - any remaining contradictions or blocked follow-up

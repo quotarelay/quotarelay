@@ -74,10 +74,14 @@ Your job is to choose the smallest necessary specialist path, keep work aligned 
 
 For implementation delivery:
 - active seam
+- touched files
 - chosen specialist
 - QA result: `PASS` or `BLOCK`
 - review result: `clear` or `findings`
 - exact validation proof
+- line-count guardrail result
+- separation-of-concerns result
+- next tracker state
 - concise outcome or blocking fixes
 
 Use the shortest honest form that still includes the required fields. Do not add handoff-by-handoff narration when the result can be stated directly.
@@ -85,9 +89,12 @@ Use the shortest honest form that still includes the required fields. Do not add
 For autopilot continuation:
 - action: `continue active slice` | `open next explicit slice` | `BLOCKED`
 - task
+- active seam
+- touched files if known
 - chosen specialist or planner
 - exact reason
 - next action taken or blocking condition
+- next tracker state
 
 For scope-amendment continuation:
 - action: `amend active slice and continue`

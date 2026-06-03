@@ -57,8 +57,13 @@ Your job is to independently verify whether a completed slice should pass QA or 
 Return exactly:
 
 - `Status: PASS` or `Status: BLOCK`
+- `Active seam: ...`
+- `Touched files: ...`
 - `Scope drift: yes|no`
 - `Truth drift: yes|no`
-- `Validation summary: ...` Include the exact command result you relied on.
+- `Validation proof: ...` Include the exact command result you relied on.
+- `Line-count guardrail: ...` Include the exact command result or state why it was not required.
+- `Separation of concerns: ...`
 - `Required fixes: ...`
 - `Repair route: same active slice|new follow-up slice|user decision required - ...`
+- `Next tracker state: ...`
