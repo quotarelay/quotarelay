@@ -27,6 +27,20 @@ struct StoredIndex {
     files: Vec<IndexedFile>,
 }
 
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+struct LocalIgnoreConfig {
+    #[serde(default)]
+    paths: Vec<String>,
+    #[serde(default)]
+    prefixes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default)]
+struct IgnoreRules {
+    paths: Vec<String>,
+    prefixes: Vec<String>,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct RepoInventory {
     pub indexed_at_epoch_ms: u128,
@@ -54,6 +68,7 @@ pub struct IndexedDocument {
 }
 
 pub fn sync_repo(root: &Path) -> io::Result<SyncResult> {
+    let ignore_rules = load_ignore_rules(root)?;
     let previous_files = load_index(root)
         .map(|index| {
             index
@@ -64,7 +79,7 @@ pub fn sync_repo(root: &Path) -> io::Result<SyncResult> {
         })
         .unwrap_or_default();
     let mut discovered_paths = Vec::new();
-    collect_file_paths(root, root, &mut discovered_paths)?;
+    collect_file_paths(root, root, &ignore_rules, &mut discovered_paths)?;
     let mut files = discovered_paths
         .into_iter()
         .filter_map(|path| build_indexed_file(root, &path, &previous_files).transpose())
@@ -195,21 +210,31 @@ fn load_index(root: &Path) -> io::Result<StoredIndex> {
     serde_json::from_slice(&bytes).map_err(io::Error::other)
 }
 
-fn collect_file_paths(root: &Path, current: &Path, files: &mut Vec<PathBuf>) -> io::Result<()> {
+fn collect_file_paths(
+    root: &Path,
+    current: &Path,
+    ignore_rules: &IgnoreRules,
+    files: &mut Vec<PathBuf>,
+) -> io::Result<()> {
     for entry in fs::read_dir(current)? {
         let entry = entry?;
         let path = entry.path();
         let file_type = entry.file_type()?;
+        let relative = relative_index_path(root, &path)?;
 
         if file_type.is_dir() {
-            if should_skip_dir(&path) {
+            if should_skip_dir(&path) || should_ignore_path(&relative, ignore_rules) {
                 continue;
             }
-            collect_file_paths(root, &path, files)?;
+            collect_file_paths(root, &path, ignore_rules, files)?;
             continue;
         }
 
         if !file_type.is_file() {
+            continue;
+        }
+
+        if should_ignore_path(&relative, ignore_rules) {
             continue;
         }
 
@@ -219,16 +244,56 @@ fn collect_file_paths(root: &Path, current: &Path, files: &mut Vec<PathBuf>) -> 
     Ok(())
 }
 
+fn load_ignore_rules(root: &Path) -> io::Result<IgnoreRules> {
+    let path = ignore_config_path(root);
+    if !path.exists() {
+        return Ok(IgnoreRules::default());
+    }
+
+    let bytes = fs::read(path)?;
+    let config: LocalIgnoreConfig = serde_json::from_slice(&bytes).map_err(io::Error::other)?;
+
+    Ok(IgnoreRules {
+        paths: config
+            .paths
+            .into_iter()
+            .filter_map(|entry| normalize_ignore_entry(&entry))
+            .collect(),
+        prefixes: config
+            .prefixes
+            .into_iter()
+            .filter_map(|entry| normalize_ignore_entry(&entry))
+            .collect(),
+    })
+}
+
+fn normalize_ignore_entry(entry: &str) -> Option<String> {
+    let normalized = entry
+        .trim()
+        .replace('\\', "/")
+        .trim_matches('/')
+        .to_string();
+
+    if normalized.is_empty() {
+        None
+    } else {
+        Some(normalized)
+    }
+}
+
+fn should_ignore_path(relative: &str, rules: &IgnoreRules) -> bool {
+    rules.paths.iter().any(|path| path == relative)
+        || rules.prefixes.iter().any(|prefix| {
+            relative == prefix || relative.strip_prefix(prefix).is_some_and(|rest| rest.starts_with('/'))
+        })
+}
+
 fn build_indexed_file(
     root: &Path,
     path: &Path,
     previous_files: &HashMap<String, IndexedFile>,
 ) -> io::Result<Option<IndexedFile>> {
-    let relative = path
-        .strip_prefix(root)
-        .map_err(io::Error::other)?
-        .to_string_lossy()
-        .replace('\\', "/");
+    let relative = relative_index_path(root, path)?;
     let modified_at_epoch_ms = modified_at_epoch_ms(path)?;
 
     if let Some(existing) = previous_files.get(&relative) {
@@ -594,8 +659,20 @@ fn should_skip_dir(path: &Path) -> bool {
     )
 }
 
+fn relative_index_path(root: &Path, path: &Path) -> io::Result<String> {
+    Ok(path
+        .strip_prefix(root)
+        .map_err(io::Error::other)?
+        .to_string_lossy()
+        .replace('\\', "/"))
+}
+
 fn index_path(root: &Path) -> PathBuf {
     root.join(".quotarelay").join("index.json")
+}
+
+fn ignore_config_path(root: &Path) -> PathBuf {
+    root.join(".quotarelay").join("ignore.json")
 }
 
 #[cfg(test)]
@@ -726,6 +803,106 @@ mod tests {
             .expect("beta should still exist");
         assert_eq!(second_beta.contents, "beta two\n");
         assert!(second_beta.modified_at_epoch_ms >= first_beta);
+    }
+
+    #[test]
+    fn sync_repo_respects_explicit_local_ignore_config_after_sync() {
+        let root = temp_repo();
+        let generated_dir = root.join("generated");
+        fs::create_dir_all(&generated_dir).expect("generated dir should create");
+        fs::write(root.join("alpha.txt"), "alpha keep\n").expect("alpha file should write");
+        fs::write(root.join("secret.txt"), "secret needle\n").expect("secret file should write");
+        fs::write(generated_dir.join("artifact.txt"), "artifact needle\n")
+            .expect("artifact file should write");
+
+        sync_repo(&root).expect("initial sync should succeed");
+        assert_eq!(search_code(&root, "needle", 10).expect("initial search should succeed").len(), 2);
+
+        let state_dir = root.join(".quotarelay");
+        fs::create_dir_all(&state_dir).expect("state dir should create");
+        fs::write(
+            state_dir.join("ignore.json"),
+            r#"{
+  "paths": ["secret.txt"],
+  "prefixes": ["generated"]
+}"#,
+        )
+        .expect("ignore config should write");
+
+        assert_eq!(
+            search_code(&root, "needle", 10)
+                .expect("search before explicit resync should still use old index")
+                .len(),
+            2
+        );
+
+        let resync = sync_repo(&root).expect("resync should honor ignore config");
+        assert_eq!(resync.indexed_files, 1);
+
+        let index = load_index(&root).expect("index should load");
+        assert_eq!(index.files.len(), 1);
+        assert_eq!(index.files[0].path, "alpha.txt");
+        assert!(
+            search_code(&root, "needle", 10)
+                .expect("ignored search should succeed")
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn sync_repo_normalizes_windows_style_ignore_entries() {
+        let root = temp_repo();
+        let generated_dir = root.join("generated");
+        fs::create_dir_all(&generated_dir).expect("generated dir should create");
+        fs::write(generated_dir.join("artifact.txt"), "artifact needle\n")
+            .expect("artifact file should write");
+        fs::write(root.join("keep.txt"), "keep needle\n").expect("keep file should write");
+        let state_dir = root.join(".quotarelay");
+        fs::create_dir_all(&state_dir).expect("state dir should create");
+        fs::write(
+            state_dir.join("ignore.json"),
+            r#"{
+  "paths": ["generated\\artifact.txt"]
+}"#,
+        )
+        .expect("ignore config should write");
+
+        let sync = sync_repo(&root).expect("sync should honor normalized ignore path");
+        assert_eq!(sync.indexed_files, 1);
+        let hits = search_code(&root, "needle", 10).expect("search should succeed");
+        assert_eq!(hits.len(), 1);
+        assert_eq!(hits[0].path, "keep.txt");
+    }
+
+    #[test]
+    fn many_file_repos_keep_index_and_query_outputs_bounded() {
+        let root = temp_repo();
+        let large_tail = "padding\n".repeat(2_000);
+        for index in 0..40 {
+            fs::write(
+                root.join(format!("file-{index:02}.txt")),
+                format!("needle line {index}\n{large_tail}"),
+            )
+            .expect("repo file should write");
+        }
+
+        let sync = sync_repo(&root).expect("sync should succeed");
+        assert_eq!(sync.indexed_files, 40);
+
+        let stored = load_index(&root).expect("index should load");
+        assert_eq!(stored.files.len(), 40);
+        assert!(stored.files.iter().all(|file| file.contents.len() <= MAX_INDEXED_CONTENT_BYTES));
+
+        let hits = search_code(&root, "needle", 3).expect("search should succeed");
+        assert_eq!(hits.len(), 3);
+        assert_eq!(hits[0].path, "file-00.txt");
+
+        let documents = indexed_documents(&root, 4).expect("documents should load");
+        assert_eq!(documents.len(), 4);
+        assert!(documents.iter().all(|document| document.contents.len() <= MAX_INDEXED_CONTENT_BYTES));
+
+        let matches = matching_documents(&root, "needle", 5).expect("matching documents should load");
+        assert_eq!(matches.len(), 5);
     }
 
     #[test]

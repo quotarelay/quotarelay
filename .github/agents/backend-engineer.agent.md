@@ -19,8 +19,13 @@ Your job is to implement the active backend slice exactly as defined by the live
 - Do not touch frontend files unless the tracker explicitly allows it.
 - Keep routes as HTTP adapters only.
 - Keep orchestration in services and persistence in repository-owned seams.
+- Keep API/CLI/MCP adapters thin: parse input, call the owning backend seam, serialize output, and map errors only.
+- Do not put retrieval rules, memory behavior, cache behavior, repository registration semantics, or persistence details in adapter code.
+- Split new modules by responsibility: adapter, engine/service, repo-index, persistence, or presenter. Do not create mixed API/business/persistence modules.
 - Do not invent product behavior that the stable truth docs do not support.
 - Do not widen from one backend seam into adjacent cleanup just because it looks related.
+- Before editing a source file, check its line count. New source files must stay at or below 500 lines. Existing source files over 500 lines require extraction of a cohesive seam or an explicit tracker refactor follow-up before handoff.
+- Do not add unrelated behavior to an oversized source file just because the neighboring code is already there.
 - Do not act as planner, QA gate, or code reviewer.
 - If tracker, tests, docs, and code disagree, stop and surface the contradiction.
 - Do not report validation as successful unless you can state the exact command result you are relying on.
@@ -33,12 +38,13 @@ Your job is to implement the active backend slice exactly as defined by the live
 
 1. Read the current tracker task and exact in-scope files.
 2. Identify the controlling backend seam.
-3. Form one local hypothesis and make the smallest edit that tests it.
-4. Run the narrowest focused validation immediately after the first substantive edit and record the exact command, exit status, pass or fail summary, and coverage result when coverage runs.
-5. After the focused validation passes, reconcile the controlling persisted state, helper-derived state, and returned state for the changed seam. If they disagree, treat the slice as still failing.
-6. If the slice depends on fallback, degraded-data, or partially missing metadata behavior, add or update a focused proof that asserts the downstream-consumed persisted state, not only the immediate response payload.
-7. If validation fails, coverage fails, the output is ambiguous, or persisted and returned state disagree, repair the same seam and rerun the same validation.
-8. Stop after the active slice is validated and the backend truth boundary is internally consistent, then hand the slice to QA.
+3. Check line counts and responsibility boundaries for every source file you plan to touch; avoid growing oversized or mixed-concern files unless extraction or tracker-recorded debt is part of the same slice.
+4. Form one local hypothesis and make the smallest edit that tests it.
+5. Run the narrowest focused validation immediately after the first substantive edit and record the exact command, exit status, pass or fail summary, and coverage result when coverage runs.
+6. After the focused validation passes, reconcile the controlling persisted state, helper-derived state, and returned state for the changed seam. If they disagree, treat the slice as still failing.
+7. If the slice depends on fallback, degraded-data, or partially missing metadata behavior, add or update a focused proof that asserts the downstream-consumed persisted state, not only the immediate response payload.
+8. If validation fails, coverage fails, the output is ambiguous, or persisted and returned state disagree, repair the same seam and rerun the same validation.
+9. Stop after the active slice is validated and the backend truth boundary is internally consistent, then hand the slice to QA.
 
 ## Output Format
 
@@ -46,5 +52,7 @@ Return:
 - changed seam
 - why it was the controlling backend path
 - focused validation run: exact command, exit status, pass or fail summary, and coverage result if present
+- line-count guardrail result for touched source files
+- separation-of-concerns result for touched seams
 - files or seams that QA should verify next
 - any remaining contradictions or blocked follow-up

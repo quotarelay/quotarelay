@@ -1701,7 +1701,7 @@ mod tests {
     use serde_json::{json, Value};
     use tower::ServiceExt;
 
-    use context_engine::{assemble_context, memory_write, register_repository};
+    use context_engine::{assemble_context, list_registered_repositories, memory_write, register_repository};
 
     use super::{classify_error, http_router, run_stdio};
 
@@ -2631,6 +2631,46 @@ mod tests {
         assert_eq!(truth["result"]["truth"]["cache"]["sync_invalidates_caches"], true);
     }
 
+    #[cfg(windows)]
+    #[test]
+    fn local_cli_register_normalizes_windows_style_repo_path_variants() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        let forward_slash_root = repo_root.to_string_lossy().replace('\\', "/");
+        let dotted_root = format!("{}\\.", repo_root.to_string_lossy());
+
+        let mut output = Vec::new();
+        super::run_cli(
+            [
+                "register".to_string(),
+                state_root.to_string_lossy().to_string(),
+                forward_slash_root,
+            ],
+            &mut output,
+        )
+        .expect("first cli register should succeed");
+        let first: Value = serde_json::from_slice(&output).expect("first register payload should parse");
+
+        output.clear();
+        super::run_cli(
+            [
+                "register".to_string(),
+                state_root.to_string_lossy().to_string(),
+                dotted_root,
+            ],
+            &mut output,
+        )
+        .expect("second cli register should succeed");
+        let duplicate: Value = serde_json::from_slice(&output).expect("second register payload should parse");
+        let listed = list_registered_repositories(&state_root, 10).expect("listing should succeed");
+
+        assert!(first["ok"].as_bool().unwrap_or(false));
+        assert!(duplicate["ok"].as_bool().unwrap_or(false));
+        assert_eq!(first["result"]["repository"]["id"], duplicate["result"]["repository"]["id"]);
+        assert_eq!(first["result"]["repository"]["root"], duplicate["result"]["repository"]["root"]);
+        assert_eq!(listed.len(), 1);
+    }
+
     #[test]
     fn local_cli_uses_stable_json_success_and_error_contract() {
         let repo_root = temp_repo();
@@ -3410,6 +3450,109 @@ mod tests {
         assert_eq!(cached, refreshed);
         assert_eq!(cached["snippets"][0]["line"], "fresh needle after sync");
         assert_ne!(cached, first);
+    }
+
+    #[test]
+    fn assemble_context_exact_search_cache_invalidation_refreshes_memory_sensitive_results_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("src.txt"), "needle in repo\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            36,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            37,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let initial = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        let mut initial_output = Vec::new();
+        run_stdio(Cursor::new(initial.into_bytes()), &mut initial_output)
+            .expect("initial exact_search should succeed");
+
+        let initial_responses = decode_responses(&initial_output);
+        let cached_without_memory: Value = serde_json::from_str(
+            initial_responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("initial assembly text should exist"),
+        )
+        .expect("initial assembly payload should be valid json");
+        assert_eq!(
+            cached_without_memory["memory_notes"].as_array().map(|items| items.len()),
+            Some(0)
+        );
+
+        let write_memory_request = json_rpc_request(
+            38,
+            "tools/call",
+            json!({
+                "name": "memory_write",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "title": "Needle note",
+                    "content": "Remember the needle workflow",
+                    "tags": ["needle"]
+                }
+            }),
+        );
+        let resync_request = json_rpc_request(
+            39,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let refreshed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            write_memory_request.len(),
+            write_memory_request,
+            resync_request.len(),
+            resync_request,
+            assemble_request.len(),
+            assemble_request
+        );
+        let mut refreshed_output = Vec::new();
+        run_stdio(Cursor::new(refreshed.into_bytes()), &mut refreshed_output)
+            .expect("memory-sensitive exact_search should refresh after sync invalidation");
+
+        let refreshed_responses = decode_responses(&refreshed_output);
+        let refreshed_with_memory: Value = serde_json::from_str(
+            refreshed_responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("refreshed assembly text should exist"),
+        )
+        .expect("refreshed assembly payload should be valid json");
+
+        assert_eq!(refreshed_with_memory["memory_notes"].as_array().map(|items| items.len()), Some(1));
+        assert_eq!(refreshed_with_memory["memory_notes"][0]["title"], "Needle note");
+        assert_eq!(
+            refreshed_with_memory["memory_notes"][0]["reason"]["kind"],
+            "memory_note_match"
+        );
     }
 
     #[test]

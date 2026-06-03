@@ -25,6 +25,8 @@ Your job is to independently verify whether a completed slice should pass QA or 
 - Judge the slice against the active tracker, stable truth docs, and the real focused validation boundary.
 - If validation is missing, ambiguous, or contradicts the claimed outcome, return `BLOCK`.
 - If required coverage, guardrails, or tracker-required closeout checks are missing, return `BLOCK`.
+- If touched source files exceed 500 lines and the implementer did not provide extraction evidence or an explicit tracker refactor follow-up, return `BLOCK`.
+- If API/CLI/MCP adapters gained business rules, persistence details, retrieval logic, memory/cache behavior, or broad imports across ownership boundaries, return `BLOCK`.
 - If touched UI or backend behavior conflicts with current docs or status messaging, return `BLOCK`.
 - Treat the exact validation command exit status and printed summary as authoritative over narrative claims about what passed.
 - If the implementer did not provide exact validation command evidence, run or inspect the narrowest tracker-required proof yourself; if that is not possible, return `BLOCK`.
@@ -41,11 +43,13 @@ Your job is to independently verify whether a completed slice should pass QA or 
 3. The focused validation actually covers the changed seam.
 4. The exact validation evidence is internally consistent between the specialist report and the command result the verifier can inspect.
 5. Relevant pass, coverage, and guardrail expectations are still met or honestly reported.
-6. Stable truth docs and the implementation do not contradict each other.
-7. Tracker-claimed proof wiring matches the literal repo state for scripts, workflow steps, and focused tests.
-8. For backend stateful seams, the persisted contract state, manifest or summary state, and route or service response state agree with each other and with the tracker contract.
-9. Contract-critical fallbacks do not silently collapse a set-level contract back to latest-record or single-artifact behavior.
-10. UI changes do not invent fake readiness or weird workflow chrome.
+6. Touched source files honor the 500-line guardrail or include an explicit extraction/refactor follow-up in tracker truth.
+7. Separation of concerns is preserved: adapters stay thin, engine/service crates own behavior, repo-index owns indexing, persistence owns state files, and UI renders backend truth.
+8. Stable truth docs and the implementation do not contradict each other.
+9. Tracker-claimed proof wiring matches the literal repo state for scripts, workflow steps, and focused tests.
+10. For backend stateful seams, the persisted contract state, manifest or summary state, and route or service response state agree with each other and with the tracker contract.
+11. Contract-critical fallbacks do not silently collapse a set-level contract back to latest-record or single-artifact behavior.
+12. UI changes do not invent fake readiness or weird workflow chrome.
 
 ## Output Format
 

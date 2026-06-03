@@ -1488,6 +1488,45 @@ mod tests {
     }
 
     #[test]
+    fn large_repo_context_assembly_preserves_limits_and_omissions() {
+        let root = temp_repo();
+        for index in 0..30 {
+            fs::write(
+                root.join(format!("note-{index:02}.txt")),
+                format!("needle line {index}\n"),
+            )
+            .expect("note file should write");
+            fs::write(
+                root.join(format!("widget-{index:02}.rs")),
+                "struct Widget {\n    id: usize,\n}\n",
+            )
+            .expect("widget file should write");
+        }
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        let exact = assemble_context(&root, "needle", 50).expect("exact assembly should succeed");
+        assert_eq!(exact.snippets.len(), 5);
+        assert!(exact
+            .omissions
+            .iter()
+            .any(|omission| omission.kind == OmissionReasonKind::ItemLimitReached));
+
+        let overview = assemble_overview(&root, 50).expect("overview should succeed");
+        assert_eq!(overview.documents.len(), 5);
+        assert!(overview
+            .omissions
+            .iter()
+            .any(|omission| omission.kind == OmissionReasonKind::ItemLimitReached));
+
+        let task = assemble_task_capsule(&root, "Widget", 50).expect("task capsule should succeed");
+        assert_eq!(task.documents.len(), 5);
+        assert!(task
+            .omissions
+            .iter()
+            .any(|omission| omission.kind == OmissionReasonKind::ItemLimitReached));
+    }
+
+    #[test]
     fn context_run_history_is_bounded_and_keeps_omission_reasons() {
         let root = temp_repo();
         fs::write(root.join("alpha.txt"), "needle one\nneedle two\nneedle three\n").expect("alpha file should write");
@@ -2020,6 +2059,29 @@ mod tests {
         assert_eq!(listed[0].root, first.repository.root);
         assert_eq!(listed[1].root, second.repository.root);
         assert!(state_root.join(".quotarelay").join("registered_repositories.json").exists());
+    }
+
+    #[cfg(windows)]
+    #[test]
+    fn register_repository_normalizes_windows_path_variants() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        let forward_slash_root = PathBuf::from(repo_root.to_string_lossy().replace('\\', "/"));
+        let dotted_root = PathBuf::from(format!("{}\\.", repo_root.to_string_lossy()));
+
+        let first = register_repository(&state_root, &forward_slash_root)
+            .expect("forward slash registration should succeed");
+        let duplicate = register_repository(&state_root, &dotted_root)
+            .expect("dotted registration should succeed");
+        let listed = list_registered_repositories(&state_root, 10).expect("listing should succeed");
+        let detail = registered_repository_detail(&state_root, &dotted_root)
+            .expect("detail lookup should succeed")
+            .expect("registered repository should exist");
+
+        assert_eq!(duplicate.repository, first.repository);
+        assert_eq!(listed.len(), 1);
+        assert_eq!(detail.repository.id, first.repository.id);
+        assert_eq!(detail.repository.root, first.repository.root);
     }
 
     #[test]

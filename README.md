@@ -44,6 +44,7 @@ The retrieval contract is explicit and bounded:
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
 - Durable memory: stored locally under `.quotarelay/`
 - Registered repository state: stored locally and exposed with sync status, indexed counts, and recent run metadata
+- Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
 
 The control plane does not invent readiness, savings, or live health state. It renders the current backend truth contract from `/truth`.
 
