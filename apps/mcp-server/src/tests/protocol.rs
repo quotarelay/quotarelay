@@ -58,6 +58,7 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "bootstrap_status",
             "sync_repo",
             "repo_inventory",
+            "repo_map",
             "inspect_local_state",
             "cache_inspect",
             "cache_clear",

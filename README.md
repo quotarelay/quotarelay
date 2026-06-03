@@ -16,6 +16,7 @@ Today the backend exposes these MCP tools:
 - `bootstrap_status`
 - `sync_repo`
 - `repo_inventory`
+- `repo_map`
 - `cache_inspect`
 - `cache_clear`
 - `register_repository`
@@ -42,7 +43,7 @@ Today the backend exposes these MCP tools:
 
 The retrieval contract is explicit and bounded:
 
-- Modes: `exact_search`, `overview`, `task_capsule`
+- Modes: `exact_search`, `overview`, `task_capsule`, `diff_aware`
 - Local-change mode: `diff_aware` assembles bounded context around changed/new files and optional related indexed matches
 - Hard limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, 10 history runs
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
@@ -50,7 +51,7 @@ The retrieval contract is explicit and bounded:
 - Stale status: context packs report whether indexed files appear changed, missing, or new since the last explicit sync
 - Durable memory: stored locally under `.quotarelay/`
 - Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
-- Registered repository state: stored locally and exposed with sync status, indexed counts, and recent run metadata
+- Registered repository state: stored locally and exposed with sync status, indexed counts, bounded repo maps, and recent run metadata
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
 
 The control plane does not invent readiness, savings, or live health state. It renders the current backend truth contract from `/truth`.
@@ -70,6 +71,7 @@ To run against one of your own repos:
 ```powershell
 cargo run -p mcp-server -- --cli register <state_root> <repo_root>
 cargo run -p mcp-server -- --cli sync <repo_root>
+cargo run -p mcp-server -- --cli map <repo_root>
 cargo run -p mcp-server -- --cli search <repo_root> <query> 5
 cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
 cargo run -p mcp-server -- --cli state <repo_root>
@@ -99,6 +101,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli register <state_root> <repo_root>`
 - `cargo run -p mcp-server -- --cli sync <repo_root>`
 - `cargo run -p mcp-server -- --cli state <repo_root>`
+- `cargo run -p mcp-server -- --cli map <repo_root>`
 - `cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`

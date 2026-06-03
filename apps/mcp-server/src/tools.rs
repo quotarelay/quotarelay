@@ -5,6 +5,7 @@ pub(crate) fn current_tool_registry() -> Vec<Value> {
         bootstrap_tool(),
         sync_repo_tool(),
         repo_inventory_tool(),
+        repo_map_tool(),
         inspect_local_state_tool(),
         cache_inspect_tool(),
         cache_clear_tool(),
@@ -103,6 +104,13 @@ fn repo_inventory_tool() -> Value {
     root_only_tool(
         "repo_inventory",
         "Returns bounded repository inventory truth from the persisted local repository index.",
+    )
+}
+
+fn repo_map_tool() -> Value {
+    root_only_tool(
+        "repo_map",
+        "Returns a bounded repository map with top-level directories and detected Rust symbols.",
     )
 }
 

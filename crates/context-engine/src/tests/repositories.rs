@@ -147,7 +147,13 @@ fn update_registered_repository_metadata_changes_display_name_only() {
 fn registered_repository_state_reports_sync_and_recent_run_truth() {
     let state_root = temp_repo();
     let repo_root = temp_repo();
+    fs::create_dir(repo_root.join("src")).expect("src directory should write");
     fs::write(repo_root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+    fs::write(
+        repo_root.join("src").join("lib.rs"),
+        "pub mod api;\npub struct Widget;\n",
+    )
+    .expect("rust file should write");
 
     register_repository(&state_root, &repo_root).expect("registration should succeed");
     repo_index::sync_repo(&repo_root).expect("sync should succeed");
@@ -158,8 +164,20 @@ fn registered_repository_state_reports_sync_and_recent_run_truth() {
 
     assert_eq!(state.len(), 1);
     assert_eq!(state[0].sync.status, RepositorySyncStatus::Indexed);
-    assert_eq!(state[0].sync.indexed_files, 1);
+    assert_eq!(state[0].sync.indexed_files, 2);
     assert!(state[0].sync.indexed_at_epoch_ms.is_some());
+    let repo_map = state[0]
+        .repo_map
+        .as_ref()
+        .expect("indexed repository should include repo map");
+    assert!(repo_map
+        .directories
+        .iter()
+        .any(|directory| directory.path == "src" && directory.indexed_files == 1));
+    assert!(repo_map.rust_files[0]
+        .symbols
+        .iter()
+        .any(|symbol| symbol.contains("struct Widget")));
     assert_eq!(
         state[0]
             .recent_context_run

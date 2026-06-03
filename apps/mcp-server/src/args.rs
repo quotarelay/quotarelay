@@ -15,7 +15,7 @@ use context_engine::{
     RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
     WorkspaceProfile, WorkspaceProfileSaveResult,
 };
-use repo_index::{repo_inventory, search_code, sync_repo};
+use repo_index::{repo_inventory, repo_map, search_code, sync_repo};
 use serde_json::Value;
 
 pub(crate) fn sync_repo_from_args(arguments: &Value) -> Result<repo_index::SyncResult, String> {
@@ -48,6 +48,11 @@ pub(crate) fn repo_inventory_from_args(
 ) -> Result<repo_index::RepoInventory, String> {
     let root = parse_root(arguments)?;
     repo_inventory(&root).map_err(|error| format!("repo_inventory failed: {error}"))
+}
+
+pub(crate) fn repo_map_from_args(arguments: &Value) -> Result<repo_index::RepoMap, String> {
+    let root = parse_root(arguments)?;
+    repo_map(&root).map_err(|error| format!("repo_map failed: {error}"))
 }
 
 pub(crate) fn inspect_local_state_from_args(

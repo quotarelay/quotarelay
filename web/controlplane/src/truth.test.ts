@@ -202,6 +202,17 @@ describe('control-plane truth boundary', () => {
           recent_context_run: {
             query: 'needle',
             generated_at_epoch_ms: 42
+          },
+          repo_map: {
+            directories: [
+              { path: 'src', indexed_files: 3 },
+              { path: '.', indexed_files: 1 }
+            ],
+            rust_files: [
+              { path: 'src/lib.rs', symbols: ['pub mod api;', 'pub struct Widget;'] }
+            ],
+            omitted_directory_count: 0,
+            omitted_rust_file_count: 0
           }
         }
       ])
@@ -217,6 +228,8 @@ describe('control-plane truth boundary', () => {
     expect(state.fetchState).toBe('Live')
     expect(state.repositories).toHaveLength(1)
     expect(state.repositories[0].sync?.status).toBe('indexed')
+    expect(state.repositories[0].repo_map?.directories?.[0].path).toBe('src')
+    expect(state.repositories[0].repo_map?.rust_files?.[0].symbols?.[1]).toContain('Widget')
   })
 
   it('does not invent repository state without a configured root', async () => {

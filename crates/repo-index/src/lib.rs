@@ -12,10 +12,10 @@ use indexing::{collect_indexed_files, now_epoch_ms};
 pub(crate) use models::*;
 pub use models::{
     ChangedDocument, ChangedDocumentStatus, IndexFreshness, IndexedDocument, RepoInventory,
-    SearchHit, SyncResult,
+    RepoMap, RepoMapDirectory, RepoMapRustFile, SearchHit, SyncResult,
 };
 use rust_capsule::{contains_symbol_match, is_symbol_line_match};
-pub use search::{indexed_documents, matching_documents, repo_inventory, search_code};
+pub use search::{indexed_documents, matching_documents, repo_inventory, repo_map, search_code};
 use storage::{load_index, persist_index};
 
 pub fn sync_repo(root: &Path) -> io::Result<SyncResult> {

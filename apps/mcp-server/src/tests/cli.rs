@@ -55,6 +55,18 @@ fn local_cli_register_sync_assemble_and_truth_workflow() {
 
     output.clear();
     super::run_cli(
+        ["map".to_string(), repo_root.to_string_lossy().to_string()],
+        &mut output,
+    )
+    .expect("cli map should succeed");
+
+    let map: Value = serde_json::from_slice(&output).expect("cli map payload should parse");
+    assert!(map["ok"].as_bool().unwrap_or(false));
+    assert_eq!(map["command"], "map");
+    assert_eq!(map["result"]["repo_map"]["indexed_files"], 1);
+
+    output.clear();
+    super::run_cli(
         [
             "assemble".to_string(),
             repo_root.to_string_lossy().to_string(),

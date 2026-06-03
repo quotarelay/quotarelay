@@ -25,6 +25,18 @@ export type RepositoryStatePayload = {
     query?: string
     generated_at_epoch_ms?: number
   } | null
+  repo_map?: {
+    directories?: Array<{
+      path?: string
+      indexed_files?: number
+    }>
+    rust_files?: Array<{
+      path?: string
+      symbols?: string[]
+    }>
+    omitted_directory_count?: number
+    omitted_rust_file_count?: number
+  } | null
 }
 
 export type MemorySearchState = {

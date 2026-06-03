@@ -87,6 +87,54 @@ fn repository_registration_tools_work_over_stdio() {
 }
 
 #[test]
+fn repo_map_tool_reports_bounded_repository_shape_over_stdio() {
+    let repo_root = temp_repo();
+    fs::create_dir(repo_root.join("src")).expect("src directory should write");
+    fs::write(
+        repo_root.join("src").join("lib.rs"),
+        "pub mod api;\npub struct Widget;\n",
+    )
+    .expect("rust file should write");
+    fs::write(repo_root.join("README.md"), "readme\n").expect("readme should write");
+    repo_index::sync_repo(&repo_root).expect("sync should succeed");
+
+    let request = json_rpc_request(
+        151,
+        "tools/call",
+        json!({
+            "name": "repo_map",
+            "arguments": {
+                "root": repo_root.to_string_lossy()
+            }
+        }),
+    );
+    let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("repo map should succeed");
+
+    let responses = decode_responses(&output);
+    let map: Value = serde_json::from_str(
+        responses[0]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("map text should exist"),
+    )
+    .expect("map payload should be valid json");
+
+    assert_eq!(map["indexed_files"], 2);
+    assert!(map["directories"]
+        .as_array()
+        .expect("directories should exist")
+        .iter()
+        .any(|directory| directory["path"] == "src"));
+    assert!(map["rust_files"][0]["symbols"]
+        .as_array()
+        .expect("symbols should exist")
+        .iter()
+        .any(|symbol| symbol.as_str().unwrap_or("").contains("struct Widget")));
+}
+
+#[test]
 fn inspect_local_state_works_over_stdio() {
     let state_root = temp_repo();
     let repo_root = temp_repo();

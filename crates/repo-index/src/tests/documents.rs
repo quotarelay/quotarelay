@@ -3,7 +3,8 @@ use std::fs;
 use super::common::temp_repo;
 use crate::storage::load_index;
 use crate::{
-    indexed_documents, matching_documents, search_code, sync_repo, MAX_INDEXED_CONTENT_BYTES,
+    indexed_documents, matching_documents, repo_map, search_code, sync_repo,
+    MAX_INDEXED_CONTENT_BYTES,
 };
 
 #[test]
@@ -22,6 +23,42 @@ fn document_queries_return_bounded_indexed_contents() {
     assert_eq!(matches.len(), 1);
     assert_eq!(matches[0].path, "beta.txt");
     assert_eq!(matches[0].contents, "beta term\n");
+}
+
+#[test]
+fn repo_map_reports_bounded_directories_and_rust_symbols() {
+    let root = temp_repo();
+    fs::create_dir(root.join("src")).expect("src directory should write");
+    fs::create_dir(root.join("docs")).expect("docs directory should write");
+    fs::write(
+        root.join("src").join("lib.rs"),
+        "pub mod api;\npub struct Widget;\nfn helper() {}\n",
+    )
+    .expect("rust file should write");
+    fs::write(root.join("docs").join("guide.md"), "operator docs\n")
+        .expect("doc file should write");
+    fs::write(root.join("README.md"), "readme\n").expect("readme should write");
+
+    sync_repo(&root).expect("sync should succeed");
+
+    let map = repo_map(&root).expect("repo map should load");
+    assert_eq!(map.indexed_files, 3);
+    assert!(map
+        .directories
+        .iter()
+        .any(|directory| directory.path == "src" && directory.indexed_files == 1));
+    assert!(map
+        .directories
+        .iter()
+        .any(|directory| directory.path == "." && directory.indexed_files == 1));
+    assert_eq!(map.rust_files.len(), 1);
+    assert_eq!(map.rust_files[0].path, "src/lib.rs");
+    assert!(map.rust_files[0]
+        .symbols
+        .iter()
+        .any(|symbol| symbol.contains("struct Widget")));
+    assert_eq!(map.omitted_directory_count, 0);
+    assert_eq!(map.omitted_rust_file_count, 0);
 }
 
 #[test]

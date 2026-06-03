@@ -121,6 +121,16 @@
           <span class="chip">indexed files: {{ repo.sync.indexed_files }}</span>
           <span class="chip" v-if="repo.recent_context_run">recent query: {{ repo.recent_context_run.query }}</span>
         </div>
+        <div class="chip-row" v-if="repo.repo_map">
+          <span class="chip" v-for="dir in repo.repo_map.directories" :key="dir.path">
+            {{ dir.path }}: {{ dir.indexed_files }}
+          </span>
+        </div>
+        <div class="chip-row" v-if="repo.repo_map">
+          <span class="chip" v-for="rustFile in repo.repo_map.rust_files" :key="rustFile.path">
+            {{ rustFile.path }}: {{ rustFile.symbols.join(', ') }}
+          </span>
+        </div>
       </article>
       <article class="panel" v-if="repositoryState().length === 0">
         <span class="panel-label">{{ repositoryFetchState() }}</span>

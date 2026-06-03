@@ -34,7 +34,7 @@ async fn backend_truth_endpoint_exposes_current_contract() {
 
     assert_eq!(
         payload["tools"].as_array().map(|items| items.len()),
-        Some(27)
+        Some(28)
     );
     assert_eq!(
         payload["retrieval"]["modes"],
@@ -112,6 +112,7 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "bootstrap_status",
             "sync_repo",
             "repo_inventory",
+            "repo_map",
             "inspect_local_state",
             "cache_inspect",
             "cache_clear",

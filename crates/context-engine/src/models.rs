@@ -259,6 +259,7 @@ pub struct RegisteredRepositoryState {
     pub repository: RegisteredRepository,
     pub sync: RepositorySyncState,
     pub recent_context_run: Option<LastContextRunSummary>,
+    pub repo_map: Option<repo_index::RepoMap>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

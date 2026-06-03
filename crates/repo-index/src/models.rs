@@ -24,6 +24,28 @@ pub struct RepoInventory {
     pub sample_paths: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RepoMapDirectory {
+    pub path: String,
+    pub indexed_files: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RepoMapRustFile {
+    pub path: String,
+    pub symbols: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RepoMap {
+    pub indexed_at_epoch_ms: u128,
+    pub indexed_files: usize,
+    pub directories: Vec<RepoMapDirectory>,
+    pub rust_files: Vec<RepoMapRustFile>,
+    pub omitted_directory_count: usize,
+    pub omitted_rust_file_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SyncResult {
     pub indexed_files: usize,

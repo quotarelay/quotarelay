@@ -3,7 +3,7 @@
 ## In scope
 
 - Local repository sync into a persisted index under `.quotarelay/`
-- Bounded code search and repository inventory
+- Bounded code search, repository inventory, and repo map summaries
 - Bounded context assembly across `exact_search`, `overview`, `task_capsule`, and `diff_aware`
 - Durable local memory write, read, and search
 - Repository registration with derived sync-state and recent-run truth
@@ -40,7 +40,7 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 
 | Category | Status | Evidence or follow-up |
 |---|---|---|
-| Repo sync, search, inventory | Shipped local MVP behavior | Covered by `repo-index` tests and MCP `sync_repo`, `repo_inventory`, and `search_code` tools. |
+| Repo sync, search, inventory, map | Shipped local MVP behavior | Covered by `repo-index` tests and MCP `sync_repo`, `repo_inventory`, `repo_map`, and `search_code` tools. |
 | Context assembly | Shipped local MVP behavior | `exact_search`, `overview`, `task_capsule`, and `diff_aware` are bounded and explain inclusion/omission reasons. |
 | Durable memory | Shipped local MVP behavior | Write/read/update/delete/search/export/import are local and bounded; empty memory search is rejected. |
 | Cache inspection and clear | Shipped local MVP behavior | Cache inspect/clear, corrupt cache errors, canonicalization, separation, and sync invalidation are tested. |

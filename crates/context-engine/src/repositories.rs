@@ -1,5 +1,5 @@
 use super::*;
-use repo_index::repo_inventory;
+use repo_index::{repo_inventory, repo_map};
 
 pub fn register_repository(
     state_root: &Path,
@@ -233,17 +233,23 @@ fn registered_repository_state_for(
     repository: RegisteredRepository,
 ) -> io::Result<RegisteredRepositoryState> {
     let repo_root = PathBuf::from(&repository.root);
-    let sync = match repo_inventory(&repo_root) {
-        Ok(inventory) => RepositorySyncState {
-            status: RepositorySyncStatus::Indexed,
-            indexed_files: inventory.indexed_files,
-            indexed_at_epoch_ms: Some(inventory.indexed_at_epoch_ms),
-        },
-        Err(error) if error.kind() == io::ErrorKind::NotFound => RepositorySyncState {
-            status: RepositorySyncStatus::NotIndexed,
-            indexed_files: 0,
-            indexed_at_epoch_ms: None,
-        },
+    let (sync, repo_map) = match repo_inventory(&repo_root) {
+        Ok(inventory) => (
+            RepositorySyncState {
+                status: RepositorySyncStatus::Indexed,
+                indexed_files: inventory.indexed_files,
+                indexed_at_epoch_ms: Some(inventory.indexed_at_epoch_ms),
+            },
+            Some(repo_map(&repo_root)?),
+        ),
+        Err(error) if error.kind() == io::ErrorKind::NotFound => (
+            RepositorySyncState {
+                status: RepositorySyncStatus::NotIndexed,
+                indexed_files: 0,
+                indexed_at_epoch_ms: None,
+            },
+            None,
+        ),
         Err(error) => return Err(error),
     };
     let recent_context_run = context_run_history(&repo_root, 1)?
@@ -258,5 +264,6 @@ fn registered_repository_state_for(
         repository,
         sync,
         recent_context_run,
+        repo_map,
     })
 }

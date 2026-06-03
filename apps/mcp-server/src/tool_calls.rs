@@ -120,6 +120,16 @@ pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("repo_map") => match repo_map_from_args(&arguments) {
+            Ok(map) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&map).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("inspect_local_state") => match inspect_local_state_from_args(&arguments) {
             Ok(state) => json!({
                 "type": "text",

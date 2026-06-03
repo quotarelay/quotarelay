@@ -142,6 +142,10 @@ fn cli_truth() -> CliTruth {
                 command: "cargo run -p mcp-server -- --cli state <root>",
             },
             CliCommandTruth {
+                label: "Repo map",
+                command: "cargo run -p mcp-server -- --cli map <repo-root>",
+            },
+            CliCommandTruth {
                 label: "Assemble context",
                 command: "cargo run -p mcp-server -- --cli assemble <repo-root> <query>",
             },

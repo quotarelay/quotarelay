@@ -5,7 +5,7 @@ use context_engine::{
     assemble_handoff_packet, inspect_local_state, invalidate_exact_match_cache,
     register_repository, retrieve_context, RetrievalMode,
 };
-use repo_index::{search_code, sync_repo};
+use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
 
 use crate::backend_truth_payload;
@@ -29,6 +29,7 @@ where
         "register" => run_cli_register(&mut args_iter),
         "sync" => run_cli_sync(&mut args_iter),
         "state" => run_cli_state(&mut args_iter),
+        "map" => run_cli_map(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
         "handoff" => run_cli_handoff(&mut args_iter),
@@ -96,6 +97,16 @@ where
     let state = inspect_local_state(&PathBuf::from(&root))
         .map_err(|error| format!("state failed: {error}"))?;
     Ok(json!({"state": state}))
+}
+
+fn run_cli_map<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let map = repo_map(&PathBuf::from(&root)).map_err(|error| format!("map failed: {error}"))?;
+    Ok(json!({"repo_map": map}))
 }
 
 fn run_cli_search<I, S>(args: &mut I) -> Result<Value, String>

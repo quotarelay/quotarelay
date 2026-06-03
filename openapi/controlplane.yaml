@@ -315,6 +315,7 @@ components:
         - repository
         - sync
         - recent_context_run
+        - repo_map
       properties:
         repository:
           $ref: '#/components/schemas/RegisteredRepository'
@@ -324,6 +325,61 @@ components:
           nullable: true
           oneOf:
             - $ref: '#/components/schemas/LastContextRunSummary'
+        repo_map:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/RepoMap'
+    RepoMap:
+      type: object
+      additionalProperties: false
+      required:
+        - indexed_at_epoch_ms
+        - indexed_files
+        - directories
+        - rust_files
+        - omitted_directory_count
+        - omitted_rust_file_count
+      properties:
+        indexed_at_epoch_ms:
+          type: integer
+        indexed_files:
+          type: integer
+        directories:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoMapDirectory'
+        rust_files:
+          type: array
+          items:
+            $ref: '#/components/schemas/RepoMapRustFile'
+        omitted_directory_count:
+          type: integer
+        omitted_rust_file_count:
+          type: integer
+    RepoMapDirectory:
+      type: object
+      additionalProperties: false
+      required:
+        - path
+        - indexed_files
+      properties:
+        path:
+          type: string
+        indexed_files:
+          type: integer
+    RepoMapRustFile:
+      type: object
+      additionalProperties: false
+      required:
+        - path
+        - symbols
+      properties:
+        path:
+          type: string
+        symbols:
+          type: array
+          items:
+            type: string
     RegisteredRepository:
       type: object
       additionalProperties: false

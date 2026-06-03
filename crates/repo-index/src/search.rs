@@ -1,10 +1,15 @@
 use std::io;
 use std::path::Path;
 
+use std::collections::BTreeMap;
+
 use super::{
     contains_symbol_match, is_symbol_line_match, load_index, IndexedDocument, RepoInventory,
-    SearchHit,
+    RepoMap, RepoMapDirectory, RepoMapRustFile, SearchHit,
 };
+
+const MAX_REPO_MAP_ITEMS: usize = 10;
+const MAX_RUST_SYMBOLS_PER_FILE: usize = 8;
 
 pub fn search_code(root: &Path, query: &str, limit: usize) -> io::Result<Vec<SearchHit>> {
     let index = load_index(root)?;
@@ -57,6 +62,47 @@ pub fn repo_inventory(root: &Path) -> io::Result<RepoInventory> {
     })
 }
 
+pub fn repo_map(root: &Path) -> io::Result<RepoMap> {
+    let index = load_index(root)?;
+    let mut directories = BTreeMap::<String, usize>::new();
+    let mut rust_files = Vec::new();
+
+    for file in &index.files {
+        let directory = top_level_directory(&file.path);
+        *directories.entry(directory).or_default() += 1;
+
+        if file.path.ends_with(".rs") {
+            let symbols = rust_symbol_lines(&file.contents);
+            if !symbols.is_empty() {
+                rust_files.push(RepoMapRustFile {
+                    path: file.path.clone(),
+                    symbols,
+                });
+            }
+        }
+    }
+
+    rust_files.sort_by(|left, right| left.path.cmp(&right.path));
+    let directory_count = directories.len();
+    let rust_file_count = rust_files.len();
+
+    Ok(RepoMap {
+        indexed_at_epoch_ms: index.indexed_at_epoch_ms,
+        indexed_files: index.files.len(),
+        directories: directories
+            .into_iter()
+            .take(MAX_REPO_MAP_ITEMS)
+            .map(|(path, indexed_files)| RepoMapDirectory {
+                path,
+                indexed_files,
+            })
+            .collect(),
+        rust_files: rust_files.into_iter().take(MAX_REPO_MAP_ITEMS).collect(),
+        omitted_directory_count: directory_count.saturating_sub(MAX_REPO_MAP_ITEMS),
+        omitted_rust_file_count: rust_file_count.saturating_sub(MAX_REPO_MAP_ITEMS),
+    })
+}
+
 pub fn indexed_documents(root: &Path, limit: usize) -> io::Result<Vec<IndexedDocument>> {
     let capped_limit = limit.clamp(1, 10);
     let index = load_index(root)?;
@@ -70,6 +116,36 @@ pub fn indexed_documents(root: &Path, limit: usize) -> io::Result<Vec<IndexedDoc
             contents: file.contents,
         })
         .collect())
+}
+
+fn top_level_directory(path: &str) -> String {
+    path.split(['/', '\\'])
+        .next()
+        .filter(|segment| !segment.is_empty() && *segment != path)
+        .unwrap_or(".")
+        .to_string()
+}
+
+fn rust_symbol_lines(contents: &str) -> Vec<String> {
+    contents
+        .lines()
+        .map(str::trim)
+        .filter(|line| is_symbol_line_match(line, symbol_name(line).as_deref().unwrap_or("")))
+        .take(MAX_RUST_SYMBOLS_PER_FILE)
+        .map(ToString::to_string)
+        .collect()
+}
+
+fn symbol_name(line: &str) -> Option<String> {
+    line.split(|character: char| !character.is_ascii_alphanumeric() && character != '_')
+        .filter(|token| !token.is_empty())
+        .find(|token| {
+            !matches!(
+                *token,
+                "pub" | "crate" | "super" | "self" | "async" | "unsafe" | "const"
+            )
+        })
+        .map(ToString::to_string)
 }
 
 pub fn matching_documents(
