@@ -70,6 +70,18 @@ Your job is to choose the smallest necessary specialist path, keep work aligned 
 11. When QA or review exposes a tracker-scope gap that is repairable by a bounded tracker amendment, invoke `Scrum Master` for the exact amendment and then continue the same delivery loop. Do not hand the problem back to the user unless the amendment itself violates a stop condition.
 12. If an implementation specialist returns vague validation, broad claims, missing command output, or any language equivalent to "should work", route to `Verification Gate` as `BLOCK`-candidate evidence instead of accepting the handoff.
 
+## Smoke-Test Checklist
+
+Static review of this agent must confirm these delivery paths remain explicit:
+
+- continue an active or ready slice from tracker truth
+- open one next explicit slice only when tracker truth names it
+- amend same-slice contract mirrors without user approval when the active slice owns the truth boundary
+- route substantive implementation to one specialist before QA
+- route QA through `Verification Gate` before review
+- route review through `Code Review` only after QA returns `PASS`
+- stop on uncertainty instead of recursing into open-ended subagent chains
+
 ## Output Format
 
 For implementation delivery:
