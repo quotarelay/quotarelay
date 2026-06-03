@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::ErrorKind;
 
 use super::common::temp_repo;
 use crate::*;
@@ -212,6 +213,62 @@ fn capsule_caches_are_cleared_on_sync_invalidation() {
         cached_task.documents[0].contents
     );
     assert!(refreshed_task.documents[0].contents.contains("id: u32"));
+}
+
+#[test]
+fn cache_inspect_and_clear_missing_state_are_explicit() {
+    let root = temp_repo();
+
+    let inspected = inspect_retrieval_caches(&root).expect("cache inspection should succeed");
+    assert_eq!(inspected.exact_search_cache.present, false);
+    assert_eq!(inspected.exact_search_cache.item_count, 0);
+    assert_eq!(inspected.retrieval_capsule_cache.present, false);
+    assert_eq!(inspected.retrieval_capsule_cache.item_count, 0);
+
+    let cleared = clear_retrieval_caches(&root).expect("cache clear should succeed");
+    assert_eq!(cleared.exact_search_cache_cleared, false);
+    assert_eq!(cleared.retrieval_capsule_cache_cleared, false);
+
+    let after = inspect_retrieval_caches(&root).expect("cache inspection should still succeed");
+    assert_eq!(after.exact_search_cache.present, false);
+    assert_eq!(after.exact_search_cache.item_count, 0);
+    assert_eq!(after.retrieval_capsule_cache.present, false);
+    assert_eq!(after.retrieval_capsule_cache.item_count, 0);
+}
+
+#[test]
+fn corrupt_cache_files_return_recoverable_errors() {
+    for file_name in ["exact_match_cache.json", "retrieval_capsules.json"] {
+        let root = temp_repo();
+        let state_dir = root.join(".quotarelay");
+        fs::create_dir_all(&state_dir).expect("state dir should create");
+        fs::write(state_dir.join(file_name), "{ not json").expect("corrupt cache should write");
+
+        let error = inspect_retrieval_caches(&root).expect_err("corrupt cache should fail");
+        assert_eq!(error.kind(), ErrorKind::InvalidData);
+        let message = error.to_string();
+        assert!(message.contains("corrupt local state file"));
+        assert!(message.contains(file_name));
+        assert!(message.contains("repair or remove the file to recover"));
+    }
+}
+
+#[test]
+fn overview_and_task_capsule_cache_entries_are_separate() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "alpha overview\n").expect("alpha file should write");
+    fs::write(root.join("lib.rs"), "struct Widget {\n    id: usize,\n}\n")
+        .expect("rust file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+
+    assemble_overview(&root, 2).expect("overview should populate cache");
+    assemble_task_capsule(&root, "Widget", 2).expect("task capsule should populate cache");
+
+    let inspected = inspect_retrieval_caches(&root).expect("cache inspection should succeed");
+    assert_eq!(inspected.exact_search_cache.present, false);
+    assert_eq!(inspected.exact_search_cache.item_count, 0);
+    assert_eq!(inspected.retrieval_capsule_cache.present, true);
+    assert_eq!(inspected.retrieval_capsule_cache.item_count, 2);
 }
 
 #[test]
