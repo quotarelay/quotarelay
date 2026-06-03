@@ -91,6 +91,6 @@ fn tools_list_exposes_current_backend_truth_surface() {
         .expect("assemble_context tool should exist");
     assert_eq!(
         assemble_tool["inputSchema"]["properties"]["mode"]["enum"],
-        json!(["exact_search", "overview", "task_capsule"])
+        json!(["exact_search", "overview", "task_capsule", "diff_aware"])
     );
 }

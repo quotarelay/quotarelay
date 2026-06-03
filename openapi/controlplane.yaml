@@ -569,6 +569,7 @@ components:
         - exact_search
         - overview
         - task_capsule
+        - diff_aware
     MemoryProfile:
       type: string
       enum:
@@ -582,6 +583,8 @@ components:
         - overview_document
         - task_capsule_match
         - memory_note_match
+        - diff_changed_file
+        - diff_related_match
     OmissionReasonKind:
       type: string
       enum:
@@ -590,3 +593,4 @@ components:
         - no_memory_matches
         - item_limit_reached
         - byte_budget_reached
+        - missing_indexed_file

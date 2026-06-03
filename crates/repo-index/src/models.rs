@@ -50,3 +50,17 @@ pub struct IndexedDocument {
     pub path: String,
     pub contents: String,
 }
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ChangedDocumentStatus {
+    Changed,
+    New,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ChangedDocument {
+    pub path: String,
+    pub contents: String,
+    pub status: ChangedDocumentStatus,
+}

@@ -8,7 +8,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 |---|---|
 | MCP server | Stdio MCP server exposes shipped tools for repo sync/search, context assembly, memory, cache, repository registration, workspace profiles, run history, and local state inspection. |
 | CLI | Non-interactive local CLI returns stable JSON for `truth`, `register`, `sync`, `state`, `search`, and `assemble` modes. |
-| Retrieval | `exact_search`, `overview`, and `task_capsule` return bounded context with inclusion and omission reasons. |
+| Retrieval | `exact_search`, `overview`, `task_capsule`, and `diff_aware` return bounded context with inclusion and omission reasons. |
 | Repository index | Local sync writes a bounded `.quotarelay/index.json`, respects explicit ignore config, and supports inventory/search/document lookup. |
 | Memory | Durable local memory supports write/read/update/delete/search/export/import under `.quotarelay`. Empty memory search is rejected instead of dumping notes. |
 | Cache | Local retrieval caches can be inspected, cleared, reused, invalidated by explicit sync, and recovered from corrupt JSON by operator action. |

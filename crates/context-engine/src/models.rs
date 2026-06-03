@@ -21,6 +21,7 @@ pub enum RetrievalMode {
     ExactSearch,
     Overview,
     TaskCapsule,
+    DiffAware,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -30,6 +31,8 @@ pub enum InclusionReasonKind {
     OverviewDocument,
     TaskCapsuleMatch,
     MemoryNoteMatch,
+    DiffChangedFile,
+    DiffRelatedMatch,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -46,6 +49,7 @@ pub enum OmissionReasonKind {
     NoMemoryMatches,
     ItemLimitReached,
     ByteBudgetReached,
+    MissingIndexedFile,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]

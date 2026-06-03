@@ -266,7 +266,7 @@ fn workspace_profile_save_tool() -> Value {
                 "root": { "type": "string" },
                 "name": { "type": "string" },
                 "repo_roots": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 5 },
-                "default_mode": { "type": "string", "enum": ["exact_search", "overview", "task_capsule"] },
+                "default_mode": { "type": "string", "enum": ["exact_search", "overview", "task_capsule", "diff_aware"] },
                 "default_limit": { "type": "integer", "minimum": 1, "maximum": 5 },
                 "per_repo_limit": { "type": "integer", "minimum": 1, "maximum": 5 }
             },
@@ -411,7 +411,7 @@ fn assemble_context_tool() -> Value {
                 "root": { "type": "string" },
                 "mode": {
                     "type": "string",
-                    "enum": ["exact_search", "overview", "task_capsule"],
+                    "enum": ["exact_search", "overview", "task_capsule", "diff_aware"],
                     "default": "exact_search"
                 },
                 "query": { "type": "string" },
@@ -452,7 +452,7 @@ fn handoff_packet_tool() -> Value {
                 "active_task": { "type": "string" },
                 "mode": {
                     "type": "string",
-                    "enum": ["exact_search", "overview", "task_capsule"],
+                    "enum": ["exact_search", "overview", "task_capsule", "diff_aware"],
                     "default": "exact_search"
                 },
                 "query": { "type": "string" },

@@ -43,6 +43,7 @@ Today the backend exposes these MCP tools:
 The retrieval contract is explicit and bounded:
 
 - Modes: `exact_search`, `overview`, `task_capsule`
+- Local-change mode: `diff_aware` assembles bounded context around changed/new files and optional related indexed matches
 - Hard limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, 10 history runs
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
 - Budget estimate: context packs include local included-byte counts and approximate tokens derived from those bytes
@@ -102,6 +103,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]`
+- `cargo run -p mcp-server -- --cli assemble <repo_root> diff_aware [query] [limit]`
 - `cargo run -p mcp-server -- --cli handoff <repo_root> <active_task> exact_search <query> [limit]`
 
 ## MCP client setup

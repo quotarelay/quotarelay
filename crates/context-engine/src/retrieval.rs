@@ -4,6 +4,7 @@ use std::path::Path;
 use repo_index::{index_freshness, indexed_documents, matching_documents, search_code};
 
 use super::*;
+use crate::diff::assemble_diff_aware;
 use crate::memory::{find_memory_notes, pack_memory_notes};
 
 pub(crate) fn normalize_query(query: &str) -> String {
@@ -125,6 +126,21 @@ pub fn retrieve_context(
                 stale: capsule.stale,
             })
         }
+        RetrievalMode::DiffAware => {
+            let normalized_query = query.map(normalize_query);
+            let capsule = assemble_diff_aware(root, normalized_query.as_deref(), limit)?;
+            Ok(RetrievedContext {
+                mode,
+                query: normalized_query,
+                generated_at_epoch_ms: capsule.generated_at_epoch_ms,
+                snippets: Vec::new(),
+                memory_notes: Vec::new(),
+                documents: capsule.documents,
+                omissions: capsule.omissions,
+                budget: capsule.budget,
+                stale: capsule.stale,
+            })
+        }
     }
 }
 
@@ -134,12 +150,15 @@ pub fn retrieval_truth() -> RetrievalTruth {
             RetrievalMode::ExactSearch,
             RetrievalMode::Overview,
             RetrievalMode::TaskCapsule,
+            RetrievalMode::DiffAware,
         ],
         inclusion_reason_kinds: vec![
             InclusionReasonKind::QueryLineMatch,
             InclusionReasonKind::OverviewDocument,
             InclusionReasonKind::TaskCapsuleMatch,
             InclusionReasonKind::MemoryNoteMatch,
+            InclusionReasonKind::DiffChangedFile,
+            InclusionReasonKind::DiffRelatedMatch,
         ],
         omission_reason_kinds: vec![
             OmissionReasonKind::NoLineMatches,
@@ -147,6 +166,7 @@ pub fn retrieval_truth() -> RetrievalTruth {
             OmissionReasonKind::NoMemoryMatches,
             OmissionReasonKind::ItemLimitReached,
             OmissionReasonKind::ByteBudgetReached,
+            OmissionReasonKind::MissingIndexedFile,
         ],
         limits: RetrievalLimits {
             max_context_items: MAX_CONTEXT_ITEMS,

@@ -301,6 +301,51 @@ fn context_outputs_report_missing_indexed_files_as_stale() {
 }
 
 #[test]
+fn diff_aware_context_reports_clean_dirty_and_many_file_states() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "alpha original\n").expect("alpha file should write");
+    fs::write(root.join("related.txt"), "related original\n").expect("related file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+
+    let clean = retrieve_context(&root, RetrievalMode::DiffAware, None, 2)
+        .expect("clean diff-aware context should succeed");
+    assert!(clean.documents.is_empty());
+    assert_eq!(clean.stale.is_stale, false);
+    assert_eq!(
+        clean.omissions[0].kind,
+        OmissionReasonKind::NoDocumentMatches
+    );
+
+    thread::sleep(Duration::from_millis(20));
+    fs::write(root.join("alpha.txt"), "alpha changed needle\n").expect("alpha file should rewrite");
+    fs::write(root.join("beta.txt"), "beta new needle\n").expect("beta file should write");
+
+    let dirty = retrieve_context(&root, RetrievalMode::DiffAware, Some("related"), 5)
+        .expect("dirty diff-aware context should succeed");
+    assert_eq!(dirty.stale.is_stale, true);
+    assert!(dirty
+        .documents
+        .iter()
+        .any(|document| document.reason.kind == InclusionReasonKind::DiffChangedFile));
+    assert!(dirty
+        .documents
+        .iter()
+        .any(|document| document.reason.kind == InclusionReasonKind::DiffRelatedMatch));
+
+    for index in 0..8 {
+        fs::write(root.join(format!("new-{index}.txt")), "extra new\n")
+            .expect("extra file should write");
+    }
+    let bounded = retrieve_context(&root, RetrievalMode::DiffAware, None, 3)
+        .expect("bounded diff-aware context should succeed");
+    assert_eq!(bounded.documents.len(), 3);
+    assert!(bounded
+        .omissions
+        .iter()
+        .any(|omission| omission.kind == OmissionReasonKind::ItemLimitReached));
+}
+
+#[test]
 fn exact_search_reports_byte_budget_omission() {
     let root = temp_repo();
     let long_line = format!("needle {}", "x".repeat(300));

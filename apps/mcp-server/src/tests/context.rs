@@ -3,7 +3,7 @@ use std::io::Cursor;
 
 use serde_json::{json, Value};
 
-use super::common::{decode_responses, json_rpc_request, temp_repo};
+use super::common::{decode_response, decode_responses, json_rpc_request, temp_repo};
 use crate::run_stdio;
 
 #[test]
@@ -268,6 +268,47 @@ fn assemble_context_supports_overview_and_task_capsule_modes_over_stdio() {
         .as_str()
         .expect("task contents should exist")
         .contains("struct Widget { id: usize }"));
+}
+
+#[test]
+fn assemble_context_supports_diff_aware_mode_over_stdio() {
+    let repo_root = temp_repo();
+    fs::write(repo_root.join("src.txt"), "needle original\n").expect("repo file should write");
+    repo_index::sync_repo(&repo_root).expect("sync should succeed");
+    fs::write(repo_root.join("src.txt"), "needle changed\n").expect("repo file should rewrite");
+
+    let request = json_rpc_request(
+        82,
+        "tools/call",
+        json!({
+            "name": "assemble_context",
+            "arguments": {
+                "root": repo_root.to_string_lossy(),
+                "mode": "diff_aware",
+                "query": "needle",
+                "limit": 2
+            }
+        }),
+    );
+    let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("diff-aware assemble should succeed");
+
+    let response = decode_response(&output);
+    let payload: Value = serde_json::from_str(
+        response["result"]["content"][0]["text"]
+            .as_str()
+            .expect("diff-aware text should exist"),
+    )
+    .expect("diff-aware payload should be valid json");
+    assert_eq!(payload["mode"], "diff_aware");
+    assert_eq!(payload["stale"]["is_stale"], true);
+    assert_eq!(
+        payload["documents"][0]["reason"]["kind"],
+        "diff_changed_file"
+    );
 }
 
 #[test]

@@ -22,9 +22,9 @@ describe('control-plane truth boundary', () => {
         ],
         proofs: [{ id: 'tools_list', command: 'cargo test -p mcp-server tools_list_exposes_current_backend_truth_surface' }],
         retrieval: {
-          modes: ['exact_search', 'overview', 'task_capsule'],
-          inclusion_reason_kinds: ['query_line_match'],
-          omission_reason_kinds: ['byte_budget_reached'],
+          modes: ['exact_search', 'overview', 'task_capsule', 'diff_aware'],
+          inclusion_reason_kinds: ['query_line_match', 'diff_changed_file', 'diff_related_match'],
+          omission_reason_kinds: ['byte_budget_reached', 'missing_indexed_file'],
           limits: {
             max_context_items: 5,
             max_snippet_pack_bytes: 160,
@@ -76,9 +76,9 @@ describe('control-plane truth boundary', () => {
     expect(toolSignals(state.backendTools[0])).toEqual(['required: root', 'fields: root, limit'])
     expect(proofTitle(state.proofs[0])).toBe('tools list')
     expect(state.retrievalTruth).toEqual(toRetrievalTruthItems({
-      modes: ['exact_search', 'overview', 'task_capsule'],
-      inclusion_reason_kinds: ['query_line_match'],
-      omission_reason_kinds: ['byte_budget_reached'],
+      modes: ['exact_search', 'overview', 'task_capsule', 'diff_aware'],
+      inclusion_reason_kinds: ['query_line_match', 'diff_changed_file', 'diff_related_match'],
+      omission_reason_kinds: ['byte_budget_reached', 'missing_indexed_file'],
       limits: {
         max_context_items: 5,
         max_snippet_pack_bytes: 160,

@@ -38,7 +38,7 @@ async fn backend_truth_endpoint_exposes_current_contract() {
     );
     assert_eq!(
         payload["retrieval"]["modes"],
-        json!(["exact_search", "overview", "task_capsule"])
+        json!(["exact_search", "overview", "task_capsule", "diff_aware"])
     );
     assert_eq!(payload["retrieval"]["limits"]["max_context_items"], 5);
     assert_eq!(payload["retrieval"]["durable_memory_enabled"], true);
@@ -141,7 +141,7 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
 
     assert_eq!(
         payload["retrieval"]["modes"],
-        json!(["exact_search", "overview", "task_capsule"])
+        json!(["exact_search", "overview", "task_capsule", "diff_aware"])
     );
     assert_eq!(payload["retrieval"]["cache"], payload["cache"]);
     assert_eq!(

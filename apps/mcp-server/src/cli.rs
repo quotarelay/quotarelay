@@ -118,16 +118,19 @@ where
 {
     let root = parse_cli_arg(args, "root")?;
     let mode = parse_cli_arg(args, "mode")?;
-    let query = match mode.as_str() {
-        "overview" => None,
-        "exact_search" | "task_capsule" => Some(parse_cli_arg(args, "query")?),
+    let (query, limit) = match mode.as_str() {
+        "overview" => (None, parse_cli_limit(args, 3)?),
+        "diff_aware" => parse_cli_optional_query_and_limit(args, 3)?,
+        "exact_search" | "task_capsule" => {
+            let query = parse_cli_arg(args, "query")?;
+            (Some(query), parse_cli_limit(args, 3)?)
+        }
         other => {
             return Err(format!(
-                "assemble mode must be exact_search, overview, or task_capsule; got {other}"
+                "assemble mode must be exact_search, overview, task_capsule, or diff_aware; got {other}"
             ))
         }
     };
-    let limit = parse_cli_limit(args, 3)?;
     let retrieval = retrieve_context(
         &PathBuf::from(&root),
         parse_retrieval_mode_from_str(&mode)?,
@@ -146,16 +149,19 @@ where
     let root = parse_cli_arg(args, "root")?;
     let active_task = parse_cli_arg(args, "active_task")?;
     let mode = parse_cli_arg(args, "mode")?;
-    let query = match mode.as_str() {
-        "overview" => None,
-        "exact_search" | "task_capsule" => Some(parse_cli_arg(args, "query")?),
+    let (query, limit) = match mode.as_str() {
+        "overview" => (None, parse_cli_limit(args, 3)?),
+        "diff_aware" => parse_cli_optional_query_and_limit(args, 3)?,
+        "exact_search" | "task_capsule" => {
+            let query = parse_cli_arg(args, "query")?;
+            (Some(query), parse_cli_limit(args, 3)?)
+        }
         other => {
             return Err(format!(
-                "handoff mode must be exact_search, overview, or task_capsule; got {other}"
-            ))
+            "handoff mode must be exact_search, overview, task_capsule, or diff_aware; got {other}"
+        ))
         }
     };
-    let limit = parse_cli_limit(args, 3)?;
     let packet = assemble_handoff_packet(
         &PathBuf::from(&root),
         &active_task,
@@ -198,13 +204,32 @@ where
     }
 }
 
+fn parse_cli_optional_query_and_limit<I, S>(
+    args: &mut I,
+    default_limit: usize,
+) -> Result<(Option<String>, usize), String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let Some(first) = parse_cli_arg_opt(args) else {
+        return Ok((None, default_limit));
+    };
+    if let Ok(limit) = first.parse::<usize>() {
+        return Ok((None, limit));
+    }
+    let limit = parse_cli_limit(args, default_limit)?;
+    Ok((Some(first), limit))
+}
+
 fn parse_retrieval_mode_from_str(mode: &str) -> Result<RetrievalMode, String> {
     match mode {
         "exact_search" => Ok(RetrievalMode::ExactSearch),
         "overview" => Ok(RetrievalMode::Overview),
         "task_capsule" => Ok(RetrievalMode::TaskCapsule),
+        "diff_aware" => Ok(RetrievalMode::DiffAware),
         other => Err(format!(
-            "assemble mode must be exact_search, overview, or task_capsule; got {other}"
+            "assemble mode must be exact_search, overview, task_capsule, or diff_aware; got {other}"
         )),
     }
 }

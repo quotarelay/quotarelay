@@ -418,8 +418,9 @@ fn parse_retrieval_mode(arguments: &Value) -> Result<RetrievalMode, String> {
         Some("exact_search") => Ok(RetrievalMode::ExactSearch),
         Some("overview") => Ok(RetrievalMode::Overview),
         Some("task_capsule") => Ok(RetrievalMode::TaskCapsule),
+        Some("diff_aware") => Ok(RetrievalMode::DiffAware),
         Some(other) => Err(format!(
-            "assemble_context mode must be one of exact_search, overview, task_capsule; got {other}"
+            "assemble_context mode must be one of exact_search, overview, task_capsule, diff_aware; got {other}"
         )),
     }
 }
@@ -433,8 +434,9 @@ fn parse_optional_retrieval_mode(
         Some("exact_search") => Ok(Some(RetrievalMode::ExactSearch)),
         Some("overview") => Ok(Some(RetrievalMode::Overview)),
         Some("task_capsule") => Ok(Some(RetrievalMode::TaskCapsule)),
+        Some("diff_aware") => Ok(Some(RetrievalMode::DiffAware)),
         Some(other) => Err(format!(
-            "{field} must be one of exact_search, overview, task_capsule; got {other}"
+            "{field} must be one of exact_search, overview, task_capsule, diff_aware; got {other}"
         )),
     }
 }
