@@ -271,6 +271,18 @@ pub struct LocalStateArtifact {
     pub item_count: usize,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CacheInspection {
+    pub exact_search_cache: LocalStateArtifact,
+    pub retrieval_capsule_cache: LocalStateArtifact,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct CacheClearResult {
+    pub exact_search_cache_cleared: bool,
+    pub retrieval_capsule_cache_cleared: bool,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct StoredRunHistory {
     runs: Vec<ContextAssembly>,
@@ -937,6 +949,35 @@ pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
     })
 }
 
+pub fn inspect_retrieval_caches(root: &Path) -> io::Result<CacheInspection> {
+    let exact_cache = load_exact_match_cache(root)?;
+    let capsule_cache = load_capsule_cache(root)?;
+
+    Ok(CacheInspection {
+        exact_search_cache: LocalStateArtifact {
+            present: exact_match_cache_path(root).exists(),
+            item_count: exact_cache.entries.len(),
+        },
+        retrieval_capsule_cache: LocalStateArtifact {
+            present: capsule_cache_path(root).exists(),
+            item_count: capsule_cache.entries.len(),
+        },
+    })
+}
+
+pub fn clear_retrieval_caches(root: &Path) -> io::Result<CacheClearResult> {
+    let exact_search_cache_cleared = exact_match_cache_path(root).exists();
+    let retrieval_capsule_cache_cleared = capsule_cache_path(root).exists();
+
+    clear_exact_match_cache(root)?;
+    clear_capsule_cache(root)?;
+
+    Ok(CacheClearResult {
+        exact_search_cache_cleared,
+        retrieval_capsule_cache_cleared,
+    })
+}
+
 fn find_memory_notes(root: &Path, query: &str) -> io::Result<Vec<MemoryNote>> {
     let normalized_query = query.to_ascii_lowercase();
     let stored = load_memory_notes(root)?;
@@ -1158,8 +1199,8 @@ fn load_history(root: &Path) -> io::Result<StoredRunHistory> {
         return Ok(StoredRunHistory::default());
     }
 
-    let bytes = fs::read(path)?;
-    serde_json::from_slice(&bytes).map_err(io::Error::other)
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
 }
 
 fn history_path(root: &Path) -> PathBuf {
@@ -1186,14 +1227,29 @@ fn workspace_profiles_path(state_root: &Path) -> PathBuf {
     state_root.join(".quotarelay").join("workspace_profiles.json")
 }
 
+fn parse_state_json<T>(path: &Path, bytes: &[u8]) -> io::Result<T>
+where
+    T: for<'de> Deserialize<'de>,
+{
+    serde_json::from_slice(bytes).map_err(|error| {
+        io::Error::new(
+            io::ErrorKind::InvalidData,
+            format!(
+                "corrupt local state file {}; repair or remove the file to recover: {error}",
+                path.display()
+            ),
+        )
+    })
+}
+
 fn load_memory_notes(root: &Path) -> io::Result<StoredMemoryNotes> {
     let path = memory_notes_path(root);
     if !path.exists() {
         return Ok(StoredMemoryNotes::default());
     }
 
-    let bytes = fs::read(path)?;
-    serde_json::from_slice(&bytes).map_err(io::Error::other)
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
 }
 
 fn persist_memory_notes(root: &Path, notes: &StoredMemoryNotes) -> io::Result<()> {
@@ -1210,8 +1266,8 @@ fn load_workspace_profiles(state_root: &Path) -> io::Result<StoredWorkspaceProfi
         return Ok(StoredWorkspaceProfiles::default());
     }
 
-    let bytes = fs::read(path)?;
-    serde_json::from_slice(&bytes).map_err(io::Error::other)
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
 }
 
 fn persist_workspace_profiles(
@@ -1231,8 +1287,8 @@ fn load_exact_match_cache(root: &Path) -> io::Result<StoredExactMatchCache> {
         return Ok(StoredExactMatchCache::default());
     }
 
-    let bytes = fs::read(path)?;
-    serde_json::from_slice(&bytes).map_err(io::Error::other)
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
 }
 
 fn load_capsule_cache(root: &Path) -> io::Result<StoredCapsuleCache> {
@@ -1241,8 +1297,8 @@ fn load_capsule_cache(root: &Path) -> io::Result<StoredCapsuleCache> {
         return Ok(StoredCapsuleCache::default());
     }
 
-    let bytes = fs::read(path)?;
-    serde_json::from_slice(&bytes).map_err(io::Error::other)
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
 }
 
 fn read_exact_match_cache(root: &Path, query: &str) -> io::Result<Option<ContextAssembly>> {
@@ -1343,8 +1399,8 @@ fn load_registered_repositories(state_root: &Path) -> io::Result<StoredRegistere
         return Ok(StoredRegisteredRepositories::default());
     }
 
-    let bytes = fs::read(path)?;
-    serde_json::from_slice(&bytes).map_err(io::Error::other)
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
 }
 
 fn persist_registered_repositories(
@@ -1401,6 +1457,7 @@ mod tests {
         memory_search, memory_update, memory_write, MemoryExportPayload,
         register_repository, registered_repository_detail, registered_repository_state, remove_registered_repository,
         assemble_context_for_registered_repositories,
+        clear_retrieval_caches, inspect_retrieval_caches,
         retrieve_context, save_workspace_profile, list_workspace_profiles,
         update_registered_repository_metadata, EngineInfo, InclusionReasonKind, OmissionReasonKind,
         RepositorySyncStatus, RetrievalMode, TRUNCATED_PACK_MARKER,
@@ -2126,6 +2183,61 @@ mod tests {
         assert_eq!(profiles[0].default_limit, 2);
         assert_eq!(profiles[0].per_repo_limit, 1);
         assert!(state_root.join(".quotarelay").join("workspace_profiles.json").exists());
+    }
+
+    #[test]
+    fn corrupt_local_json_state_returns_recoverable_errors() {
+        let root = temp_repo();
+        let state_dir = root.join(".quotarelay");
+        fs::create_dir_all(&state_dir).expect("state dir should create");
+
+        for file_name in [
+            "memory_notes.json",
+            "registered_repositories.json",
+            "context_runs.json",
+            "exact_match_cache.json",
+        ] {
+            fs::write(state_dir.join(file_name), "{ not json").expect("corrupt state should write");
+        }
+
+        for error in [
+            memory_search(&root, "needle", 3).expect_err("corrupt memory should fail"),
+            list_registered_repositories(&root, 10).expect_err("corrupt registration should fail"),
+            context_run_history(&root, 3).expect_err("corrupt history should fail"),
+            retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 3)
+                .expect_err("corrupt exact cache should fail"),
+        ] {
+            assert_eq!(error.kind(), ErrorKind::InvalidData);
+            let message = error.to_string();
+            assert!(message.contains("corrupt local state file"));
+            assert!(message.contains("repair or remove the file to recover"));
+        }
+    }
+
+    #[test]
+    fn retrieval_cache_inspection_and_clear_are_explicit() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+
+        assemble_context(&root, "needle", 2).expect("exact search should populate cache");
+        assemble_overview(&root, 2).expect("overview should populate cache");
+
+        let before = inspect_retrieval_caches(&root).expect("cache inspection should succeed");
+        assert_eq!(before.exact_search_cache.present, true);
+        assert_eq!(before.exact_search_cache.item_count, 1);
+        assert_eq!(before.retrieval_capsule_cache.present, true);
+        assert_eq!(before.retrieval_capsule_cache.item_count, 1);
+
+        let cleared = clear_retrieval_caches(&root).expect("cache clear should succeed");
+        assert_eq!(cleared.exact_search_cache_cleared, true);
+        assert_eq!(cleared.retrieval_capsule_cache_cleared, true);
+
+        let after = inspect_retrieval_caches(&root).expect("cache inspection should succeed");
+        assert_eq!(after.exact_search_cache.present, false);
+        assert_eq!(after.exact_search_cache.item_count, 0);
+        assert_eq!(after.retrieval_capsule_cache.present, false);
+        assert_eq!(after.retrieval_capsule_cache.item_count, 0);
     }
 
     #[test]

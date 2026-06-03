@@ -5,12 +5,14 @@ use std::path::PathBuf;
 use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
 use context_engine::{
     assemble_context_for_registered_repositories,
+    clear_retrieval_caches,
     context_run_detail, context_run_history, inspect_local_state, list_registered_repositories, memory_export,
     memory_import, memory_read, memory_search, memory_delete, memory_update, memory_write,
     list_workspace_profiles, save_workspace_profile,
     register_repository, registered_repository_state, remove_registered_repository,
     registered_repository_detail, update_registered_repository_metadata,
-    invalidate_exact_match_cache, ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult,
+    inspect_retrieval_caches, invalidate_exact_match_cache, CacheClearResult, CacheInspection,
+    ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult,
     MemoryWriteResult, RegisteredRepository, RegisteredRepositoryState, MemoryDeleteResult,
     MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryUpdateResult,
     MultiRepositoryContextAssembly,
@@ -256,6 +258,8 @@ fn current_tool_registry() -> Vec<Value> {
         sync_repo_tool(),
         repo_inventory_tool(),
         inspect_local_state_tool(),
+        cache_inspect_tool(),
+        cache_clear_tool(),
         register_repository_tool(),
         list_repositories_tool(),
         repository_state_tool(),
@@ -448,6 +452,36 @@ fn inspect_local_state_tool() -> Value {
     json!({
         "name": "inspect_local_state",
         "description": "Returns bounded local Quotarelay state presence and counts without dumping persisted contents.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn cache_inspect_tool() -> Value {
+    json!({
+        "name": "cache_inspect",
+        "description": "Returns retrieval cache file presence and counts without reporting hit rates or optimization metrics.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn cache_clear_tool() -> Value {
+    json!({
+        "name": "cache_clear",
+        "description": "Explicitly clears local retrieval cache files owned by the context engine.",
         "inputSchema": {
             "type": "object",
             "properties": {
@@ -916,6 +950,26 @@ fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("cache_inspect") => match cache_inspect_from_args(&arguments) {
+            Ok(state) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&state).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("cache_clear") => match cache_clear_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("register_repository") => match register_repository_from_args(&arguments) {
             Ok(result) => json!({
                 "type": "text",
@@ -1080,6 +1134,16 @@ fn inspect_local_state_from_args(
 ) -> Result<context_engine::LocalStateInspection, String> {
     let root = parse_root(arguments)?;
     inspect_local_state(&root).map_err(|error| format!("inspect_local_state failed: {error}"))
+}
+
+fn cache_inspect_from_args(arguments: &Value) -> Result<CacheInspection, String> {
+    let root = parse_root(arguments)?;
+    inspect_retrieval_caches(&root).map_err(|error| format!("cache_inspect failed: {error}"))
+}
+
+fn cache_clear_from_args(arguments: &Value) -> Result<CacheClearResult, String> {
+    let root = parse_root(arguments)?;
+    clear_retrieval_caches(&root).map_err(|error| format!("cache_clear failed: {error}"))
 }
 
 fn register_repository_from_args(
@@ -1598,10 +1662,31 @@ fn write_cli_error<W: Write>(stdout: &mut W, command: Option<&str>, message: &st
         &json!({
             "ok": false,
             "command": command,
+            "error_category": classify_error(message),
             "error": message,
         }),
     )?;
     stdout.write_all(b"\n")
+}
+
+fn classify_error(message: &str) -> &'static str {
+    let lower = message.to_ascii_lowercase();
+    if lower.contains("requires")
+        || lower.contains("missing")
+        || lower.contains("invalid")
+        || lower.contains("must be")
+        || lower.contains("unknown command")
+        || lower.contains("unsupported")
+        || lower.contains("got ")
+    {
+        "invalid_args"
+    } else if lower.contains("not found") || lower.contains("not registered") {
+        "missing_state"
+    } else if lower.contains("corrupt") || lower.contains("expected") || lower.contains("eof") {
+        "corrupt_state"
+    } else {
+        "backend_error"
+    }
 }
 
 #[cfg(test)]
@@ -1618,7 +1703,7 @@ mod tests {
 
     use context_engine::{assemble_context, memory_write, register_repository};
 
-    use super::{http_router, run_stdio};
+    use super::{classify_error, http_router, run_stdio};
 
     #[test]
     fn responds_to_initialize_over_stdio() {
@@ -1670,6 +1755,8 @@ mod tests {
                 "sync_repo",
                 "repo_inventory",
                 "inspect_local_state",
+                "cache_inspect",
+                "cache_clear",
                 "register_repository",
                 "list_repositories",
                 "repository_state",
@@ -2260,6 +2347,138 @@ mod tests {
     }
 
     #[test]
+    fn corrupt_memory_state_reports_recoverable_error_over_stdio() {
+        let repo_root = temp_repo();
+        let state_dir = repo_root.join(".quotarelay");
+        fs::create_dir_all(&state_dir).expect("state dir should create");
+        fs::write(state_dir.join("memory_notes.json"), "{ not json").expect("corrupt memory should write");
+
+        let search_request = json_rpc_request(
+            47,
+            "tools/call",
+            json!({
+                "name": "memory_search",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "query": "needle",
+                    "limit": 3
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", search_request.len(), search_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("corrupt memory search should produce an error response");
+        let response = decode_response(&output);
+        let text = response["result"]["content"][0]["text"]
+            .as_str()
+            .expect("error text should exist");
+
+        assert!(text.contains("memory_search failed: corrupt local state file"));
+        assert!(text.contains("repair or remove the file to recover"));
+    }
+
+    #[test]
+    fn cache_inspect_and_clear_work_over_stdio() {
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+
+        let sync_request = json_rpc_request(
+            48,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            49,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let inspect_request = json_rpc_request(
+            50,
+            "tools/call",
+            json!({
+                "name": "cache_inspect",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let clear_request = json_rpc_request(
+            51,
+            "tools/call",
+            json!({
+                "name": "cache_clear",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let inspect_after_request = json_rpc_request(
+            52,
+            "tools/call",
+            json!({
+                "name": "cache_inspect",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request,
+            inspect_request.len(),
+            inspect_request,
+            clear_request.len(),
+            clear_request,
+            inspect_after_request.len(),
+            inspect_after_request
+        );
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("cache inspect and clear should succeed");
+        let responses = decode_responses(&output);
+        let before: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("cache inspect text should exist"),
+        )
+        .expect("cache inspect payload should be valid json");
+        let cleared: Value = serde_json::from_str(
+            responses[3]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("cache clear text should exist"),
+        )
+        .expect("cache clear payload should be valid json");
+        let after: Value = serde_json::from_str(
+            responses[4]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("cache inspect after text should exist"),
+        )
+        .expect("cache inspect after payload should be valid json");
+
+        assert_eq!(before["exact_search_cache"]["present"], true);
+        assert_eq!(before["exact_search_cache"]["item_count"], 1);
+        assert_eq!(cleared["exact_search_cache_cleared"], true);
+        assert_eq!(after["exact_search_cache"]["present"], false);
+    }
+
+    #[test]
     fn repository_registration_tools_work_over_stdio() {
         let state_root = temp_repo();
         let repo_root = temp_repo();
@@ -2464,6 +2683,7 @@ mod tests {
         let missing: Value = serde_json::from_slice(&output).expect("missing command payload should parse");
         assert_eq!(missing["ok"], false);
         assert!(missing["command"].is_null());
+        assert_eq!(missing["error_category"], "invalid_args");
         assert_eq!(missing["error"], "missing command");
 
         output.clear();
@@ -2472,6 +2692,7 @@ mod tests {
         let unknown: Value = serde_json::from_slice(&output).expect("unknown command payload should parse");
         assert_eq!(unknown["ok"], false);
         assert_eq!(unknown["command"], "unknown");
+        assert_eq!(unknown["error_category"], "invalid_args");
         assert_eq!(unknown["error"], "unknown command: unknown");
 
         output.clear();
@@ -2488,10 +2709,19 @@ mod tests {
         let invalid_limit: Value = serde_json::from_slice(&output).expect("invalid limit payload should parse");
         assert_eq!(invalid_limit["ok"], false);
         assert_eq!(invalid_limit["command"], "search");
+        assert_eq!(invalid_limit["error_category"], "invalid_args");
         assert!(invalid_limit["error"]
             .as_str()
             .expect("error should be a string")
             .starts_with("limit must be a positive integer"));
+    }
+
+    #[test]
+    fn error_classifier_uses_stable_categories() {
+        assert_eq!(classify_error("missing command"), "invalid_args");
+        assert_eq!(classify_error("repository C:\\repo is not registered"), "missing_state");
+        assert_eq!(classify_error("corrupt memory_notes.json"), "corrupt_state");
+        assert_eq!(classify_error("sync failed: disk unavailable"), "backend_error");
     }
 
     #[test]
@@ -3531,7 +3761,7 @@ mod tests {
             .expect("body should read");
         let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
 
-        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(24));
+        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(26));
         assert_eq!(payload["retrieval"]["modes"], json!(["exact_search", "overview", "task_capsule"]));
         assert_eq!(payload["retrieval"]["limits"]["max_context_items"], 5);
         assert_eq!(payload["retrieval"]["durable_memory_enabled"], true);

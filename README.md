@@ -14,6 +14,8 @@ Today the backend exposes these MCP tools:
 - `bootstrap_status`
 - `sync_repo`
 - `repo_inventory`
+- `cache_inspect`
+- `cache_clear`
 - `register_repository`
 - `list_repositories`
 - `repository_state`
@@ -55,7 +57,7 @@ The control plane does not invent readiness, savings, or live health state. It r
 
 ## Local CLI
 
-The MCP server binary also exposes a non-interactive local CLI for operator workflows. CLI responses are newline-terminated JSON objects with `ok`, `command`, and either `result` or `error`.
+The MCP server binary also exposes a non-interactive local CLI for operator workflows. CLI responses are newline-terminated JSON objects with `ok`, `command`, and either `result` or `error` plus `error_category`.
 
 - `cargo run -p mcp-server -- --cli truth`
 - `cargo run -p mcp-server -- --cli register <state_root> <repo_root>`
