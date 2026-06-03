@@ -30,6 +30,8 @@ The ideal local development workspace should eventually show:
 
 Do not present Android, iOS, container, hosted, or deployment management as shipped until tests and docs prove the surface exists.
 
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1` to build the Terajs frontend and verify that the public `/` route, `/control-plane` route, and public metadata are present in the generated artifacts.
+
 ## Deployment Management Expectations
 
 Typical platform management for later paid/team work should include:
