@@ -28,6 +28,27 @@
     </div>
 
     <p v-if="fetchError()" class="inline-note inline-note--warn">{{ fetchError() }}</p>
+
+    <div class="operator-start">
+      <div>
+        <p class="operator-label">First local run</p>
+        <h2>Start the backend, sync a repo, then open this page with a root.</h2>
+      </div>
+      <ol class="operator-steps">
+        <li>
+          <span>Backend</span>
+          <code>cargo run -p mcp-server -- --http 127.0.0.1:3030</code>
+        </li>
+        <li>
+          <span>Sync</span>
+          <code>cargo run -p mcp-server -- --cli sync &lt;repo_root&gt;</code>
+        </li>
+        <li>
+          <span>Inspect</span>
+          <code>?root=&lt;repo_root&gt;&amp;memory_query=&lt;query&gt;</code>
+        </li>
+      </ol>
+    </div>
   </section>
 
   <section class="section">

@@ -2,6 +2,8 @@
 
 Quotarelay is an MCP-first context engine for local agent workflows. The shipped workspace has three Rust crates and one Terajs control-plane scaffold:
 
+Current local MVP version: `0.1.0`.
+
 - `apps/mcp-server`: stdio MCP server plus a thin HTTP `/truth` endpoint.
 - `crates/repo-index`: local repository indexing, inventory, and search.
 - `crates/context-engine`: bounded context assembly, durable memory, repository registration, and derived repository state truth.
@@ -76,6 +78,7 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`
 - `cargo test -p mcp-server backend_truth_endpoint_exposes_current_contract`
 - `cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio`
@@ -104,10 +107,22 @@ See `docs/MCP_CLIENT_CONFIG.md` for the local stdio command, generic client JSON
 
 See `docs/TROUBLESHOOTING.md` for corrupt local JSON recovery, cache inspect/clear guidance, missing index/repository checks, Windows path notes, and deferred platform boundaries.
 
+## Changelog
+
+See `CHANGELOG.md` for local MVP release notes, validation commands, known limitations, and deferred platform boundaries.
+
 ## Control plane
 
 See `docs/CONTROL_PLANE_LOCAL.md` for local backend HTTP and frontend commands.
 
+## Local package smoke
+
+Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1` to build a local-only zip artifact under `target\local-package\`. The script smoke-runs the packaged backend binary with `--cli truth`; it does not publish, sign, install globally, deploy, or contact external services.
+
 ## Local state privacy
 
 See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what the local MVP does not send, what not to commit, and current limitations.
+
+## Known limitations
+
+See `docs/KNOWN_LIMITATIONS.md` for local-only boundaries, indexing limits, provider/network non-goals, control-plane limits, and deferred platform work.
