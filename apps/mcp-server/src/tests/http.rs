@@ -217,6 +217,7 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "memory_aware_context",
             "registered_repositories",
             "team_policy_profiles",
+            "team_policy_cli",
             "repository_state",
             "local_operator_workflow",
         ]

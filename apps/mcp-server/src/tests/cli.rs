@@ -314,6 +314,95 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
 }
 
 #[test]
+fn local_cli_team_policy_save_and_list_are_stable_json() {
+    let state_root = temp_repo();
+    let mut output = Vec::new();
+    super::run_cli(
+        [
+            "team-policy-save".to_string(),
+            state_root.to_string_lossy().to_string(),
+            "backend-team".to_string(),
+            "keep source local;run smallest tests".to_string(),
+            "cargo test -p mcp-server;npm.cmd --prefix web/controlplane run build".to_string(),
+            "examples/mcp-client-presets/generic-stdio.json".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli team policy save should succeed");
+
+    let saved: Value =
+        serde_json::from_slice(&output).expect("team policy save payload should parse");
+    assert_eq!(saved["ok"], true);
+    assert_eq!(saved["command"], "team-policy-save");
+    assert_eq!(
+        saved["result"]["team_policy"]["profile"]["name"],
+        "backend-team"
+    );
+    assert_eq!(
+        saved["result"]["team_policy"]["profile"]["guardrails"]
+            .as_array()
+            .map(|items| items.len()),
+        Some(2)
+    );
+    assert_eq!(
+        saved["result"]["team_policy"]["profile"]["allow_source_upload"],
+        false
+    );
+
+    output.clear();
+    super::run_cli(
+        [
+            "team-policy-list".to_string(),
+            state_root.to_string_lossy().to_string(),
+            "5".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli team policy list should succeed");
+
+    let listed: Value =
+        serde_json::from_slice(&output).expect("team policy list payload should parse");
+    assert_eq!(listed["ok"], true);
+    assert_eq!(listed["command"], "team-policy-list");
+    assert_eq!(
+        listed["result"]["team_policies"]
+            .as_array()
+            .map(|items| items.len()),
+        Some(1)
+    );
+    assert_eq!(listed["result"]["team_policies"][0]["name"], "backend-team");
+}
+
+#[test]
+fn local_cli_team_policy_rejects_invalid_boolean() {
+    let state_root = temp_repo();
+    let mut output = Vec::new();
+    super::run_cli(
+        [
+            "team-policy-save".to_string(),
+            state_root.to_string_lossy().to_string(),
+            "backend-team".to_string(),
+            "keep source local".to_string(),
+            "cargo test -p mcp-server".to_string(),
+            "".to_string(),
+            "yes".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("invalid team policy save should produce json error");
+
+    let error: Value =
+        serde_json::from_slice(&output).expect("team policy error payload should parse");
+    assert_eq!(error["ok"], false);
+    assert_eq!(error["command"], "team-policy-save");
+    assert_eq!(error["error_category"], "invalid_args");
+    assert_eq!(
+        error["error"],
+        "boolean argument must be true or false; got yes"
+    );
+}
+
+#[test]
 fn error_classifier_uses_stable_categories() {
     assert_eq!(classify_error("missing command"), "invalid_args");
     assert_eq!(

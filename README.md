@@ -85,6 +85,8 @@ cargo run -p mcp-server -- --cli map <repo_root>
 cargo run -p mcp-server -- --cli validate crates/context-engine/src/lib.rs README.md
 cargo run -p mcp-server -- --cli feedback-write <repo_root> <generated_at_epoch_ms> useful "kept the packet focused"
 cargo run -p mcp-server -- --cli feedback-list <repo_root> 5
+cargo run -p mcp-server -- --cli team-policy-save <state_root> backend "keep source local" "cargo test -p mcp-server" "examples/mcp-client-presets/generic-stdio.json"
+cargo run -p mcp-server -- --cli team-policy-list <state_root> 5
 cargo run -p mcp-server -- --cli search <repo_root> <query> 5
 cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
 cargo run -p mcp-server -- --cli state <repo_root>
@@ -119,6 +121,8 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli validate <path> [path...]`
 - `cargo run -p mcp-server -- --cli feedback-write <repo_root> <generated_at_epoch_ms> useful|not_useful <reason>`
 - `cargo run -p mcp-server -- --cli feedback-list <repo_root> [limit]`
+- `cargo run -p mcp-server -- --cli team-policy-save <state_root> <name> <guardrails_semicolon_list> <validation_recipes_semicolon_list> <mcp_presets_semicolon_list> [true|false]`
+- `cargo run -p mcp-server -- --cli team-policy-list <state_root> [limit]`
 - `cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`

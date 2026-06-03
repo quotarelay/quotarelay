@@ -95,6 +95,10 @@ pub(crate) fn backend_truth_payload() -> BackendTruthPayload {
                 command: "cargo test -p mcp-server team_policy_profiles_save_list_and_inspect_over_stdio",
             },
             BackendProof {
+                id: "team_policy_cli",
+                command: "cargo test -p mcp-server local_cli_team_policy_save_and_list_are_stable_json",
+            },
+            BackendProof {
                 id: "repository_state",
                 command:
                     "cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio",
