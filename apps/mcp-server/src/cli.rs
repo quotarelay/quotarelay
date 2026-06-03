@@ -2,8 +2,9 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use context_engine::{
-    assemble_handoff_packet, inspect_local_state, invalidate_exact_match_cache,
-    recommend_validation, register_repository, retrieve_context, RetrievalMode,
+    assemble_handoff_packet, context_feedback_list, context_feedback_write, inspect_local_state,
+    invalidate_exact_match_cache, recommend_validation, register_repository, retrieve_context,
+    ContextFeedbackRating, RetrievalMode,
 };
 use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
@@ -31,6 +32,8 @@ where
         "state" => run_cli_state(&mut args_iter),
         "map" => run_cli_map(&mut args_iter),
         "validate" => run_cli_validate(&mut args_iter),
+        "feedback-write" => run_cli_feedback_write(&mut args_iter),
+        "feedback-list" => run_cli_feedback_list(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
         "handoff" => run_cli_handoff(&mut args_iter),
@@ -121,6 +124,41 @@ where
     }
 
     Ok(json!({"validation": recommend_validation(&paths)}))
+}
+
+fn run_cli_feedback_write<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let generated_at_epoch_ms = parse_cli_arg(args, "generated_at_epoch_ms")?
+        .parse::<u128>()
+        .map_err(|error| format!("generated_at_epoch_ms must be a number: {error}"))?;
+    let rating = parse_cli_feedback_rating(&parse_cli_arg(args, "rating")?)?;
+    let reason = parse_cli_arg(args, "reason")?;
+    let result = context_feedback_write(
+        &PathBuf::from(&root),
+        generated_at_epoch_ms,
+        rating,
+        &reason,
+    )
+    .map_err(|error| format!("feedback-write failed: {error}"))?;
+
+    Ok(json!({"feedback": result}))
+}
+
+fn run_cli_feedback_list<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let limit = parse_cli_limit(args, 5)?;
+    let result = context_feedback_list(&PathBuf::from(&root), limit)
+        .map_err(|error| format!("feedback-list failed: {error}"))?;
+
+    Ok(json!({"feedback": result}))
 }
 
 fn run_cli_search<I, S>(args: &mut I) -> Result<Value, String>
@@ -255,6 +293,16 @@ fn parse_retrieval_mode_from_str(mode: &str) -> Result<RetrievalMode, String> {
         "diff_aware" => Ok(RetrievalMode::DiffAware),
         other => Err(format!(
             "assemble mode must be exact_search, overview, task_capsule, or diff_aware; got {other}"
+        )),
+    }
+}
+
+fn parse_cli_feedback_rating(rating: &str) -> Result<ContextFeedbackRating, String> {
+    match rating {
+        "useful" => Ok(ContextFeedbackRating::Useful),
+        "not_useful" => Ok(ContextFeedbackRating::NotUseful),
+        other => Err(format!(
+            "feedback rating must be useful or not_useful; got {other}"
         )),
     }
 }

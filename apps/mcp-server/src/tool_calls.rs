@@ -2,6 +2,8 @@ use context_engine::EngineInfo;
 use serde_json::{json, Value};
 
 use crate::args::*;
+use crate::feedback_args::*;
+use crate::validation_args::*;
 
 pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
     let info = EngineInfo::quotarelay();
@@ -256,6 +258,26 @@ pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
             Ok(history) => json!({
                 "type": "text",
                 "text": serde_json::to_string(&history).unwrap_or_else(|_| "[]".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("context_feedback_write") => match context_feedback_write_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("context_feedback_list") => match context_feedback_list_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
             }),
             Err(error) => json!({
                 "type": "text",

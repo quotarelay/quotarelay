@@ -5,16 +5,15 @@ use context_engine::{
     context_run_detail, context_run_history, inspect_local_state, inspect_retrieval_caches,
     invalidate_exact_match_cache, list_registered_repositories, list_workspace_profiles,
     memory_delete, memory_export, memory_import, memory_read, memory_search,
-    memory_update_with_profile, memory_write_with_profile, recommend_validation,
-    register_repository, registered_repository_detail, registered_repository_state,
-    remove_registered_repository, retrieve_context, save_workspace_profile,
-    update_registered_repository_metadata, CacheClearResult, CacheInspection, ContextAssembly,
-    HandoffPacket, MemoryDeleteResult, MemoryExportPayload, MemoryExportResult, MemoryImportResult,
-    MemoryNote, MemoryProfile, MemorySearchResult, MemoryUpdateResult, MemoryWriteResult,
-    MultiRepositoryContextAssembly, RegisteredRepository, RegisteredRepositoryState,
-    RepositoryMetadataUpdateResult, RepositoryRegistrationResult, RepositoryRemovalResult,
-    RetrievalMode, RetrievedContext, ValidationRecommendationResult, WorkspaceProfile,
-    WorkspaceProfileSaveResult,
+    memory_update_with_profile, memory_write_with_profile, register_repository,
+    registered_repository_detail, registered_repository_state, remove_registered_repository,
+    retrieve_context, save_workspace_profile, update_registered_repository_metadata,
+    CacheClearResult, CacheInspection, ContextAssembly, HandoffPacket, MemoryDeleteResult,
+    MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryNote, MemoryProfile,
+    MemorySearchResult, MemoryUpdateResult, MemoryWriteResult, MultiRepositoryContextAssembly,
+    RegisteredRepository, RegisteredRepositoryState, RepositoryMetadataUpdateResult,
+    RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
+    WorkspaceProfile, WorkspaceProfileSaveResult,
 };
 use repo_index::{repo_inventory, repo_map, search_code, sync_repo};
 use serde_json::Value;
@@ -54,25 +53,6 @@ pub(crate) fn repo_inventory_from_args(
 pub(crate) fn repo_map_from_args(arguments: &Value) -> Result<repo_index::RepoMap, String> {
     let root = parse_root(arguments)?;
     repo_map(&root).map_err(|error| format!("repo_map failed: {error}"))
-}
-
-pub(crate) fn validation_recommend_from_args(
-    arguments: &Value,
-) -> Result<ValidationRecommendationResult, String> {
-    let paths = arguments
-        .get("paths")
-        .and_then(Value::as_array)
-        .ok_or_else(|| "validation_recommend requires paths array".to_string())?
-        .iter()
-        .map(|value| {
-            value
-                .as_str()
-                .map(ToString::to_string)
-                .ok_or_else(|| "validation_recommend paths must be strings".to_string())
-        })
-        .collect::<Result<Vec<_>, _>>()?;
-
-    Ok(recommend_validation(&paths))
 }
 
 pub(crate) fn inspect_local_state_from_args(

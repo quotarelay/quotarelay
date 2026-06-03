@@ -23,6 +23,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Token-saving clarity | Add cache hit/miss visibility and local reduction benchmarks without provider billing claims; local byte counts, approximate token estimates, and stale state now ship for context packets. |
 | Agent handoff | Bounded handoff packets now ship with active task, context, decision/guardrail memory notes, validation commands, blockers, and omission reasons. |
 | Repo intelligence | Bounded repo maps and diff-aware context ship locally; validation recommendations return exact local commands without running them. |
+| Context feedback | Bounded local feedback records can be written and listed; feedback does not change retrieval ranking and is not telemetry. |
 | Demo and validation | Provide a local example workspace, demo script, and one-command validation suite with no external services. |
 
 ## Deferred Platform Decisions

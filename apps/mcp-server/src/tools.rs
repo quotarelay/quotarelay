@@ -1,5 +1,9 @@
 use serde_json::{json, Value};
 
+use crate::extra_tools::{
+    context_feedback_list_tool, context_feedback_write_tool, validation_recommend_tool,
+};
+
 pub(crate) fn current_tool_registry() -> Vec<Value> {
     vec![
         bootstrap_tool(),
@@ -27,6 +31,8 @@ pub(crate) fn current_tool_registry() -> Vec<Value> {
         memory_search_tool(),
         context_run_detail_tool(),
         context_run_history_tool(),
+        context_feedback_write_tool(),
+        context_feedback_list_tool(),
         validation_recommend_tool(),
         multi_repo_assemble_context_tool(),
         assemble_context_tool(),
@@ -163,24 +169,6 @@ fn context_run_detail_tool() -> Value {
                 "generated_at_epoch_ms": { "type": "integer", "minimum": 0 }
             },
             "required": ["root", "generated_at_epoch_ms"],
-            "additionalProperties": false
-        }
-    })
-}
-
-fn validation_recommend_tool() -> Value {
-    json!({
-        "name": "validation_recommend",
-        "description": "Returns exact local validation commands with reasons for touched or queried paths.",
-        "inputSchema": {
-            "type": "object",
-            "properties": {
-                "paths": {
-                    "type": "array",
-                    "items": { "type": "string" }
-                }
-            },
-            "required": ["paths"],
             "additionalProperties": false
         }
     })

@@ -2,11 +2,14 @@ use std::io;
 
 mod args;
 mod cli;
+mod extra_tools;
+mod feedback_args;
 mod http;
 mod mcp_transport;
 mod tool_calls;
 mod tools;
 mod truth;
+mod validation_args;
 
 pub use cli::run_cli;
 #[cfg(test)]

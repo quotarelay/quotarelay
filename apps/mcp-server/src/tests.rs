@@ -4,6 +4,7 @@ mod cli;
 mod common;
 mod context;
 mod context_history;
+mod feedback;
 mod http;
 mod memory;
 mod memory_edges;

@@ -165,6 +165,33 @@ pub struct ValidationRecommendationResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum ContextFeedbackRating {
+    Useful,
+    NotUseful,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContextFeedback {
+    pub id: String,
+    pub generated_at_epoch_ms: u128,
+    pub recorded_at_epoch_ms: u128,
+    pub rating: ContextFeedbackRating,
+    pub reason: String,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContextFeedbackWriteResult {
+    pub feedback: ContextFeedback,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ContextFeedbackListResult {
+    pub feedback: Vec<ContextFeedback>,
+    pub omitted_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MemoryNote {
     pub id: String,
     pub title: String,
@@ -328,6 +355,7 @@ pub struct LocalStateInspection {
     pub index: LocalStateArtifact,
     pub memory_notes: LocalStateArtifact,
     pub context_run_history: LocalStateArtifact,
+    pub context_feedback: LocalStateArtifact,
     pub registered_repositories: LocalStateArtifact,
     pub exact_search_cache: LocalStateArtifact,
     pub retrieval_capsule_cache: LocalStateArtifact,
@@ -354,6 +382,11 @@ pub struct CacheClearResult {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct StoredRunHistory {
     pub(crate) runs: Vec<ContextAssembly>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub(crate) struct StoredContextFeedback {
+    pub(crate) feedback: Vec<ContextFeedback>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]

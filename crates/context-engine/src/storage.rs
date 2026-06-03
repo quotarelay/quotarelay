@@ -49,6 +49,7 @@ pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
     };
     let memory_notes = load_memory_notes(root)?;
     let history = load_history(root)?;
+    let feedback = load_context_feedback(root)?;
     let registered_repositories = load_registered_repositories(root)?;
     let exact_cache = load_exact_match_cache(root)?;
     let capsule_cache = load_capsule_cache(root)?;
@@ -62,6 +63,10 @@ pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
         context_run_history: LocalStateArtifact {
             present: history_path(root).exists(),
             item_count: history.runs.len(),
+        },
+        context_feedback: LocalStateArtifact {
+            present: context_feedback_path(root).exists(),
+            item_count: feedback.feedback.len(),
         },
         registered_repositories: LocalStateArtifact {
             present: registered_repositories_path(root).exists(),
@@ -109,6 +114,10 @@ pub fn clear_retrieval_caches(root: &Path) -> io::Result<CacheClearResult> {
 
 pub(crate) fn history_path(root: &Path) -> PathBuf {
     root.join(".quotarelay").join("context_runs.json")
+}
+
+pub(crate) fn context_feedback_path(root: &Path) -> PathBuf {
+    root.join(".quotarelay").join("context_feedback.json")
 }
 
 pub(crate) fn exact_match_cache_path(root: &Path) -> PathBuf {
@@ -168,6 +177,30 @@ pub(crate) fn persist_memory_notes(root: &Path, notes: &StoredMemoryNotes) -> io
     fs::write(
         path,
         serde_json::to_vec_pretty(notes).map_err(io::Error::other)?,
+    )
+}
+
+pub(crate) fn load_context_feedback(root: &Path) -> io::Result<StoredContextFeedback> {
+    let path = context_feedback_path(root);
+    if !path.exists() {
+        return Ok(StoredContextFeedback::default());
+    }
+
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
+}
+
+pub(crate) fn persist_context_feedback(
+    root: &Path,
+    feedback: &StoredContextFeedback,
+) -> io::Result<()> {
+    let path = context_feedback_path(root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(feedback).map_err(io::Error::other)?,
     )
 }
 

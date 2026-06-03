@@ -3,6 +3,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 mod diff;
+mod feedback;
 mod handoff;
 mod memory;
 mod models;
@@ -12,6 +13,7 @@ mod storage;
 mod validation;
 
 pub use diff::assemble_diff_aware;
+pub use feedback::{context_feedback_list, context_feedback_write};
 pub use handoff::assemble_handoff_packet;
 pub use memory::{
     memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,

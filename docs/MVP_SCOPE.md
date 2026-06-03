@@ -14,7 +14,7 @@
 - Local workspace profiles and repo groups
 - Local guardrails for source-size and separation-of-concerns maintainability
 - Release-ready docs for local install, quickstart, troubleshooting, privacy, and known limitations
-- Token-saving proof work that is local and approximate: context budget estimate, handoff packets, decision memory, stale-context detection, diff-aware context, repo maps, validation recommender, and local benchmark fixtures
+- Token-saving proof work that is local and approximate: context budget estimate, handoff packets, decision memory, stale-context detection, diff-aware context, repo maps, validation recommender, context feedback, and local benchmark fixtures
 
 ## Explicit non-goals
 
@@ -47,6 +47,7 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 | Repository registration and profiles | Shipped local MVP behavior | Registration, dedupe, removal, metadata rename, detail lookup, bounded listing, and workspace profiles are tested. |
 | Truth surfaces | Shipped local MVP behavior | `/truth`, CLI truth, OpenAPI mirror, and control-plane rendering are constrained to shipped backend behavior. |
 | Validation recommender | Shipped local token-saver behavior | Returns exact local commands with reasons for repo-owned path patterns; it does not run tests or call external services. |
+| Context feedback | Shipped local token-saver behavior | Records bounded useful/not-useful feedback locally for context packs; it is inspectable and does not change ranking. |
 | One-command clean check | Shipped local validation behavior | `scripts/clean-check.ps1` runs fmt check, line-count guardrail, Rust package tests, and control-plane build. |
 | Fresh checkout bootstrap | Local release blocker | T82 must provide a local bootstrap check that does not mutate global state or require external services. |
 | MCP client configuration | Local release blocker | T83 must document verified local client setup, state-root guidance, Windows path examples, and troubleshooting. |

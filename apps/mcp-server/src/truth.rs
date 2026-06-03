@@ -150,6 +150,15 @@ fn cli_truth() -> CliTruth {
                 command: "cargo run -p mcp-server -- --cli validate <path> [path...]",
             },
             CliCommandTruth {
+                label: "Record context feedback",
+                command:
+                    "cargo run -p mcp-server -- --cli feedback-write <repo-root> <run-ms> useful <reason>",
+            },
+            CliCommandTruth {
+                label: "List context feedback",
+                command: "cargo run -p mcp-server -- --cli feedback-list <repo-root> [limit]",
+            },
+            CliCommandTruth {
                 label: "Assemble context",
                 command: "cargo run -p mcp-server -- --cli assemble <repo-root> <query>",
             },
