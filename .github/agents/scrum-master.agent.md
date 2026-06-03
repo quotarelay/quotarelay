@@ -37,6 +37,14 @@ Your job is to convert goals into bounded implementation slices that match the l
 - If the user asks for current writable scope or active task runtime seam in-scope files anywhere in the prompt, always include both explicitly even if a later shorthand return list omits them.
 - When asked for validation or stop conditions, quote the tracker exactly instead of paraphrasing unless the user asks for a summary.
 
+## Status Semantics
+
+- `active`: the one current implementation slice; it must have allowed files, non-goals, exact proof commands, and a stop condition before implementation starts.
+- `queued`: an explicit future slice; do not open it until tracker truth selects it as the next executable slice.
+- `deferred`: not executable in the current local MVP path; return `BLOCKED` or a decision slice if the user asks to implement it.
+- `blocked`: not executable until the named contradiction, missing decision, or failed proof is resolved.
+- `ready`: executable only when it also includes agent path, allowed files, non-goals, focused validation, and a stop condition.
+
 ## Procedure
 
 1. Read `EXECUTION_TRACKER.md` first.
