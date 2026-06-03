@@ -71,3 +71,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]`
+
+## MCP client setup
+
+See `docs/MCP_CLIENT_CONFIG.md` for the local stdio command, generic client JSON shape, Windows path examples, state-root guidance, and startup troubleshooting.
