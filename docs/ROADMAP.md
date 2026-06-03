@@ -2,6 +2,8 @@
 
 This roadmap locks the product path. It is not a shipped-behavior document; `README.md` remains the source for what works today, and `EXECUTION_TRACKER.md` remains the active execution queue.
 
+For a compact shipped/queued/deferred boundary, see `docs/TRUTH_MATRIX.md`.
+
 ## North star
 
 Quotarelay is a local-first context compression and optimization engine for coding agents. It helps agents use less context by syncing repositories locally, assembling bounded context packs, preserving team decisions, caching repeated work, and recommending the smallest useful validation path.
