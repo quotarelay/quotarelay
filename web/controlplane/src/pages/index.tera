@@ -1,316 +1,111 @@
 <meta>
-  title: Quotarelay Control Plane
-  description: Thin frontend proof for shipped Quotarelay backend capabilities and proof state.
+  title: Quotarelay
+  description: Local-first context compression for coding agents, with a free Apache-2.0 core and planned paid team coordination.
+  keywords: quotarelay, mcp, coding agents, context compression, local first, token savings
+  aiSummary: Quotarelay is a local-first MCP context engine that assembles bounded, explainable context packets for coding agents while keeping repository contents local by default.
+  aiKeywords: mcp, context-engine, local-first, coding-agents, privacy, open-core
 </meta>
 
+<route>
+  path: /
+</route>
+
+<ai>
+  summary: Public product homepage for Quotarelay. Keep claims limited to shipped local behavior and clearly distinguish planned hosted team features.
+  audience:
+    - solo developers
+    - engineering teams
+    - AI coding tool users
+  privacy_boundary: Source code, raw context packets, local caches, and .quotarelay state stay local by default.
+  monetization: Free Apache-2.0 local core with paid hosted/team/enterprise coordination planned.
+  tags:
+    - public-site
+    - local-first
+    - mcp
+    - context-compression
+    - privacy
+</ai>
+
 <template>
-  <section class="hero">
-    <p class="eyebrow">Quotarelay control plane</p>
-    <h1 class="title">Backend truth, mirrored into view.</h1>
-    <p class="subtitle">
-      This page reads the current backend truth endpoint and renders the live MCP tool registry, retrieval contract,
-      and focused proof commands without inventing extra runtime state.
-    </p>
-
-    <div class="hero-grid">
-      <article class="stat">
-        <span class="stat-label">Truth route</span>
-        <div class="stat-value">{{ truthRoute() }}</div>
-      </article>
-      <article class="stat">
-        <span class="stat-label">Shipped tools</span>
-        <div class="stat-value">{{ backendTools().length }}</div>
-      </article>
-      <article class="stat">
-        <span class="stat-label">Fetch state</span>
-        <div class="stat-value">{{ fetchState() }}</div>
-      </article>
-    </div>
-
-    <p v-if="fetchError()" class="inline-note inline-note--warn">{{ fetchError() }}</p>
-
-    <div class="operator-start">
-      <div>
-        <p class="operator-label">First local run</p>
-        <h2>Start the backend, sync a repo, then open this page with a root.</h2>
+  <main class="public-site">
+    <section class="public-hero">
+      <div class="public-hero__copy">
+        <p class="eyebrow">Local-first MCP context engine</p>
+        <h1>Quotarelay</h1>
+        <p class="public-lede">
+          Give coding agents the smallest useful packet: relevant code, durable decisions, validation commands,
+          cache state, stale-state warnings, and clear omission reasons without uploading your repository by default.
+        </p>
+        <div class="public-actions">
+          <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
+          <a class="button button--secondary" href="/control-plane">Local control plane</a>
+        </div>
       </div>
-      <ol class="operator-steps">
-        <li>
-          <span>Backend</span>
-          <code>cargo run -p mcp-server -- --http 127.0.0.1:3030</code>
-        </li>
-        <li>
-          <span>Sync</span>
-          <code>cargo run -p mcp-server -- --cli sync &lt;repo_root&gt;</code>
-        </li>
-        <li>
-          <span>Inspect</span>
-          <code>?root=&lt;repo_root&gt;&amp;memory_query=&lt;query&gt;</code>
-        </li>
-      </ol>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">Backend contract</h2>
-    <div class="panel-grid">
-      <article class="panel" v-for="tool in backendTools()" :key="tool.name">
-        <span class="panel-label">MCP tool</span>
-        <h3>{{ tool.name }}</h3>
-        <p>{{ tool.description }}</p>
-        <div class="chip-row">
-          <span class="chip" v-for="signal in toolSignals(tool)" :key="signal">{{ signal }}</span>
+      <div class="signal-board" aria-label="Quotarelay packet proof summary">
+        <div class="signal-board__header">
+          <span>Context packet</span>
+          <strong>bounded</strong>
         </div>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">Backend proofs</h2>
-    <div class="proof-grid">
-      <article class="proof" v-for="proof in proofs()" :key="proof.id">
-        <span class="proof-label status-ok">Boundary proof</span>
-        <h3>{{ proofTitle(proof) }}</h3>
-        <p class="command">{{ proof.command }}</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">Retrieval truth</h2>
-    <div class="panel-grid">
-      <article class="panel" v-for="detail in retrievalTruth()" :key="detail.title">
-        <span class="panel-label">{{ detail.state }}</span>
-        <h3>{{ detail.title }}</h3>
-        <p>{{ detail.description }}</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">Config truth</h2>
-    <div class="panel-grid">
-      <article class="panel" v-for="detail in configTruth()" :key="detail.title">
-        <span class="panel-label">{{ detail.state }}</span>
-        <h3>{{ detail.title }}</h3>
-        <p>{{ detail.description }}</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">CLI helpers</h2>
-    <div class="proof-grid">
-      <article class="proof" v-for="command in cliCommands()" :key="command.command">
-        <span class="proof-label status-ok">Local command</span>
-        <h3>{{ command.label }}</h3>
-        <p class="command">{{ command.command }}</p>
-      </article>
-    </div>
-  </section>
-
-  <section class="section">
-    <h2 class="section-title">Repository state</h2>
-    <p v-if="repositoryFetchError()" class="inline-note inline-note--warn">{{ repositoryFetchError() }}</p>
-    <div class="panel-grid">
-      <article class="panel" v-for="repo in repositoryState()" :key="repo.repository.root">
-        <span class="panel-label">{{ repo.sync.status }}</span>
-        <h3>{{ repo.repository.name }}</h3>
-        <p>{{ repo.repository.root }}</p>
-        <div class="chip-row">
-          <span class="chip">indexed files: {{ repo.sync.indexed_files }}</span>
-          <span class="chip" v-if="repo.recent_context_run">recent query: {{ repo.recent_context_run.query }}</span>
+        <div class="signal-row">
+          <span>Raw bytes considered</span>
+          <strong>24,106</strong>
         </div>
-        <div class="chip-row" v-if="repo.repo_map">
-          <span class="chip" v-for="dir in repo.repo_map.directories" :key="dir.path">
-            {{ dir.path }}: {{ dir.indexed_files }}
-          </span>
+        <div class="signal-row">
+          <span>Packet bytes</span>
+          <strong>1,361</strong>
         </div>
-        <div class="chip-row" v-if="repo.repo_map">
-          <span class="chip" v-for="rustFile in repo.repo_map.rust_files" :key="rustFile.path">
-            {{ rustFile.path }}: {{ rustFile.symbols.join(', ') }}
-          </span>
+        <div class="signal-row">
+          <span>Local reduction</span>
+          <strong>94.35%</strong>
         </div>
-      </article>
-      <article class="panel" v-if="repositoryState().length === 0">
-        <span class="panel-label">{{ repositoryFetchState() }}</span>
-        <h3>Registered repositories</h3>
-        <p>Repository state is rendered only when the backend receives an explicit state root.</p>
-      </article>
-    </div>
-  </section>
+        <div class="signal-row signal-row--accent">
+          <span>Repeat retrieval</span>
+          <strong>cache hit</strong>
+        </div>
+      </div>
+    </section>
 
-  <section class="section">
-    <h2 class="section-title">Memory state</h2>
-    <p v-if="memoryFetchError()" class="inline-note inline-note--warn">{{ memoryFetchError() }}</p>
-    <div class="panel-grid">
-      <article class="panel" v-for="note in memoryState().notes" :key="note.id">
-        <span class="panel-label">Memory note</span>
-        <h3>{{ note.title }}</h3>
-        <p>{{ note.content }}</p>
-        <div class="chip-row">
-          <span class="chip">{{ note.profile ?? 'normal' }}</span>
-          <span class="chip" v-for="tag in note.tags" :key="tag">{{ tag }}</span>
-        </div>
-      </article>
-      <article class="panel" v-if="memoryState().notes.length === 0">
-        <span class="panel-label">{{ memoryFetchState() }}</span>
-        <h3>Durable memory</h3>
-        <p>Memory search is rendered only when the backend receives an explicit state root and query.</p>
-      </article>
-    </div>
-  </section>
+    <section class="public-band">
+      <div class="section-heading">
+        <p class="eyebrow">What ships free</p>
+        <h2>Useful local core, not a crippled demo.</h2>
+      </div>
+      <div class="feature-grid">
+        <article class="feature-card">
+          <h3>Bounded retrieval</h3>
+          <p>Exact, overview, task, and diff-aware modes return limited context with typed inclusion and omission reasons.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Memory and handoff</h3>
+          <p>Local decision and guardrail memory can travel with handoff packets, validation suggestions, and blockers.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Savings proof</h3>
+          <p>Local demos report raw bytes, packet bytes, approximate tokens, reduction ratio, cache state, and stale state.</p>
+        </article>
+        <article class="feature-card">
+          <h3>Privacy boundary</h3>
+          <p>Repository contents, raw packets, local caches, and .quotarelay state stay on your machine unless you opt in later.</p>
+        </article>
+      </div>
+    </section>
 
-  <section class="section">
-    <h2 class="section-title">Run history</h2>
-    <p v-if="runFetchError()" class="inline-note inline-note--warn">{{ runFetchError() }}</p>
-    <div class="panel-grid">
-      <article class="panel" v-for="run in runHistory()" :key="run.generated_at_epoch_ms">
-        <span class="panel-label">Context run</span>
-        <h3>{{ run.query }}</h3>
-        <p>{{ run.generated_at_epoch_ms }}</p>
-        <div class="chip-row">
-          <span class="chip" v-if="run.budget">raw bytes: {{ run.budget.raw_bytes_considered }}</span>
-          <span class="chip" v-if="run.budget">included bytes: {{ run.budget.included_bytes }}</span>
-          <span class="chip" v-if="run.budget">approx tokens: {{ run.budget.approximate_tokens }}</span>
-          <span class="chip" v-if="run.budget">reduction: {{ Math.round((run.budget.estimated_reduction_ratio || 0) * 100) }}%</span>
-          <span class="chip" v-if="run.cache_status">cache: {{ run.cache_status.kind }}</span>
-          <span class="chip" v-if="run.stale">{{ run.stale.is_stale ? 'stale' : 'fresh' }}</span>
-          <span class="chip" v-for="snippet in run.snippets" :key="snippet.path">{{ snippet.reason.kind }}</span>
-          <span class="chip" v-for="omission in run.omissions" :key="omission.kind">{{ omission.kind }}</span>
-        </div>
-      </article>
-      <article class="panel" v-if="runHistory().length === 0">
-        <span class="panel-label">{{ runFetchState() }}</span>
-        <h3>Context runs</h3>
-        <p>Run history is rendered only when the backend receives an explicit state root.</p>
-      </article>
-    </div>
-  </section>
+    <section class="public-band public-band--split">
+      <div>
+        <p class="eyebrow">Teams and companies</p>
+        <h2>Paid value belongs in coordination, governance, and support.</h2>
+        <p class="public-copy">
+          Quotarelay should be easy to adopt as an open-source local tool. The commercial layer is planned around
+          hosted team management, shared policy profiles, aggregate savings reports, auditability, integrations,
+          private deployment guidance, SSO, onboarding, and support.
+        </p>
+      </div>
+      <ul class="team-list">
+        <li>Organization login and team membership</li>
+        <li>Shared guardrails and validation recipes</li>
+        <li>Aggregate savings and cache-reuse reporting</li>
+        <li>Audit logs, SSO, compliance docs, and private deployment</li>
+      </ul>
+    </section>
+  </main>
 </template>
-
-<script>
-  import { ref, shallowRef } from '@terajs/reactivity'
-  import { onMounted } from '@terajs/runtime'
-  import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState, proofTitle, toolSignals } from '../truth'
-
-  const truthRouteRef = ref('/truth')
-  const fetchStateRef = ref('Loading')
-  const fetchErrorRef = ref('')
-  const backendToolsRef = shallowRef([])
-  const proofsRef = shallowRef([])
-  const retrievalTruthRef = shallowRef([])
-  const configTruthRef = shallowRef([])
-  const cliCommandsRef = shallowRef([])
-  const repositoryStateRef = shallowRef([])
-  const repositoryFetchStateRef = ref('Not configured')
-  const repositoryFetchErrorRef = ref('')
-  const memoryStateRef = shallowRef({ notes: [], omitted_count: 0 })
-  const memoryFetchStateRef = ref('Not configured')
-  const memoryFetchErrorRef = ref('')
-  const runHistoryRef = shallowRef([])
-  const runFetchStateRef = ref('Not configured')
-  const runFetchErrorRef = ref('')
-
-  function truthRoute() {
-    return truthRouteRef.value
-  }
-
-  function fetchState() {
-    return fetchStateRef.value
-  }
-
-  function fetchError() {
-    return fetchErrorRef.value
-  }
-
-  function backendTools() {
-    return backendToolsRef.value
-  }
-
-  function proofs() {
-    return proofsRef.value
-  }
-
-  function retrievalTruth() {
-    return retrievalTruthRef.value
-  }
-
-  function configTruth() {
-    return configTruthRef.value
-  }
-
-  function cliCommands() {
-    return cliCommandsRef.value
-  }
-
-  function repositoryState() {
-    return repositoryStateRef.value
-  }
-
-  function repositoryFetchState() {
-    return repositoryFetchStateRef.value
-  }
-
-  function repositoryFetchError() {
-    return repositoryFetchErrorRef.value
-  }
-
-  function memoryState() {
-    return memoryStateRef.value
-  }
-
-  function memoryFetchState() {
-    return memoryFetchStateRef.value
-  }
-
-  function memoryFetchError() {
-    return memoryFetchErrorRef.value
-  }
-
-  function runHistory() {
-    return runHistoryRef.value
-  }
-
-  function runFetchState() {
-    return runFetchStateRef.value
-  }
-
-  function runFetchError() {
-    return runFetchErrorRef.value
-  }
-
-  async function loadTruthIntoState() {
-    fetchStateRef.value = 'Loading'
-    fetchErrorRef.value = ''
-    const state = await loadBackendTruth(fetch, truthRouteRef.value)
-    backendToolsRef.value = state.backendTools
-    proofsRef.value = state.proofs
-    retrievalTruthRef.value = state.retrievalTruth
-    configTruthRef.value = state.configTruth
-    cliCommandsRef.value = state.cliCommands
-    fetchStateRef.value = state.fetchState
-    fetchErrorRef.value = state.fetchError
-
-    const root = new URLSearchParams(window.location.search).get('root') ?? ''
-    const repositoryState = await loadRepositoryState(fetch, root)
-    repositoryStateRef.value = repositoryState.repositories
-    repositoryFetchStateRef.value = repositoryState.fetchState
-    repositoryFetchErrorRef.value = repositoryState.fetchError
-
-    const memoryQuery = new URLSearchParams(window.location.search).get('memory_query') ?? ''
-    const memoryState = await loadMemoryState(fetch, root, memoryQuery)
-    memoryStateRef.value = memoryState.memory
-    memoryFetchStateRef.value = memoryState.fetchState
-    memoryFetchErrorRef.value = memoryState.fetchError
-
-    const runState = await loadContextRunState(fetch, root)
-    runHistoryRef.value = runState.runs
-    runFetchStateRef.value = runState.fetchState
-    runFetchErrorRef.value = runState.fetchError
-  }
-
-  onMounted(() => {
-    void loadTruthIntoState()
-  })
-</script>

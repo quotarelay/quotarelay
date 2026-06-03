@@ -140,7 +140,7 @@ See `CHANGELOG.md` for local MVP release notes, validation commands, known limit
 
 ## Control plane
 
-See `docs/CONTROL_PLANE_LOCAL.md` for local backend HTTP and frontend commands.
+See `docs/CONTROL_PLANE_LOCAL.md` for local backend HTTP and frontend commands. The Terajs frontend serves the public product homepage at `/` and the local operator control plane at `/control-plane`.
 
 ## Token-saver benchmark
 
