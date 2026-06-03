@@ -17,7 +17,11 @@ Today the backend exposes these MCP tools:
 - `register_repository`
 - `list_repositories`
 - `repository_state`
+- `repository_detail`
+- `repository_update_metadata`
 - `remove_repository`
+- `workspace_profile_save`
+- `workspace_profile_list`
 - `search_code`
 - `memory_write`
 - `memory_read`
@@ -28,6 +32,7 @@ Today the backend exposes these MCP tools:
 - `memory_search`
 - `context_run_detail`
 - `context_run_history`
+- `multi_repo_assemble_context`
 - `assemble_context`
 
 The retrieval contract is explicit and bounded:

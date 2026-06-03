@@ -2,18 +2,23 @@ use std::io::{self, BufRead, Write};
 use std::net::SocketAddr;
 use std::path::PathBuf;
 
-use axum::{routing::get, Json, Router};
+use axum::{extract::Query, http::StatusCode, routing::get, Json, Router};
 use context_engine::{
+    assemble_context_for_registered_repositories,
     context_run_detail, context_run_history, inspect_local_state, list_registered_repositories, memory_export,
     memory_import, memory_read, memory_search, memory_delete, memory_update, memory_write,
+    list_workspace_profiles, save_workspace_profile,
     register_repository, registered_repository_state, remove_registered_repository,
+    registered_repository_detail, update_registered_repository_metadata,
     invalidate_exact_match_cache, ContextAssembly, EngineInfo, MemoryNote, MemorySearchResult,
     MemoryWriteResult, RegisteredRepository, RegisteredRepositoryState, MemoryDeleteResult,
     MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryUpdateResult,
-    RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
-    RetrievalTruth, retrieve_context, retrieval_truth,
+    MultiRepositoryContextAssembly,
+    RepositoryMetadataUpdateResult, RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
+    RetrievalTruth, WorkspaceProfile, WorkspaceProfileSaveResult, retrieve_context, retrieval_truth,
 };
 use repo_index::{repo_inventory, search_code, sync_repo};
+use serde::Deserialize;
 use serde_json::{json, Value};
 
 #[derive(Debug, Clone, serde::Serialize)]
@@ -21,6 +26,8 @@ struct BackendTruthPayload {
     tools: Vec<Value>,
     retrieval: BackendRetrievalTruth,
     cache: CacheTruth,
+    config: ConfigTruth,
+    cli: CliTruth,
     proofs: Vec<BackendProof>,
 }
 
@@ -40,9 +47,51 @@ struct CacheTruth {
 }
 
 #[derive(Debug, Clone, serde::Serialize)]
+struct ConfigTruth {
+    workspace_profiles_enabled: bool,
+    workspace_profiles_apply_to_retrieval: bool,
+    max_workspace_profiles: usize,
+    max_profile_repo_roots: usize,
+    default_mode: &'static str,
+    default_limit: usize,
+    per_repo_limit: usize,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+struct CliTruth {
+    local_entrypoint_enabled: bool,
+    commands: Vec<CliCommandTruth>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+struct CliCommandTruth {
+    label: &'static str,
+    command: &'static str,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
 struct BackendProof {
     id: &'static str,
     command: &'static str,
+}
+
+#[derive(Debug, Deserialize)]
+struct RepositoryStateQuery {
+    root: String,
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+struct MemorySearchQuery {
+    root: String,
+    query: String,
+    limit: Option<usize>,
+}
+
+#[derive(Debug, Deserialize)]
+struct ContextRunsQuery {
+    root: String,
+    limit: Option<usize>,
 }
 
 pub fn run() -> io::Result<()> {
@@ -61,11 +110,54 @@ pub async fn run_http(addr: SocketAddr) -> io::Result<()> {
 }
 
 pub fn http_router() -> Router {
-    Router::new().route("/truth", get(truth_handler))
+    Router::new()
+        .route("/truth", get(truth_handler))
+        .route("/repositories", get(repository_state_handler))
+        .route("/memory", get(memory_search_handler))
+        .route("/context-runs", get(context_runs_handler))
 }
 
 async fn truth_handler() -> Json<BackendTruthPayload> {
     Json(backend_truth_payload())
+}
+
+async fn repository_state_handler(
+    Query(query): Query<RepositoryStateQuery>,
+) -> Result<Json<Vec<RegisteredRepositoryState>>, (StatusCode, String)> {
+    if query.root.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "root query parameter is required".to_string()));
+    }
+
+    registered_repository_state(&PathBuf::from(query.root), query.limit.unwrap_or(20))
+        .map(Json)
+        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))
+}
+
+async fn memory_search_handler(
+    Query(query): Query<MemorySearchQuery>,
+) -> Result<Json<MemorySearchResult>, (StatusCode, String)> {
+    if query.root.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "root query parameter is required".to_string()));
+    }
+    if query.query.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "query parameter is required".to_string()));
+    }
+
+    memory_search(&PathBuf::from(query.root), &query.query, query.limit.unwrap_or(3))
+        .map(Json)
+        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))
+}
+
+async fn context_runs_handler(
+    Query(query): Query<ContextRunsQuery>,
+) -> Result<Json<Vec<ContextAssembly>>, (StatusCode, String)> {
+    if query.root.trim().is_empty() {
+        return Err((StatusCode::BAD_REQUEST, "root query parameter is required".to_string()));
+    }
+
+    context_run_history(&PathBuf::from(query.root), query.limit.unwrap_or(5))
+        .map(Json)
+        .map_err(|error| (StatusCode::INTERNAL_SERVER_ERROR, error.to_string()))
 }
 
 fn backend_truth_payload() -> BackendTruthPayload {
@@ -78,6 +170,8 @@ fn backend_truth_payload() -> BackendTruthPayload {
             cache: cache.clone(),
         },
         cache,
+        config: config_truth(),
+        cli: cli_truth(),
         proofs: vec![
             BackendProof {
                 id: "tools_list",
@@ -116,6 +210,46 @@ fn cache_truth() -> CacheTruth {
     }
 }
 
+fn config_truth() -> ConfigTruth {
+    ConfigTruth {
+        workspace_profiles_enabled: true,
+        workspace_profiles_apply_to_retrieval: false,
+        max_workspace_profiles: 20,
+        max_profile_repo_roots: 5,
+        default_mode: "exact_search",
+        default_limit: 3,
+        per_repo_limit: 3,
+    }
+}
+
+fn cli_truth() -> CliTruth {
+    CliTruth {
+        local_entrypoint_enabled: true,
+        commands: vec![
+            CliCommandTruth {
+                label: "Truth",
+                command: "cargo run -p mcp-server -- --cli truth",
+            },
+            CliCommandTruth {
+                label: "Register repository",
+                command: "cargo run -p mcp-server -- --cli register <state-root> <repo-root>",
+            },
+            CliCommandTruth {
+                label: "Sync repository",
+                command: "cargo run -p mcp-server -- --cli sync <repo-root>",
+            },
+            CliCommandTruth {
+                label: "Inspect local state",
+                command: "cargo run -p mcp-server -- --cli state <root>",
+            },
+            CliCommandTruth {
+                label: "Assemble context",
+                command: "cargo run -p mcp-server -- --cli assemble <repo-root> <query>",
+            },
+        ],
+    }
+}
+
 fn current_tool_registry() -> Vec<Value> {
     vec![
         bootstrap_tool(),
@@ -125,7 +259,11 @@ fn current_tool_registry() -> Vec<Value> {
         register_repository_tool(),
         list_repositories_tool(),
         repository_state_tool(),
+        repository_detail_tool(),
+        repository_update_metadata_tool(),
         remove_repository_tool(),
+        workspace_profile_save_tool(),
+        workspace_profile_list_tool(),
         search_code_tool(),
         memory_write_tool(),
         memory_read_tool(),
@@ -136,6 +274,7 @@ fn current_tool_registry() -> Vec<Value> {
         memory_search_tool(),
         context_run_detail_tool(),
         context_run_history_tool(),
+        multi_repo_assemble_context_tool(),
         assemble_context_tool(),
     ]
 }
@@ -400,6 +539,39 @@ fn repository_state_tool() -> Value {
     })
 }
 
+fn repository_detail_tool() -> Value {
+    json!({
+        "name": "repository_detail",
+        "description": "Returns one registered repository's sync state and recent run truth.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "repo_root": { "type": "string" }
+            },
+            "required": ["root", "repo_root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn repository_update_metadata_tool() -> Value {
+    json!({
+        "name": "repository_update_metadata",
+        "description": "Updates display metadata for one registered repository without changing its root identity.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "repo_root": { "type": "string" },
+                "name": { "type": "string" }
+            },
+            "required": ["root", "repo_root", "name"],
+            "additionalProperties": false
+        }
+    })
+}
+
 fn remove_repository_tool() -> Value {
     json!({
         "name": "remove_repository",
@@ -411,6 +583,42 @@ fn remove_repository_tool() -> Value {
                 "repo_root": { "type": "string" }
             },
             "required": ["root", "repo_root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn workspace_profile_save_tool() -> Value {
+    json!({
+        "name": "workspace_profile_save",
+        "description": "Persists a local named workspace profile with repo roots and default retrieval settings.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "name": { "type": "string" },
+                "repo_roots": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 5 },
+                "default_mode": { "type": "string", "enum": ["exact_search", "overview", "task_capsule"] },
+                "default_limit": { "type": "integer", "minimum": 1, "maximum": 5 },
+                "per_repo_limit": { "type": "integer", "minimum": 1, "maximum": 5 }
+            },
+            "required": ["root", "name", "repo_roots"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn workspace_profile_list_tool() -> Value {
+    json!({
+        "name": "workspace_profile_list",
+        "description": "Lists bounded local workspace profiles without applying them to retrieval.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
+            },
+            "required": ["root"],
             "additionalProperties": false
         }
     })
@@ -558,6 +766,24 @@ fn assemble_context_tool() -> Value {
                 "limit": { "type": "integer", "minimum": 1, "maximum": 5 }
             },
             "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+fn multi_repo_assemble_context_tool() -> Value {
+    json!({
+        "name": "multi_repo_assemble_context",
+        "description": "Builds bounded context packs from explicitly selected registered repositories with per-repo limits.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "repo_roots": { "type": "array", "items": { "type": "string" }, "minItems": 1, "maxItems": 5 },
+                "query": { "type": "string" },
+                "per_repo_limit": { "type": "integer", "minimum": 1, "maximum": 5 }
+            },
+            "required": ["root", "repo_roots", "query"],
             "additionalProperties": false
         }
     })
@@ -720,10 +946,50 @@ fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("repository_detail") => match repository_detail_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "null".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("repository_update_metadata") => match repository_update_metadata_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("remove_repository") => match remove_repository_from_args(&arguments) {
             Ok(result) => json!({
                 "type": "text",
                 "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("workspace_profile_save") => match workspace_profile_save_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("workspace_profile_list") => match workspace_profile_list_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "[]".to_string())
             }),
             Err(error) => json!({
                 "type": "text",
@@ -744,6 +1010,16 @@ fn bootstrap_tool_call(request: &Value) -> Value {
             Ok(history) => json!({
                 "type": "text",
                 "text": serde_json::to_string(&history).unwrap_or_else(|_| "[]".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("multi_repo_assemble_context") => match multi_repo_assemble_context_from_args(&arguments) {
+            Ok(results) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&results).unwrap_or_else(|_| "{}".to_string())
             }),
             Err(error) => json!({
                 "type": "text",
@@ -841,11 +1117,84 @@ fn repository_state_from_args(
         .map_err(|error| format!("repository_state failed: {error}"))
 }
 
+fn repository_detail_from_args(
+    arguments: &Value,
+) -> Result<Option<RegisteredRepositoryState>, String> {
+    let root = parse_root(arguments)?;
+    let repo_root = parse_repo_root(arguments)?;
+
+    registered_repository_detail(&root, &repo_root)
+        .map_err(|error| format!("repository_detail failed: {error}"))
+}
+
+fn repository_update_metadata_from_args(
+    arguments: &Value,
+) -> Result<RepositoryMetadataUpdateResult, String> {
+    let root = parse_root(arguments)?;
+    let repo_root = parse_repo_root(arguments)?;
+    let name = arguments
+        .get("name")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "repository_update_metadata requires a string name".to_string())?;
+
+    update_registered_repository_metadata(&root, &repo_root, Some(name))
+        .map_err(|error| format!("repository_update_metadata failed: {error}"))
+}
+
 fn remove_repository_from_args(arguments: &Value) -> Result<RepositoryRemovalResult, String> {
     let root = parse_root(arguments)?;
     let repo_root = parse_repo_root(arguments)?;
     remove_registered_repository(&root, &repo_root)
         .map_err(|error| format!("remove_repository failed: {error}"))
+}
+
+fn workspace_profile_save_from_args(
+    arguments: &Value,
+) -> Result<WorkspaceProfileSaveResult, String> {
+    let root = parse_root(arguments)?;
+    let name = arguments
+        .get("name")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "workspace_profile_save requires a string name".to_string())?;
+    let repo_roots = arguments
+        .get("repo_roots")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "workspace_profile_save requires repo_roots array".to_string())?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(PathBuf::from)
+                .ok_or_else(|| "workspace_profile_save repo_roots must be strings".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let default_mode = parse_optional_retrieval_mode(arguments, "default_mode")?
+        .unwrap_or(RetrievalMode::ExactSearch);
+    let default_limit = arguments
+        .get("default_limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(3);
+    let per_repo_limit = arguments
+        .get("per_repo_limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(default_limit);
+
+    save_workspace_profile(&root, name, &repo_roots, default_mode, default_limit, per_repo_limit)
+        .map_err(|error| format!("workspace_profile_save failed: {error}"))
+}
+
+fn workspace_profile_list_from_args(arguments: &Value) -> Result<Vec<WorkspaceProfile>, String> {
+    let root = parse_root(arguments)?;
+    let limit = arguments
+        .get("limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(10);
+
+    list_workspace_profiles(&root, limit)
+        .map_err(|error| format!("workspace_profile_list failed: {error}"))
 }
 
 fn memory_write_from_args(arguments: &Value) -> Result<MemoryWriteResult, String> {
@@ -860,13 +1209,23 @@ fn memory_write_from_args(arguments: &Value) -> Result<MemoryWriteResult, String
         .ok_or_else(|| "memory_write requires a string content".to_string())?;
     let tags = arguments
         .get("tags")
-        .and_then(Value::as_array)
         .map(|values| {
             values
-                .iter()
-                .filter_map(|value| value.as_str().map(ToString::to_string))
-                .collect::<Vec<_>>()
+                .as_array()
+                .ok_or_else(|| "memory_write tags must be an array of strings".to_string())
+                .and_then(|items| {
+                    items
+                        .iter()
+                        .map(|value| {
+                            value
+                                .as_str()
+                                .map(ToString::to_string)
+                                .ok_or_else(|| "memory_write tags must be an array of strings".to_string())
+                        })
+                        .collect::<Result<Vec<_>, _>>()
+                })
         })
+        .transpose()?
         .unwrap_or_default();
 
     memory_write(&root, title, content, &tags)
@@ -988,6 +1347,36 @@ fn context_run_history_from_args(arguments: &Value) -> Result<Vec<ContextAssembl
     context_run_history(&root, limit).map_err(|error| format!("context_run_history failed: {error}"))
 }
 
+fn multi_repo_assemble_context_from_args(
+    arguments: &Value,
+) -> Result<MultiRepositoryContextAssembly, String> {
+    let root = parse_root(arguments)?;
+    let repo_roots = arguments
+        .get("repo_roots")
+        .and_then(Value::as_array)
+        .ok_or_else(|| "multi_repo_assemble_context requires repo_roots array".to_string())?
+        .iter()
+        .map(|value| {
+            value
+                .as_str()
+                .map(PathBuf::from)
+                .ok_or_else(|| "multi_repo_assemble_context repo_roots must be strings".to_string())
+        })
+        .collect::<Result<Vec<_>, _>>()?;
+    let query = arguments
+        .get("query")
+        .and_then(Value::as_str)
+        .ok_or_else(|| "multi_repo_assemble_context requires a string query".to_string())?;
+    let per_repo_limit = arguments
+        .get("per_repo_limit")
+        .and_then(Value::as_u64)
+        .and_then(|value| usize::try_from(value).ok())
+        .unwrap_or(2);
+
+    assemble_context_for_registered_repositories(&root, &repo_roots, query, per_repo_limit)
+        .map_err(|error| format!("multi_repo_assemble_context failed: {error}"))
+}
+
 fn assemble_context_from_args(arguments: &Value) -> Result<RetrievedContext, String> {
     let root = parse_root(arguments)?;
     let mode = parse_retrieval_mode(arguments)?;
@@ -1010,6 +1399,21 @@ fn parse_retrieval_mode(arguments: &Value) -> Result<RetrievalMode, String> {
         Some("task_capsule") => Ok(RetrievalMode::TaskCapsule),
         Some(other) => Err(format!(
             "assemble_context mode must be one of exact_search, overview, task_capsule; got {other}"
+        )),
+    }
+}
+
+fn parse_optional_retrieval_mode(
+    arguments: &Value,
+    field: &str,
+) -> Result<Option<RetrievalMode>, String> {
+    match arguments.get(field).and_then(Value::as_str) {
+        None => Ok(None),
+        Some("exact_search") => Ok(Some(RetrievalMode::ExactSearch)),
+        Some("overview") => Ok(Some(RetrievalMode::Overview)),
+        Some("task_capsule") => Ok(Some(RetrievalMode::TaskCapsule)),
+        Some(other) => Err(format!(
+            "{field} must be one of exact_search, overview, task_capsule; got {other}"
         )),
     }
 }
@@ -1212,6 +1616,8 @@ mod tests {
     use serde_json::{json, Value};
     use tower::ServiceExt;
 
+    use context_engine::{assemble_context, memory_write, register_repository};
+
     use super::{http_router, run_stdio};
 
     #[test]
@@ -1267,7 +1673,11 @@ mod tests {
                 "register_repository",
                 "list_repositories",
                 "repository_state",
+                "repository_detail",
+                "repository_update_metadata",
                 "remove_repository",
+                "workspace_profile_save",
+                "workspace_profile_list",
                 "search_code",
                 "memory_write",
                 "memory_read",
@@ -1278,6 +1688,7 @@ mod tests {
                 "memory_search",
                 "context_run_detail",
                 "context_run_history",
+                "multi_repo_assemble_context",
                 "assemble_context",
             ]
         );
@@ -1820,6 +2231,35 @@ mod tests {
     }
 
     #[test]
+    fn memory_write_rejects_non_string_tags_over_stdio() {
+        let repo_root = temp_repo();
+
+        let write_request = json_rpc_request(
+            46,
+            "tools/call",
+            json!({
+                "name": "memory_write",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "title": "Design note",
+                    "content": "Memory content.",
+                    "tags": ["memory", 7]
+                }
+            }),
+        );
+        let framed = format!("Content-Length: {}\r\n\r\n{}", write_request.len(), write_request);
+        let mut output = Vec::new();
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("memory_write should produce an error response");
+        let response = decode_response(&output);
+
+        assert_eq!(
+            response["result"]["content"][0]["text"],
+            "memory_write tags must be an array of strings"
+        );
+    }
+
+    #[test]
     fn repository_registration_tools_work_over_stdio() {
         let state_root = temp_repo();
         let repo_root = temp_repo();
@@ -2233,6 +2673,353 @@ mod tests {
         assert_eq!(state[0]["sync"]["status"], "indexed");
         assert_eq!(state[0]["sync"]["indexed_files"], 1);
         assert_eq!(state[0]["recent_context_run"]["query"], "needle");
+    }
+
+    #[test]
+    fn repository_detail_tool_reports_one_repo_truth_over_stdio() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        let missing_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+
+        let register_request = json_rpc_request(
+            31,
+            "tools/call",
+            json!({
+                "name": "register_repository",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let sync_request = json_rpc_request(
+            32,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let assemble_request = json_rpc_request(
+            33,
+            "tools/call",
+            json!({
+                "name": "assemble_context",
+                "arguments": {
+                    "root": repo_root.to_string_lossy(),
+                    "mode": "exact_search",
+                    "query": "needle",
+                    "limit": 2
+                }
+            }),
+        );
+        let detail_request = json_rpc_request(
+            34,
+            "tools/call",
+            json!({
+                "name": "repository_detail",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let missing_request = json_rpc_request(
+            35,
+            "tools/call",
+            json!({
+                "name": "repository_detail",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": missing_root.to_string_lossy()
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            register_request.len(),
+            register_request,
+            sync_request.len(),
+            sync_request,
+            assemble_request.len(),
+            assemble_request,
+            detail_request.len(),
+            detail_request,
+            missing_request.len(),
+            missing_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("repository_detail should succeed");
+
+        let responses = decode_responses(&output);
+        let detail: Value = serde_json::from_str(
+            responses[3]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("repository_detail text should exist"),
+        )
+        .expect("repository_detail payload should be valid json");
+
+        assert_eq!(detail["repository"]["id"], detail["repository"]["root"]);
+        assert!(
+            detail["repository"]["root"]
+                .as_str()
+                .expect("repository root should exist")
+                .contains("quotarelay-repo-")
+        );
+        assert_eq!(detail["sync"]["status"], "indexed");
+        assert_eq!(detail["sync"]["indexed_files"], 1);
+        assert_eq!(detail["recent_context_run"]["query"], "needle");
+        assert_eq!(responses[4]["result"]["content"][0]["text"], "null");
+    }
+
+    #[test]
+    fn repository_update_metadata_changes_display_name_over_stdio() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+
+        let register_request = json_rpc_request(
+            36,
+            "tools/call",
+            json!({
+                "name": "register_repository",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let update_request = json_rpc_request(
+            37,
+            "tools/call",
+            json!({
+                "name": "repository_update_metadata",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_root.to_string_lossy(),
+                    "name": "Workspace API"
+                }
+            }),
+        );
+        let detail_request = json_rpc_request(
+            38,
+            "tools/call",
+            json!({
+                "name": "repository_detail",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_root.to_string_lossy()
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            register_request.len(),
+            register_request,
+            update_request.len(),
+            update_request,
+            detail_request.len(),
+            detail_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("repository metadata update should succeed");
+
+        let responses = decode_responses(&output);
+        let registered: Value = serde_json::from_str(
+            responses[0]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("registration text should exist"),
+        )
+        .expect("registration payload should be valid json");
+        let updated: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("metadata update text should exist"),
+        )
+        .expect("metadata update payload should be valid json");
+        let detail: Value = serde_json::from_str(
+            responses[2]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("repository detail text should exist"),
+        )
+        .expect("repository detail payload should be valid json");
+
+        assert_eq!(updated["repository"]["name"], "Workspace API");
+        assert_eq!(updated["repository"]["id"], registered["repository"]["id"]);
+        assert_eq!(updated["repository"]["root"], registered["repository"]["root"]);
+        assert_eq!(detail["repository"]["name"], "Workspace API");
+        assert_eq!(detail["repository"]["id"], registered["repository"]["id"]);
+    }
+
+    #[test]
+    fn multi_repo_assemble_context_works_over_stdio() {
+        let state_root = temp_repo();
+        let repo_one = temp_repo();
+        let repo_two = temp_repo();
+        fs::write(repo_one.join("alpha.txt"), "needle one\nneedle two\n").expect("repo one file should write");
+        fs::write(repo_two.join("beta.txt"), "needle three\nneedle four\n").expect("repo two file should write");
+
+        let register_one = json_rpc_request(
+            39,
+            "tools/call",
+            json!({
+                "name": "register_repository",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_one.to_string_lossy()
+                }
+            }),
+        );
+        let register_two = json_rpc_request(
+            40,
+            "tools/call",
+            json!({
+                "name": "register_repository",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_root": repo_two.to_string_lossy()
+                }
+            }),
+        );
+        let sync_one = json_rpc_request(
+            41,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_one.to_string_lossy()
+                }
+            }),
+        );
+        let sync_two = json_rpc_request(
+            42,
+            "tools/call",
+            json!({
+                "name": "sync_repo",
+                "arguments": {
+                    "root": repo_two.to_string_lossy()
+                }
+            }),
+        );
+        let assemble = json_rpc_request(
+            43,
+            "tools/call",
+            json!({
+                "name": "multi_repo_assemble_context",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "repo_roots": [repo_one.to_string_lossy(), repo_two.to_string_lossy()],
+                    "query": "needle",
+                    "per_repo_limit": 1
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            register_one.len(),
+            register_one,
+            register_two.len(),
+            register_two,
+            sync_one.len(),
+            sync_one,
+            sync_two.len(),
+            sync_two,
+            assemble.len(),
+            assemble
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("multi repo assembly should succeed");
+
+        let responses = decode_responses(&output);
+        let assembly: Value = serde_json::from_str(
+            responses[4]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("multi repo assembly text should exist"),
+        )
+        .expect("multi repo assembly payload should be valid json");
+
+        assert_eq!(assembly["query"], "needle");
+        assert_eq!(assembly["repositories"].as_array().map(Vec::len), Some(2));
+        assert_eq!(assembly["repositories"][0]["assembly"]["snippets"].as_array().map(Vec::len), Some(1));
+        assert_eq!(assembly["repositories"][1]["assembly"]["snippets"].as_array().map(Vec::len), Some(1));
+        assert_eq!(
+            assembly["repositories"][0]["assembly"]["omissions"][0]["kind"],
+            "item_limit_reached"
+        );
+    }
+
+    #[test]
+    fn workspace_profiles_save_and_list_over_stdio() {
+        let state_root = temp_repo();
+        let repo_one = temp_repo();
+        let repo_two = temp_repo();
+
+        let save_request = json_rpc_request(
+            44,
+            "tools/call",
+            json!({
+                "name": "workspace_profile_save",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "name": "local-api",
+                    "repo_roots": [repo_one.to_string_lossy(), repo_two.to_string_lossy()],
+                    "default_mode": "task_capsule",
+                    "default_limit": 5,
+                    "per_repo_limit": 2
+                }
+            }),
+        );
+        let list_request = json_rpc_request(
+            45,
+            "tools/call",
+            json!({
+                "name": "workspace_profile_list",
+                "arguments": {
+                    "root": state_root.to_string_lossy(),
+                    "limit": 10
+                }
+            }),
+        );
+        let framed = format!(
+            "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+            save_request.len(),
+            save_request,
+            list_request.len(),
+            list_request
+        );
+        let mut output = Vec::new();
+
+        run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+            .expect("workspace profile calls should succeed");
+
+        let responses = decode_responses(&output);
+        let saved: Value = serde_json::from_str(
+            responses[0]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("workspace profile save text should exist"),
+        )
+        .expect("workspace profile save payload should be valid json");
+        let listed: Value = serde_json::from_str(
+            responses[1]["result"]["content"][0]["text"]
+                .as_str()
+                .expect("workspace profile list text should exist"),
+        )
+        .expect("workspace profile list payload should be valid json");
+
+        assert_eq!(saved["profile"]["name"], "local-api");
+        assert_eq!(saved["profile"]["default_mode"], "task_capsule");
+        assert_eq!(saved["profile"]["default_limit"], 5);
+        assert_eq!(saved["profile"]["per_repo_limit"], 2);
+        assert_eq!(listed.as_array().map(Vec::len), Some(1));
+        assert_eq!(listed[0]["repo_roots"].as_array().map(Vec::len), Some(2));
     }
 
     #[test]
@@ -2744,7 +3531,7 @@ mod tests {
             .expect("body should read");
         let payload: Value = serde_json::from_slice(&body).expect("truth payload should be valid json");
 
-        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(19));
+        assert_eq!(payload["tools"].as_array().map(|items| items.len()), Some(24));
         assert_eq!(payload["retrieval"]["modes"], json!(["exact_search", "overview", "task_capsule"]));
         assert_eq!(payload["retrieval"]["limits"]["max_context_items"], 5);
         assert_eq!(payload["retrieval"]["durable_memory_enabled"], true);
@@ -2756,7 +3543,89 @@ mod tests {
         assert_eq!(payload["cache"]["overview_enabled"], true);
         assert_eq!(payload["cache"]["task_capsule_enabled"], true);
         assert_eq!(payload["cache"]["sync_invalidates_caches"], true);
+        assert_eq!(payload["config"]["workspace_profiles_enabled"], true);
+        assert_eq!(payload["config"]["workspace_profiles_apply_to_retrieval"], false);
+        assert_eq!(payload["config"]["max_workspace_profiles"], 20);
+        assert_eq!(payload["config"]["max_profile_repo_roots"], 5);
+        assert_eq!(payload["config"]["default_mode"], "exact_search");
+        assert_eq!(payload["config"]["default_limit"], 3);
+        assert_eq!(payload["config"]["per_repo_limit"], 3);
+        assert_eq!(payload["cli"]["local_entrypoint_enabled"], true);
+        assert!(payload["cli"]["commands"].as_array().map(|items| items.len()).unwrap_or_default() >= 5);
+        assert_eq!(payload["cli"]["commands"][0]["command"], "cargo run -p mcp-server -- --cli truth");
         assert!(payload["proofs"].as_array().map(|items| items.len()).unwrap_or_default() >= 5);
+    }
+
+    #[tokio::test]
+    async fn repository_state_endpoint_returns_registered_repo_truth() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+        register_repository(&state_root, &repo_root).expect("registration should succeed");
+        repo_index::sync_repo(&repo_root).expect("sync should succeed");
+        assemble_context(&repo_root, "needle", 2).expect("assembly should succeed");
+
+        let uri = format!("/repositories?root={}&limit=5", state_root.to_string_lossy());
+        let response = http_router()
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).expect("request should build"))
+            .await
+            .expect("repository state endpoint should respond");
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body should read");
+        let payload: Value = serde_json::from_slice(&body).expect("repository state payload should be valid json");
+
+        assert_eq!(payload.as_array().map(Vec::len), Some(1));
+        assert_eq!(payload[0]["sync"]["status"], "indexed");
+        assert_eq!(payload[0]["sync"]["indexed_files"], 1);
+        assert_eq!(payload[0]["recent_context_run"]["query"], "needle");
+    }
+
+    #[tokio::test]
+    async fn memory_search_endpoint_returns_bounded_memory_truth() {
+        let root = temp_repo();
+        memory_write(&root, "Needle note", "needle memory", &["memory".to_string()])
+            .expect("memory write should succeed");
+
+        let uri = format!("/memory?root={}&query=needle&limit=3", root.to_string_lossy());
+        let response = http_router()
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).expect("request should build"))
+            .await
+            .expect("memory endpoint should respond");
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body should read");
+        let payload: Value = serde_json::from_slice(&body).expect("memory payload should be valid json");
+
+        assert_eq!(payload["notes"].as_array().map(Vec::len), Some(1));
+        assert_eq!(payload["notes"][0]["title"], "Needle note");
+        assert_eq!(payload["omitted_count"], 0);
+    }
+
+    #[tokio::test]
+    async fn context_runs_endpoint_returns_bounded_explainable_history() {
+        let root = temp_repo();
+        fs::write(root.join("alpha.txt"), "needle one\nneedle two\n").expect("repo file should write");
+        repo_index::sync_repo(&root).expect("sync should succeed");
+        assemble_context(&root, "needle", 1).expect("assembly should succeed");
+
+        let uri = format!("/context-runs?root={}&limit=5", root.to_string_lossy());
+        let response = http_router()
+            .oneshot(Request::builder().uri(uri).body(Body::empty()).expect("request should build"))
+            .await
+            .expect("context runs endpoint should respond");
+
+        let body = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .expect("body should read");
+        let payload: Value = serde_json::from_slice(&body).expect("context run payload should be valid json");
+
+        assert_eq!(payload.as_array().map(Vec::len), Some(1));
+        assert_eq!(payload[0]["query"], "needle");
+        assert_eq!(payload[0]["snippets"][0]["reason"]["kind"], "query_line_match");
+        assert_eq!(payload[0]["omissions"][0]["kind"], "item_limit_reached");
     }
 
     #[tokio::test]

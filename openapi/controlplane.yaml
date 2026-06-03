@@ -15,6 +15,87 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/BackendTruthPayload'
+  /repositories:
+    get:
+      operationId: getRepositoryState
+      summary: Return registered repository state for an explicit local state root.
+      parameters:
+        - name: root
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 20
+      responses:
+        '200':
+          description: Bounded registered repository state derived from backend truth.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RegisteredRepositoryState'
+  /memory:
+    get:
+      operationId: getMemorySearch
+      summary: Return bounded durable memory search results for an explicit local state root and query.
+      parameters:
+        - name: root
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+      responses:
+        '200':
+          description: Bounded durable memory search results.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MemorySearchResult'
+  /context-runs:
+    get:
+      operationId: getContextRuns
+      summary: Return bounded recent context runs for an explicit local state root.
+      parameters:
+        - name: root
+          in: query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 5
+      responses:
+        '200':
+          description: Bounded context runs with inclusion and omission reasons.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ContextAssembly'
 components:
   schemas:
     BackendTruthPayload:
@@ -24,6 +105,8 @@ components:
         - tools
         - retrieval
         - cache
+        - config
+        - cli
         - proofs
       properties:
         tools:
@@ -34,6 +117,10 @@ components:
           $ref: '#/components/schemas/RetrievalTruth'
         cache:
           $ref: '#/components/schemas/CacheTruth'
+        config:
+          $ref: '#/components/schemas/ConfigTruth'
+        cli:
+          $ref: '#/components/schemas/CliTruth'
         proofs:
           type: array
           items:
@@ -140,6 +227,222 @@ components:
           type: boolean
         sync_invalidates_caches:
           type: boolean
+    ConfigTruth:
+      type: object
+      additionalProperties: false
+      required:
+        - workspace_profiles_enabled
+        - workspace_profiles_apply_to_retrieval
+        - max_workspace_profiles
+        - max_profile_repo_roots
+        - default_mode
+        - default_limit
+        - per_repo_limit
+      properties:
+        workspace_profiles_enabled:
+          type: boolean
+        workspace_profiles_apply_to_retrieval:
+          type: boolean
+        max_workspace_profiles:
+          type: integer
+        max_profile_repo_roots:
+          type: integer
+        default_mode:
+          $ref: '#/components/schemas/RetrievalMode'
+        default_limit:
+          type: integer
+        per_repo_limit:
+          type: integer
+    CliTruth:
+      type: object
+      additionalProperties: false
+      required:
+        - local_entrypoint_enabled
+        - commands
+      properties:
+        local_entrypoint_enabled:
+          type: boolean
+        commands:
+          type: array
+          items:
+            $ref: '#/components/schemas/CliCommandTruth'
+    CliCommandTruth:
+      type: object
+      additionalProperties: false
+      required:
+        - label
+        - command
+      properties:
+        label:
+          type: string
+        command:
+          type: string
+    RegisteredRepositoryState:
+      type: object
+      additionalProperties: false
+      required:
+        - repository
+        - sync
+        - recent_context_run
+      properties:
+        repository:
+          $ref: '#/components/schemas/RegisteredRepository'
+        sync:
+          $ref: '#/components/schemas/RepositorySyncState'
+        recent_context_run:
+          nullable: true
+          oneOf:
+            - $ref: '#/components/schemas/LastContextRunSummary'
+    RegisteredRepository:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - name
+        - root
+        - registered_at_epoch_ms
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        root:
+          type: string
+        registered_at_epoch_ms:
+          type: integer
+    RepositorySyncState:
+      type: object
+      additionalProperties: false
+      required:
+        - status
+        - indexed_files
+        - indexed_at_epoch_ms
+      properties:
+        status:
+          type: string
+          enum:
+            - not_indexed
+            - indexed
+        indexed_files:
+          type: integer
+        indexed_at_epoch_ms:
+          type: integer
+          nullable: true
+    LastContextRunSummary:
+      type: object
+      additionalProperties: false
+      required:
+        - query
+        - generated_at_epoch_ms
+      properties:
+        query:
+          type: string
+        generated_at_epoch_ms:
+          type: integer
+    MemorySearchResult:
+      type: object
+      additionalProperties: false
+      required:
+        - notes
+        - omitted_count
+      properties:
+        notes:
+          type: array
+          items:
+            $ref: '#/components/schemas/MemoryNote'
+        omitted_count:
+          type: integer
+    MemoryNote:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - content
+        - tags
+        - created_at_epoch_ms
+        - updated_at_epoch_ms
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        created_at_epoch_ms:
+          type: integer
+        updated_at_epoch_ms:
+          type: integer
+    ContextAssembly:
+      type: object
+      additionalProperties: false
+      required:
+        - query
+        - generated_at_epoch_ms
+        - snippets
+        - memory_notes
+        - omissions
+      properties:
+        query:
+          type: string
+        generated_at_epoch_ms:
+          type: integer
+        snippets:
+          type: array
+          items:
+            $ref: '#/components/schemas/ContextSnippet'
+        memory_notes:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        omissions:
+          type: array
+          items:
+            $ref: '#/components/schemas/OmissionReason'
+    ContextSnippet:
+      type: object
+      additionalProperties: true
+      required:
+        - path
+        - line_number
+        - line
+        - reason
+      properties:
+        path:
+          type: string
+        line_number:
+          type: integer
+        line:
+          type: string
+        reason:
+          $ref: '#/components/schemas/InclusionReason'
+    InclusionReason:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - detail
+      properties:
+        kind:
+          $ref: '#/components/schemas/InclusionReasonKind'
+        detail:
+          type: string
+    OmissionReason:
+      type: object
+      additionalProperties: false
+      required:
+        - kind
+        - detail
+      properties:
+        kind:
+          $ref: '#/components/schemas/OmissionReasonKind'
+        detail:
+          type: string
     RetrievalLimits:
       type: object
       additionalProperties: false

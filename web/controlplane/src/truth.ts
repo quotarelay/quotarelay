@@ -12,6 +12,45 @@ export type BackendProof = {
   command?: string
 }
 
+export type RepositoryStatePayload = {
+  repository?: {
+    name?: string
+    root?: string
+  }
+  sync?: {
+    status?: string
+    indexed_files?: number
+  }
+  recent_context_run?: {
+    query?: string
+    generated_at_epoch_ms?: number
+  } | null
+}
+
+export type MemorySearchState = {
+  notes: Array<{
+    id?: string
+    title?: string
+    content?: string
+    tags?: string[]
+  }>
+  omitted_count: number
+}
+
+export type ContextRunState = {
+  query?: string
+  generated_at_epoch_ms?: number
+  snippets?: Array<{
+    path?: string
+    reason?: {
+      kind?: string
+    }
+  }>
+  omissions?: Array<{
+    kind?: string
+  }>
+}
+
 export type RetrievalTruthPayload = {
   modes?: string[]
   inclusion_reason_kinds?: string[]
@@ -32,6 +71,24 @@ export type RetrievalTruthPayload = {
   } | null
 } | null
 
+export type ConfigTruthPayload = {
+  workspace_profiles_enabled?: boolean
+  workspace_profiles_apply_to_retrieval?: boolean
+  max_workspace_profiles?: number
+  max_profile_repo_roots?: number
+  default_mode?: string
+  default_limit?: number
+  per_repo_limit?: number
+} | null
+
+export type CliTruthPayload = {
+  local_entrypoint_enabled?: boolean
+  commands?: Array<{
+    label?: string
+    command?: string
+  }>
+} | null
+
 export type RetrievalTruthItem = {
   state: string
   title: string
@@ -44,6 +101,29 @@ export type TruthPageState = {
   backendTools: ToolDescriptor[]
   proofs: BackendProof[]
   retrievalTruth: RetrievalTruthItem[]
+  configTruth: RetrievalTruthItem[]
+  cliCommands: Array<{
+    label?: string
+    command?: string
+  }>
+}
+
+export type RepositoryPageState = {
+  fetchState: string
+  fetchError: string
+  repositories: RepositoryStatePayload[]
+}
+
+export type MemoryPageState = {
+  fetchState: string
+  fetchError: string
+  memory: MemorySearchState
+}
+
+export type ContextRunPageState = {
+  fetchState: string
+  fetchError: string
+  runs: ContextRunState[]
 }
 
 export function formatList(values: string[]): string {
@@ -122,6 +202,31 @@ export function toRetrievalTruthItems(retrieval: RetrievalTruthPayload): Retriev
   ]
 }
 
+export function toConfigTruthItems(config: ConfigTruthPayload): RetrievalTruthItem[] {
+  return [
+    {
+      state: 'Profiles',
+      title: 'Workspace profiles',
+      description: config?.workspace_profiles_enabled ? 'enabled' : 'disabled'
+    },
+    {
+      state: 'Application',
+      title: 'Retrieval override',
+      description: config?.workspace_profiles_apply_to_retrieval ? 'applied' : 'not applied'
+    },
+    {
+      state: 'Defaults',
+      title: 'Built-in defaults',
+      description: `mode ${config?.default_mode ?? 'unknown'}; default limit ${config?.default_limit ?? 0}; per-repo limit ${config?.per_repo_limit ?? 0}`
+    },
+    {
+      state: 'Bounds',
+      title: 'Profile bounds',
+      description: `profiles ${config?.max_workspace_profiles ?? 0}; repo roots ${config?.max_profile_repo_roots ?? 0}`
+    }
+  ]
+}
+
 export async function loadBackendTruth(
   fetchImpl: typeof fetch,
   truthRoute = '/truth'
@@ -151,7 +256,9 @@ export async function loadBackendTruth(
       fetchError: '',
       backendTools: Array.isArray(payload?.tools) ? payload.tools : [],
       proofs: Array.isArray(payload?.proofs) ? payload.proofs : [],
-      retrievalTruth: toRetrievalTruthItems(normalizedRetrieval)
+      retrievalTruth: toRetrievalTruthItems(normalizedRetrieval),
+      configTruth: toConfigTruthItems(payload?.config ?? null),
+      cliCommands: Array.isArray(payload?.cli?.commands) ? payload.cli.commands : []
     }
   } catch (error) {
     return {
@@ -159,7 +266,134 @@ export async function loadBackendTruth(
       fetchError: error instanceof Error ? error.message : 'Failed to load /truth',
       backendTools: [],
       proofs: [],
-      retrievalTruth: []
+      retrievalTruth: [],
+      configTruth: [],
+      cliCommands: []
+    }
+  }
+}
+
+export async function loadRepositoryState(
+  fetchImpl: typeof fetch,
+  root: string,
+  repositoryRoute = '/repositories'
+): Promise<RepositoryPageState> {
+  if (root.trim() === '') {
+    return {
+      fetchState: 'Not configured',
+      fetchError: '',
+      repositories: []
+    }
+  }
+
+  try {
+    const response = await fetchImpl(`${repositoryRoute}?root=${encodeURIComponent(root)}&limit=20`, {
+      headers: {
+        accept: 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`GET ${repositoryRoute} returned ${response.status}`)
+    }
+
+    const payload = await response.json()
+    return {
+      fetchState: 'Live',
+      fetchError: '',
+      repositories: Array.isArray(payload) ? payload : []
+    }
+  } catch (error) {
+    return {
+      fetchState: 'Unavailable',
+      fetchError: error instanceof Error ? error.message : 'Failed to load /repositories',
+      repositories: []
+    }
+  }
+}
+
+export async function loadMemoryState(
+  fetchImpl: typeof fetch,
+  root: string,
+  query: string,
+  memoryRoute = '/memory'
+): Promise<MemoryPageState> {
+  const empty = {
+    notes: [],
+    omitted_count: 0
+  }
+  if (root.trim() === '' || query.trim() === '') {
+    return {
+      fetchState: 'Not configured',
+      fetchError: '',
+      memory: empty
+    }
+  }
+
+  try {
+    const response = await fetchImpl(`${memoryRoute}?root=${encodeURIComponent(root)}&query=${encodeURIComponent(query)}&limit=3`, {
+      headers: {
+        accept: 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`GET ${memoryRoute} returned ${response.status}`)
+    }
+
+    const payload = await response.json()
+    return {
+      fetchState: 'Live',
+      fetchError: '',
+      memory: {
+        notes: Array.isArray(payload?.notes) ? payload.notes : [],
+        omitted_count: Number(payload?.omitted_count ?? 0)
+      }
+    }
+  } catch (error) {
+    return {
+      fetchState: 'Unavailable',
+      fetchError: error instanceof Error ? error.message : 'Failed to load /memory',
+      memory: empty
+    }
+  }
+}
+
+export async function loadContextRunState(
+  fetchImpl: typeof fetch,
+  root: string,
+  runsRoute = '/context-runs'
+): Promise<ContextRunPageState> {
+  if (root.trim() === '') {
+    return {
+      fetchState: 'Not configured',
+      fetchError: '',
+      runs: []
+    }
+  }
+
+  try {
+    const response = await fetchImpl(`${runsRoute}?root=${encodeURIComponent(root)}&limit=5`, {
+      headers: {
+        accept: 'application/json'
+      }
+    })
+
+    if (!response.ok) {
+      throw new Error(`GET ${runsRoute} returned ${response.status}`)
+    }
+
+    const payload = await response.json()
+    return {
+      fetchState: 'Live',
+      fetchError: '',
+      runs: Array.isArray(payload) ? payload : []
+    }
+  } catch (error) {
+    return {
+      fetchState: 'Unavailable',
+      fetchError: error instanceof Error ? error.message : 'Failed to load /context-runs',
+      runs: []
     }
   }
 }

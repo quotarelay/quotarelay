@@ -14,6 +14,7 @@ const MAX_CONTEXT_ITEMS: usize = 5;
 const MAX_HISTORY_RUNS: usize = 10;
 const MAX_REGISTERED_REPOSITORIES: usize = 20;
 const MAX_MEMORY_TRANSFER_NOTES: usize = 50;
+const MAX_WORKSPACE_PROFILES: usize = 20;
 
 pub struct EngineInfo {
     name: &'static str,
@@ -177,6 +178,11 @@ pub struct RepositoryRemovalResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct RepositoryMetadataUpdateResult {
+    pub repository: Option<RegisteredRepository>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 #[serde(rename_all = "snake_case")]
 pub enum RepositorySyncStatus {
     NotIndexed,
@@ -201,6 +207,34 @@ pub struct RegisteredRepositoryState {
     pub repository: RegisteredRepository,
     pub sync: RepositorySyncState,
     pub recent_context_run: Option<LastContextRunSummary>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct RepositoryContextAssembly {
+    pub repository: RegisteredRepository,
+    pub assembly: ContextAssembly,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct MultiRepositoryContextAssembly {
+    pub query: String,
+    pub generated_at_epoch_ms: u128,
+    pub repositories: Vec<RepositoryContextAssembly>,
+    pub omitted_repository_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WorkspaceProfile {
+    pub name: String,
+    pub repo_roots: Vec<String>,
+    pub default_mode: RetrievalMode,
+    pub default_limit: usize,
+    pub per_repo_limit: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WorkspaceProfileSaveResult {
+    pub profile: WorkspaceProfile,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -273,6 +307,11 @@ struct StoredCapsuleCacheEntry {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 struct StoredRegisteredRepositories {
     repositories: Vec<RegisteredRepository>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+struct StoredWorkspaceProfiles {
+    profiles: Vec<WorkspaceProfile>,
 }
 
 impl EngineInfo {
@@ -484,42 +523,187 @@ pub fn remove_registered_repository(
     Ok(RepositoryRemovalResult { repository: removed })
 }
 
+pub fn update_registered_repository_metadata(
+    state_root: &Path,
+    repo_root: &Path,
+    name: Option<&str>,
+) -> io::Result<RepositoryMetadataUpdateResult> {
+    let normalized_root = normalized_repo_root(repo_root)?;
+    let mut stored = load_registered_repositories(state_root)?;
+    let updated = stored
+        .repositories
+        .iter_mut()
+        .find(|repository| repository.root == normalized_root)
+        .map(|repository| {
+            if let Some(name) = name {
+                repository.name = name.to_string();
+            }
+            repository.clone()
+        });
+
+    if updated.is_some() {
+        persist_registered_repositories(state_root, &stored)?;
+    }
+
+    Ok(RepositoryMetadataUpdateResult { repository: updated })
+}
+
 pub fn registered_repository_state(
     state_root: &Path,
     limit: usize,
 ) -> io::Result<Vec<RegisteredRepositoryState>> {
     list_registered_repositories(state_root, limit)?
         .into_iter()
-        .map(|repository| {
-            let repo_root = PathBuf::from(&repository.root);
-            let sync = match repo_inventory(&repo_root) {
-                Ok(inventory) => RepositorySyncState {
-                    status: RepositorySyncStatus::Indexed,
-                    indexed_files: inventory.indexed_files,
-                    indexed_at_epoch_ms: Some(inventory.indexed_at_epoch_ms),
-                },
-                Err(error) if error.kind() == io::ErrorKind::NotFound => RepositorySyncState {
-                    status: RepositorySyncStatus::NotIndexed,
-                    indexed_files: 0,
-                    indexed_at_epoch_ms: None,
-                },
-                Err(error) => return Err(error),
-            };
-            let recent_context_run = context_run_history(&repo_root, 1)?
-                .into_iter()
-                .next()
-                .map(|run| LastContextRunSummary {
-                    query: run.query,
-                    generated_at_epoch_ms: run.generated_at_epoch_ms,
-                });
-
-            Ok(RegisteredRepositoryState {
-                repository,
-                sync,
-                recent_context_run,
-            })
-        })
+        .map(registered_repository_state_for)
         .collect()
+}
+
+pub fn registered_repository_detail(
+    state_root: &Path,
+    repo_root: &Path,
+) -> io::Result<Option<RegisteredRepositoryState>> {
+    let normalized_root = normalized_repo_root(repo_root)?;
+    let stored = load_registered_repositories(state_root)?;
+    stored
+        .repositories
+        .into_iter()
+        .find(|repository| repository.root == normalized_root)
+        .map(registered_repository_state_for)
+        .transpose()
+}
+
+pub fn assemble_context_for_registered_repositories(
+    state_root: &Path,
+    repo_roots: &[PathBuf],
+    query: &str,
+    per_repo_limit: usize,
+) -> io::Result<MultiRepositoryContextAssembly> {
+    if repo_roots.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "multi-repo assembly requires at least one repo_root",
+        ));
+    }
+
+    let capped_repo_count = repo_roots.len().min(MAX_CONTEXT_ITEMS);
+    let omitted_repository_count = repo_roots.len().saturating_sub(capped_repo_count);
+    let capped_limit = per_repo_limit.clamp(1, MAX_CONTEXT_ITEMS);
+    let stored = load_registered_repositories(state_root)?;
+    let mut repositories = Vec::new();
+
+    for repo_root in repo_roots.iter().take(capped_repo_count) {
+        let normalized_root = normalized_repo_root(repo_root)?;
+        let repository = stored
+            .repositories
+            .iter()
+            .find(|repository| repository.root == normalized_root)
+            .cloned()
+            .ok_or_else(|| {
+                io::Error::new(
+                    io::ErrorKind::NotFound,
+                    format!("repository {normalized_root} is not registered"),
+                )
+            })?;
+        let assembly = assemble_context(Path::new(&repository.root), query, capped_limit)?;
+        repositories.push(RepositoryContextAssembly { repository, assembly });
+    }
+
+    Ok(MultiRepositoryContextAssembly {
+        query: normalize_query(query),
+        generated_at_epoch_ms: now_epoch_ms()?,
+        repositories,
+        omitted_repository_count,
+    })
+}
+
+pub fn save_workspace_profile(
+    state_root: &Path,
+    name: &str,
+    repo_roots: &[PathBuf],
+    default_mode: RetrievalMode,
+    default_limit: usize,
+    per_repo_limit: usize,
+) -> io::Result<WorkspaceProfileSaveResult> {
+    let name = name.trim();
+    if name.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "workspace profile name cannot be empty",
+        ));
+    }
+    if repo_roots.is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "workspace profile requires at least one repo_root",
+        ));
+    }
+
+    let normalized_roots = repo_roots
+        .iter()
+        .take(MAX_CONTEXT_ITEMS)
+        .map(|root| normalized_repo_root(root))
+        .collect::<io::Result<Vec<_>>>()?;
+    let profile = WorkspaceProfile {
+        name: name.to_string(),
+        repo_roots: normalized_roots,
+        default_mode,
+        default_limit: default_limit.clamp(1, MAX_CONTEXT_ITEMS),
+        per_repo_limit: per_repo_limit.clamp(1, MAX_CONTEXT_ITEMS),
+    };
+    let mut stored = load_workspace_profiles(state_root)?;
+
+    if let Some(existing) = stored.profiles.iter_mut().find(|existing| existing.name == profile.name) {
+        *existing = profile.clone();
+    } else {
+        stored.profiles.push(profile.clone());
+        stored.profiles.sort_by(|left, right| left.name.cmp(&right.name));
+        if stored.profiles.len() > MAX_WORKSPACE_PROFILES {
+            stored.profiles.truncate(MAX_WORKSPACE_PROFILES);
+        }
+    }
+
+    persist_workspace_profiles(state_root, &stored)?;
+
+    Ok(WorkspaceProfileSaveResult { profile })
+}
+
+pub fn list_workspace_profiles(state_root: &Path, limit: usize) -> io::Result<Vec<WorkspaceProfile>> {
+    let capped_limit = limit.clamp(1, MAX_WORKSPACE_PROFILES);
+    let stored = load_workspace_profiles(state_root)?;
+
+    Ok(stored.profiles.into_iter().take(capped_limit).collect())
+}
+
+fn registered_repository_state_for(
+    repository: RegisteredRepository,
+) -> io::Result<RegisteredRepositoryState> {
+    let repo_root = PathBuf::from(&repository.root);
+    let sync = match repo_inventory(&repo_root) {
+        Ok(inventory) => RepositorySyncState {
+            status: RepositorySyncStatus::Indexed,
+            indexed_files: inventory.indexed_files,
+            indexed_at_epoch_ms: Some(inventory.indexed_at_epoch_ms),
+        },
+        Err(error) if error.kind() == io::ErrorKind::NotFound => RepositorySyncState {
+            status: RepositorySyncStatus::NotIndexed,
+            indexed_files: 0,
+            indexed_at_epoch_ms: None,
+        },
+        Err(error) => return Err(error),
+    };
+    let recent_context_run = context_run_history(&repo_root, 1)?
+        .into_iter()
+        .next()
+        .map(|run| LastContextRunSummary {
+            query: run.query,
+            generated_at_epoch_ms: run.generated_at_epoch_ms,
+        });
+
+    Ok(RegisteredRepositoryState {
+        repository,
+        sync,
+        recent_context_run,
+    })
 }
 
 pub fn invalidate_exact_match_cache(root: &Path) -> io::Result<()> {
@@ -998,6 +1182,10 @@ fn registered_repositories_path(state_root: &Path) -> PathBuf {
     state_root.join(".quotarelay").join("registered_repositories.json")
 }
 
+fn workspace_profiles_path(state_root: &Path) -> PathBuf {
+    state_root.join(".quotarelay").join("workspace_profiles.json")
+}
+
 fn load_memory_notes(root: &Path) -> io::Result<StoredMemoryNotes> {
     let path = memory_notes_path(root);
     if !path.exists() {
@@ -1014,6 +1202,27 @@ fn persist_memory_notes(root: &Path, notes: &StoredMemoryNotes) -> io::Result<()
         fs::create_dir_all(parent)?;
     }
     fs::write(path, serde_json::to_vec_pretty(notes).map_err(io::Error::other)?)
+}
+
+fn load_workspace_profiles(state_root: &Path) -> io::Result<StoredWorkspaceProfiles> {
+    let path = workspace_profiles_path(state_root);
+    if !path.exists() {
+        return Ok(StoredWorkspaceProfiles::default());
+    }
+
+    let bytes = fs::read(path)?;
+    serde_json::from_slice(&bytes).map_err(io::Error::other)
+}
+
+fn persist_workspace_profiles(
+    state_root: &Path,
+    profiles: &StoredWorkspaceProfiles,
+) -> io::Result<()> {
+    let path = workspace_profiles_path(state_root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(path, serde_json::to_vec_pretty(profiles).map_err(io::Error::other)?)
 }
 
 fn load_exact_match_cache(root: &Path) -> io::Result<StoredExactMatchCache> {
@@ -1190,8 +1399,10 @@ mod tests {
         inspect_local_state, invalidate_exact_match_cache,
         list_registered_repositories, memory_delete, memory_export, memory_import, memory_read,
         memory_search, memory_update, memory_write, MemoryExportPayload,
-        register_repository, registered_repository_state, remove_registered_repository,
-        retrieve_context, EngineInfo, InclusionReasonKind, OmissionReasonKind,
+        register_repository, registered_repository_detail, registered_repository_state, remove_registered_repository,
+        assemble_context_for_registered_repositories,
+        retrieve_context, save_workspace_profile, list_workspace_profiles,
+        update_registered_repository_metadata, EngineInfo, InclusionReasonKind, OmissionReasonKind,
         RepositorySyncStatus, RetrievalMode, TRUNCATED_PACK_MARKER,
     };
 
@@ -1770,6 +1981,37 @@ mod tests {
     }
 
     #[test]
+    fn update_registered_repository_metadata_changes_display_name_only() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+
+        let registered = register_repository(&state_root, &repo_root)
+            .expect("registration should succeed");
+        let updated = update_registered_repository_metadata(
+            &state_root,
+            &repo_root,
+            Some("Workspace API"),
+        )
+        .expect("metadata update should succeed")
+        .repository
+        .expect("registered repository should be updated");
+
+        assert_eq!(updated.id, registered.repository.id);
+        assert_eq!(updated.root, registered.repository.root);
+        assert_eq!(updated.name, "Workspace API");
+
+        let listed = list_registered_repositories(&state_root, 10).expect("listing should succeed");
+        assert_eq!(listed[0].name, "Workspace API");
+        assert_eq!(listed[0].root, registered.repository.root);
+
+        let missing_root = temp_repo();
+        assert!(update_registered_repository_metadata(&state_root, &missing_root, Some("Missing"))
+            .expect("missing metadata update should succeed")
+            .repository
+            .is_none());
+    }
+
+    #[test]
     fn registered_repository_state_reports_sync_and_recent_run_truth() {
         let state_root = temp_repo();
         let repo_root = temp_repo();
@@ -1786,6 +2028,104 @@ mod tests {
         assert_eq!(state[0].sync.indexed_files, 1);
         assert!(state[0].sync.indexed_at_epoch_ms.is_some());
         assert_eq!(state[0].recent_context_run.as_ref().map(|run| run.query.as_str()), Some("needle"));
+    }
+
+    #[test]
+    fn registered_repository_detail_reports_one_repo_truth() {
+        let state_root = temp_repo();
+        let repo_root = temp_repo();
+        let missing_root = temp_repo();
+        fs::write(repo_root.join("alpha.txt"), "needle in repo\n").expect("repo file should write");
+
+        let registered = register_repository(&state_root, &repo_root)
+            .expect("registration should succeed");
+        repo_index::sync_repo(&repo_root).expect("sync should succeed");
+        assemble_context(&repo_root, "needle", 2).expect("assembly should succeed");
+
+        let detail = registered_repository_detail(&state_root, &repo_root)
+            .expect("repository detail should succeed")
+            .expect("registered repository detail should exist");
+
+        assert_eq!(detail.repository, registered.repository);
+        assert_eq!(detail.sync.status, RepositorySyncStatus::Indexed);
+        assert_eq!(detail.sync.indexed_files, 1);
+        assert_eq!(detail.recent_context_run.as_ref().map(|run| run.query.as_str()), Some("needle"));
+        assert!(registered_repository_detail(&state_root, &missing_root)
+            .expect("missing repository detail should succeed")
+            .is_none());
+    }
+
+    #[test]
+    fn assemble_context_for_registered_repositories_is_bounded_per_repo() {
+        let state_root = temp_repo();
+        let repo_one = temp_repo();
+        let repo_two = temp_repo();
+        fs::write(repo_one.join("alpha.txt"), "needle one\nneedle two\n").expect("repo one file should write");
+        fs::write(repo_two.join("beta.txt"), "needle three\nneedle four\n").expect("repo two file should write");
+
+        register_repository(&state_root, &repo_one).expect("repo one registration should succeed");
+        register_repository(&state_root, &repo_two).expect("repo two registration should succeed");
+        repo_index::sync_repo(&repo_one).expect("repo one sync should succeed");
+        repo_index::sync_repo(&repo_two).expect("repo two sync should succeed");
+
+        let assembly = assemble_context_for_registered_repositories(
+            &state_root,
+            &[repo_one.clone(), repo_two.clone()],
+            "needle",
+            1,
+        )
+        .expect("multi repo assembly should succeed");
+
+        assert_eq!(assembly.query, "needle");
+        assert_eq!(assembly.repositories.len(), 2);
+        assert_eq!(assembly.repositories[0].assembly.snippets.len(), 1);
+        assert_eq!(assembly.repositories[1].assembly.snippets.len(), 1);
+        assert!(assembly.repositories[0]
+            .assembly
+            .omissions
+            .iter()
+            .any(|omission| omission.kind == OmissionReasonKind::ItemLimitReached));
+    }
+
+    #[test]
+    fn workspace_profiles_persist_repo_groups_and_default_limits() {
+        let state_root = temp_repo();
+        let repo_one = temp_repo();
+        let repo_two = temp_repo();
+
+        let saved = save_workspace_profile(
+            &state_root,
+            "local-api",
+            &[repo_one.clone(), repo_two.clone()],
+            RetrievalMode::TaskCapsule,
+            9,
+            8,
+        )
+        .expect("workspace profile should save");
+
+        assert_eq!(saved.profile.name, "local-api");
+        assert_eq!(saved.profile.repo_roots.len(), 2);
+        assert_eq!(saved.profile.default_mode, RetrievalMode::TaskCapsule);
+        assert_eq!(saved.profile.default_limit, 5);
+        assert_eq!(saved.profile.per_repo_limit, 5);
+
+        let replacement = save_workspace_profile(
+            &state_root,
+            "local-api",
+            &[repo_one],
+            RetrievalMode::ExactSearch,
+            2,
+            1,
+        )
+        .expect("workspace profile replacement should save");
+        let profiles = list_workspace_profiles(&state_root, 10).expect("workspace profiles should list");
+
+        assert_eq!(profiles.len(), 1);
+        assert_eq!(profiles[0], replacement.profile);
+        assert_eq!(profiles[0].default_mode, RetrievalMode::ExactSearch);
+        assert_eq!(profiles[0].default_limit, 2);
+        assert_eq!(profiles[0].per_repo_limit, 1);
+        assert!(state_root.join(".quotarelay").join("workspace_profiles.json").exists());
     }
 
     #[test]

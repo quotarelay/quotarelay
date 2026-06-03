@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest'
 
-import { loadBackendTruth, proofTitle, toolSignals, toRetrievalTruthItems } from './truth'
+import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState, proofTitle, toolSignals, toConfigTruthItems, toRetrievalTruthItems } from './truth'
 
 describe('control-plane truth boundary', () => {
   it('normalizes the live /truth payload for the page', async () => {
@@ -39,6 +39,24 @@ describe('control-plane truth boundary', () => {
             task_capsule_enabled: true,
             sync_invalidates_caches: true
           }
+        },
+        config: {
+          workspace_profiles_enabled: true,
+          workspace_profiles_apply_to_retrieval: false,
+          max_workspace_profiles: 20,
+          max_profile_repo_roots: 5,
+          default_mode: 'exact_search',
+          default_limit: 3,
+          per_repo_limit: 3
+        },
+        cli: {
+          local_entrypoint_enabled: true,
+          commands: [
+            {
+              label: 'Truth',
+              command: 'cargo run -p mcp-server -- --cli truth'
+            }
+          ]
         }
       })
     })) as typeof fetch
@@ -74,6 +92,21 @@ describe('control-plane truth boundary', () => {
         sync_invalidates_caches: true
       }
     }))
+    expect(state.configTruth).toEqual(toConfigTruthItems({
+      workspace_profiles_enabled: true,
+      workspace_profiles_apply_to_retrieval: false,
+      max_workspace_profiles: 20,
+      max_profile_repo_roots: 5,
+      default_mode: 'exact_search',
+      default_limit: 3,
+      per_repo_limit: 3
+    }))
+    expect(state.cliCommands).toEqual([
+      {
+        label: 'Truth',
+        command: 'cargo run -p mcp-server -- --cli truth'
+      }
+    ])
   })
 
   it('falls back honestly when /truth is unavailable', async () => {
@@ -88,7 +121,9 @@ describe('control-plane truth boundary', () => {
       fetchError: 'network down',
       backendTools: [],
       proofs: [],
-      retrievalTruth: []
+      retrievalTruth: [],
+      configTruth: [],
+      cliCommands: []
     })
   })
 
@@ -141,5 +176,113 @@ describe('control-plane truth boundary', () => {
         sync_invalidates_caches: true
       }
     }))
+  })
+
+  it('loads repository state only when a root is configured', async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ([
+        {
+          repository: {
+            name: 'quotarelay',
+            root: 'C:\\repo\\quotarelay'
+          },
+          sync: {
+            status: 'indexed',
+            indexed_files: 4
+          },
+          recent_context_run: {
+            query: 'needle',
+            generated_at_epoch_ms: 42
+          }
+        }
+      ])
+    })) as typeof fetch
+
+    const state = await loadRepositoryState(fetchImpl, 'C:\\repo\\quotarelay')
+
+    expect(fetchImpl).toHaveBeenCalledWith('/repositories?root=C%3A%5Crepo%5Cquotarelay&limit=20', {
+      headers: {
+        accept: 'application/json'
+      }
+    })
+    expect(state.fetchState).toBe('Live')
+    expect(state.repositories).toHaveLength(1)
+    expect(state.repositories[0].sync?.status).toBe('indexed')
+  })
+
+  it('does not invent repository state without a configured root', async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch
+
+    const state = await loadRepositoryState(fetchImpl, '')
+
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(state).toEqual({
+      fetchState: 'Not configured',
+      fetchError: '',
+      repositories: []
+    })
+  })
+
+  it('loads bounded memory state only when root and query are configured', async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ({
+        notes: [{ id: '1', title: 'Needle note', content: 'needle memory', tags: ['memory'] }],
+        omitted_count: 0
+      })
+    })) as typeof fetch
+
+    const state = await loadMemoryState(fetchImpl, 'C:\\repo\\quotarelay', 'needle')
+
+    expect(fetchImpl).toHaveBeenCalledWith('/memory?root=C%3A%5Crepo%5Cquotarelay&query=needle&limit=3', {
+      headers: {
+        accept: 'application/json'
+      }
+    })
+    expect(state.fetchState).toBe('Live')
+    expect(state.memory.notes).toHaveLength(1)
+    expect(state.memory.notes[0].title).toBe('Needle note')
+  })
+
+  it('does not invent memory state without root and query', async () => {
+    const fetchImpl = vi.fn() as unknown as typeof fetch
+
+    const state = await loadMemoryState(fetchImpl, '', '')
+
+    expect(fetchImpl).not.toHaveBeenCalled()
+    expect(state).toEqual({
+      fetchState: 'Not configured',
+      fetchError: '',
+      memory: {
+        notes: [],
+        omitted_count: 0
+      }
+    })
+  })
+
+  it('loads bounded context run state only when root is configured', async () => {
+    const fetchImpl = vi.fn(async () => ({
+      ok: true,
+      json: async () => ([
+        {
+          query: 'needle',
+          generated_at_epoch_ms: 42,
+          snippets: [{ path: 'alpha.txt', reason: { kind: 'query_line_match' } }],
+          omissions: [{ kind: 'item_limit_reached' }]
+        }
+      ])
+    })) as typeof fetch
+
+    const state = await loadContextRunState(fetchImpl, 'C:\\repo\\quotarelay')
+
+    expect(fetchImpl).toHaveBeenCalledWith('/context-runs?root=C%3A%5Crepo%5Cquotarelay&limit=5', {
+      headers: {
+        accept: 'application/json'
+      }
+    })
+    expect(state.fetchState).toBe('Live')
+    expect(state.runs).toHaveLength(1)
+    expect(state.runs[0].omissions?.[0].kind).toBe('item_limit_reached')
   })
 })
