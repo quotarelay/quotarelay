@@ -1,0 +1,4 @@
+{
+  "command": "cargo",
+  "args": ["run", "-p", "mcp-server"]
+}

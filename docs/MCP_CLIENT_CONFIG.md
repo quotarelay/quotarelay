@@ -19,6 +19,8 @@ For clients that need command and args split:
 }
 ```
 
+The same verified local command/args payload is checked in at `examples/mcp-client-presets/generic-stdio.json`.
+
 This configuration starts the MCP server only. It does not start the HTTP control plane, install packages, publish artifacts, or contact model providers.
 
 ## Windows Path Examples

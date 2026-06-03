@@ -122,7 +122,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 
 ## MCP client setup
 
-See `docs/MCP_CLIENT_CONFIG.md` for the local stdio command, generic client JSON shape, Windows path examples, state-root guidance, and startup troubleshooting.
+See `docs/MCP_CLIENT_CONFIG.md` and `examples/mcp-client-presets/` for the local stdio command, generic client JSON shape, Windows path examples, state-root guidance, and startup troubleshooting.
 
 ## Troubleshooting
 
