@@ -141,6 +141,14 @@ See `docs/CONTROL_PLANE_LOCAL.md` for local backend HTTP and frontend commands.
 
 ## Token-saver benchmark
 
+Run the one-command local demo with:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-demo.ps1
+```
+
+The demo creates a temporary fixture and reports broad raw repo size versus Quotarelay packet size, cache miss then cache hit, stale status after a local file change, and the exact context and handoff packets. It does not call providers or claim billing savings.
+
 Run the local acceptance benchmark with:
 
 ```powershell

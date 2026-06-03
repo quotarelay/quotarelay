@@ -269,6 +269,8 @@ $summary = [ordered]@{
     metrics = $metrics
     decision_memory_in_handoff = $handoff.memory_decisions.Count
     diff_aware_stale = $diffAware.stale
+    exact_context_packet = $exactSecond
+    handoff_packet_sent_to_agent = $handoff
     note = "Local byte and approximate-token comparison only; not provider billing, model benchmarking, or guaranteed savings."
 }
 
