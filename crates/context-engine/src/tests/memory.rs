@@ -69,6 +69,38 @@ fn durable_memory_updates_and_deletes_notes() {
 }
 
 #[test]
+fn durable_memory_partial_update_and_missing_delete_are_explicit() {
+    let root = temp_repo();
+
+    let created = memory_write(
+        &root,
+        "Original note",
+        "Original memory content.",
+        &["original".to_string()],
+    )
+    .expect("memory write should succeed");
+
+    let updated = memory_update(&root, &created.note.id, Some("Renamed note"), None, None)
+        .expect("partial memory update should succeed");
+    assert_eq!(updated.note.title, "Renamed note");
+    assert_eq!(updated.note.content, "Original memory content.");
+    assert_eq!(updated.note.tags, vec!["original"]);
+
+    let no_fields = memory_update(&root, &created.note.id, None, None, None)
+        .expect_err("empty update should be rejected");
+    assert_eq!(no_fields.kind(), std::io::ErrorKind::InvalidInput);
+
+    let missing_delete =
+        memory_delete(&root, "missing-id").expect("missing delete should be explicit");
+    assert!(missing_delete.note.is_none());
+
+    let loaded = memory_read(&root, &created.note.id)
+        .expect("memory read should succeed")
+        .expect("note should still exist");
+    assert_eq!(loaded.title, "Renamed note");
+}
+
+#[test]
 fn durable_memory_exports_and_imports_bounded_json() {
     let source = temp_repo();
     let target = temp_repo();
@@ -101,6 +133,25 @@ fn durable_memory_exports_and_imports_bounded_json() {
         .expect("memory read should succeed")
         .expect("imported note should exist");
     assert_eq!(loaded.title, "Design note");
+}
+
+#[test]
+fn durable_memory_export_limit_reports_omissions() {
+    let root = temp_repo();
+    for index in 0..6 {
+        memory_write(
+            &root,
+            &format!("Memory {index}"),
+            "Export-limited memory entry.",
+            &["export".to_string()],
+        )
+        .expect("memory write should succeed");
+    }
+
+    let exported = memory_export(&root, 3).expect("memory export should succeed");
+
+    assert_eq!(exported.payload.notes.len(), 3);
+    assert_eq!(exported.omitted_count, 3);
 }
 
 #[test]
@@ -157,6 +208,31 @@ fn durable_memory_search_is_bounded_and_persistent() {
     assert_eq!(results.notes.len(), 3);
     assert_eq!(results.omitted_count, 3);
     assert!(root.join(".quotarelay").join("memory_notes.json").exists());
+}
+
+#[test]
+fn durable_memory_search_matches_tags_and_rejects_empty_query() {
+    let root = temp_repo();
+    memory_write(
+        &root,
+        "Design note",
+        "Does not mention the tag token in body.",
+        &["decision-log".to_string()],
+    )
+    .expect("memory write should succeed");
+
+    let tag_results =
+        memory_search(&root, "decision-log", 3).expect("tag memory search should succeed");
+    assert_eq!(tag_results.notes.len(), 1);
+    assert_eq!(tag_results.notes[0].title, "Design note");
+
+    let empty = memory_search(&root, "   ", 3).expect_err("empty query should be rejected");
+    assert_eq!(empty.kind(), std::io::ErrorKind::InvalidInput);
+
+    fs::write(root.join("alpha.txt"), "repo context\n").expect("repo file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+    let assembly = assemble_context(&root, "   ", 2).expect("blank assembly should not fail");
+    assert!(assembly.memory_notes.is_empty());
 }
 
 #[test]

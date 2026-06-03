@@ -141,6 +141,13 @@ pub fn memory_read(root: &Path, id: &str) -> io::Result<Option<MemoryNote>> {
 }
 
 pub fn memory_search(root: &Path, query: &str, limit: usize) -> io::Result<MemorySearchResult> {
+    if query.trim().is_empty() {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidInput,
+            "memory search requires a non-empty query",
+        ));
+    }
+
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
     let mut matches = find_memory_notes(root, query)?;
     let omitted_count = matches.len().saturating_sub(capped_limit);
@@ -153,6 +160,10 @@ pub fn memory_search(root: &Path, query: &str, limit: usize) -> io::Result<Memor
 }
 
 pub(crate) fn find_memory_notes(root: &Path, query: &str) -> io::Result<Vec<MemoryNote>> {
+    if query.trim().is_empty() {
+        return Ok(Vec::new());
+    }
+
     let normalized_query = query.to_ascii_lowercase();
     let stored = load_memory_notes(root)?;
     let mut matches = stored

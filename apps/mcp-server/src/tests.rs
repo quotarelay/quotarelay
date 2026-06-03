@@ -6,6 +6,7 @@ mod context;
 mod context_history;
 mod http;
 mod memory;
+mod memory_edges;
 mod protocol;
 mod repositories;
 mod repository_groups;
