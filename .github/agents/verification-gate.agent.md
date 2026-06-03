@@ -26,6 +26,7 @@ Your job is to independently verify whether a completed slice should pass QA or 
 - If validation is missing, ambiguous, or contradicts the claimed outcome, return `BLOCK`.
 - If required coverage, guardrails, or tracker-required closeout checks are missing, return `BLOCK`.
 - If touched source files exceed 500 lines and the implementer did not provide extraction evidence or an explicit tracker refactor follow-up, return `BLOCK`.
+- For decomposition or broad implementation slices, require the exact line-count command `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`; run it or inspect a literal successful result before returning `PASS`.
 - If API/CLI/MCP adapters gained business rules, persistence details, retrieval logic, memory/cache behavior, or broad imports across ownership boundaries, return `BLOCK`.
 - If touched UI or backend behavior conflicts with current docs or status messaging, return `BLOCK`.
 - Treat the exact validation command exit status and printed summary as authoritative over narrative claims about what passed.
@@ -43,7 +44,7 @@ Your job is to independently verify whether a completed slice should pass QA or 
 3. The focused validation actually covers the changed seam.
 4. The exact validation evidence is internally consistent between the specialist report and the command result the verifier can inspect.
 5. Relevant pass, coverage, and guardrail expectations are still met or honestly reported.
-6. Touched source files honor the 500-line guardrail or include an explicit extraction/refactor follow-up in tracker truth.
+6. Touched source files honor the 500-line guardrail or include an explicit extraction/refactor follow-up in tracker truth; for decomposition or broad implementation slices, the exact line-count command has passed.
 7. Separation of concerns is preserved: adapters stay thin, engine/service crates own behavior, repo-index owns indexing, persistence owns state files, and UI renders backend truth.
 8. Stable truth docs and the implementation do not contradict each other.
 9. Tracker-claimed proof wiring matches the literal repo state for scripts, workflow steps, and focused tests.

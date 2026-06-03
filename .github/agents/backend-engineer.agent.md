@@ -25,6 +25,7 @@ Your job is to implement the active backend slice exactly as defined by the live
 - Do not invent product behavior that the stable truth docs do not support.
 - Do not widen from one backend seam into adjacent cleanup just because it looks related.
 - Before editing a source file, check its line count. New source files must stay at or below 500 lines. Existing source files over 500 lines require extraction of a cohesive seam or an explicit tracker refactor follow-up before handoff.
+- For decomposition or broad implementation slices, run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1` before handoff and report the exact result.
 - Do not add unrelated behavior to an oversized source file just because the neighboring code is already there.
 - Do not act as planner, QA gate, or code reviewer.
 - If tracker, tests, docs, and code disagree, stop and surface the contradiction.
@@ -52,7 +53,7 @@ Return:
 - changed seam
 - why it was the controlling backend path
 - focused validation run: exact command, exit status, pass or fail summary, and coverage result if present
-- line-count guardrail result for touched source files
+- line-count guardrail result for touched source files, including the exact command result when the slice is decomposition or broad implementation work
 - separation-of-concerns result for touched seams
 - files or seams that QA should verify next
 - any remaining contradictions or blocked follow-up
