@@ -1,4 +1,5 @@
 use std::fs;
+use std::io::ErrorKind;
 use std::path::PathBuf;
 
 use super::common::temp_repo;
@@ -26,6 +27,30 @@ fn register_and_list_repositories_are_persistent_and_deduplicated() {
         .join(".quotarelay")
         .join("registered_repositories.json")
         .exists());
+}
+
+#[test]
+fn register_repository_missing_root_returns_not_found() {
+    let state_root = temp_repo();
+    let missing_root = state_root.join("missing-repo");
+
+    let error = register_repository(&state_root, &missing_root)
+        .expect_err("missing repo root should fail registration");
+
+    assert_eq!(error.kind(), ErrorKind::NotFound);
+}
+
+#[test]
+fn list_registered_repositories_is_bounded() {
+    let state_root = temp_repo();
+    let repo_roots = (0..6).map(|_| temp_repo()).collect::<Vec<_>>();
+    for repo_root in &repo_roots {
+        register_repository(&state_root, repo_root).expect("registration should succeed");
+    }
+
+    let listed = list_registered_repositories(&state_root, 3).expect("listing should succeed");
+
+    assert_eq!(listed.len(), 3);
 }
 
 #[cfg(windows)]
@@ -64,6 +89,28 @@ fn remove_registered_repository_updates_persistent_state() {
 
     assert_eq!(removed.repository, Some(registered.repository));
     assert!(listed.is_empty());
+}
+
+#[test]
+fn remove_unregistered_existing_repository_is_explicit_noop() {
+    let state_root = temp_repo();
+    let registered_root = temp_repo();
+    let unregistered_root = temp_repo();
+
+    register_repository(&state_root, &registered_root).expect("registration should succeed");
+    let removed = remove_registered_repository(&state_root, &unregistered_root)
+        .expect("missing removal should succeed");
+    let listed = list_registered_repositories(&state_root, 10).expect("listing should succeed");
+
+    assert!(removed.repository.is_none());
+    assert_eq!(listed.len(), 1);
+    assert_eq!(
+        listed[0].root,
+        registered_root
+            .canonicalize()
+            .expect("registered root should canonicalize")
+            .to_string_lossy()
+    );
 }
 
 #[test]
