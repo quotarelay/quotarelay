@@ -37,6 +37,7 @@ Today the backend exposes these MCP tools:
 - `memory_search`
 - `context_run_detail`
 - `context_run_history`
+- `validation_recommend`
 - `multi_repo_assemble_context`
 - `assemble_context`
 - `handoff_packet`
@@ -52,6 +53,7 @@ The retrieval contract is explicit and bounded:
 - Durable memory: stored locally under `.quotarelay/`
 - Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
 - Registered repository state: stored locally and exposed with sync status, indexed counts, bounded repo maps, and recent run metadata
+- Validation recommendations: exact local commands with reasons for touched or queried paths; commands are returned, not run
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
 
 The control plane does not invent readiness, savings, or live health state. It renders the current backend truth contract from `/truth`.
@@ -72,6 +74,7 @@ To run against one of your own repos:
 cargo run -p mcp-server -- --cli register <state_root> <repo_root>
 cargo run -p mcp-server -- --cli sync <repo_root>
 cargo run -p mcp-server -- --cli map <repo_root>
+cargo run -p mcp-server -- --cli validate crates/context-engine/src/lib.rs README.md
 cargo run -p mcp-server -- --cli search <repo_root> <query> 5
 cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
 cargo run -p mcp-server -- --cli state <repo_root>
@@ -102,6 +105,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli sync <repo_root>`
 - `cargo run -p mcp-server -- --cli state <repo_root>`
 - `cargo run -p mcp-server -- --cli map <repo_root>`
+- `cargo run -p mcp-server -- --cli validate <path> [path...]`
 - `cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`

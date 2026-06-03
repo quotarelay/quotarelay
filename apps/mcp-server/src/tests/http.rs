@@ -34,7 +34,7 @@ async fn backend_truth_endpoint_exposes_current_contract() {
 
     assert_eq!(
         payload["tools"].as_array().map(|items| items.len()),
-        Some(28)
+        Some(29)
     );
     assert_eq!(
         payload["retrieval"]["modes"],
@@ -134,6 +134,7 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "memory_search",
             "context_run_detail",
             "context_run_history",
+            "validation_recommend",
             "multi_repo_assemble_context",
             "assemble_context",
             "handoff_packet",

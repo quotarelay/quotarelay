@@ -152,6 +152,19 @@ pub struct HandoffValidationCommand {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ValidationRecommendation {
+    pub command: String,
+    pub reason: String,
+    pub matched_paths: Vec<String>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ValidationRecommendationResult {
+    pub recommendations: Vec<ValidationRecommendation>,
+    pub omitted_path_count: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct MemoryNote {
     pub id: String,
     pub title: String,

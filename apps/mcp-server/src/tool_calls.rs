@@ -262,6 +262,16 @@ pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
                 "text": error
             }),
         },
+        Some("validation_recommend") => match validation_recommend_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
         Some("multi_repo_assemble_context") => {
             match multi_repo_assemble_context_from_args(&arguments) {
                 Ok(results) => json!({

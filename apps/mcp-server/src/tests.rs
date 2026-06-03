@@ -10,5 +10,6 @@ mod memory_edges;
 mod protocol;
 mod repositories;
 mod repository_groups;
+mod validation;
 
 pub(super) use crate::run_cli;

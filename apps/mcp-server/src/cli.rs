@@ -3,7 +3,7 @@ use std::path::PathBuf;
 
 use context_engine::{
     assemble_handoff_packet, inspect_local_state, invalidate_exact_match_cache,
-    register_repository, retrieve_context, RetrievalMode,
+    recommend_validation, register_repository, retrieve_context, RetrievalMode,
 };
 use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
@@ -30,6 +30,7 @@ where
         "sync" => run_cli_sync(&mut args_iter),
         "state" => run_cli_state(&mut args_iter),
         "map" => run_cli_map(&mut args_iter),
+        "validate" => run_cli_validate(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
         "handoff" => run_cli_handoff(&mut args_iter),
@@ -107,6 +108,19 @@ where
     let root = parse_cli_arg(args, "root")?;
     let map = repo_map(&PathBuf::from(&root)).map_err(|error| format!("map failed: {error}"))?;
     Ok(json!({"repo_map": map}))
+}
+
+fn run_cli_validate<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let paths = args.map(|arg| arg.as_ref().to_string()).collect::<Vec<_>>();
+    if paths.is_empty() {
+        return Err("validate requires at least one path".to_string());
+    }
+
+    Ok(json!({"validation": recommend_validation(&paths)}))
 }
 
 fn run_cli_search<I, S>(args: &mut I) -> Result<Value, String>

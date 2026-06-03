@@ -9,6 +9,7 @@ mod models;
 mod repositories;
 mod retrieval;
 mod storage;
+mod validation;
 
 pub use diff::assemble_diff_aware;
 pub use handoff::assemble_handoff_packet;
@@ -30,6 +31,7 @@ pub use retrieval::{
 pub(crate) use retrieval::{fit_within_budget, normalize_query};
 pub(crate) use storage::*;
 pub use storage::{clear_retrieval_caches, inspect_local_state, inspect_retrieval_caches};
+pub use validation::recommend_validation;
 
 impl EngineInfo {
     pub fn quotarelay() -> Self {

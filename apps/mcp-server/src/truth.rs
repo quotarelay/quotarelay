@@ -146,6 +146,10 @@ fn cli_truth() -> CliTruth {
                 command: "cargo run -p mcp-server -- --cli map <repo-root>",
             },
             CliCommandTruth {
+                label: "Recommend validation",
+                command: "cargo run -p mcp-server -- --cli validate <path> [path...]",
+            },
+            CliCommandTruth {
                 label: "Assemble context",
                 command: "cargo run -p mcp-server -- --cli assemble <repo-root> <query>",
             },

@@ -80,6 +80,7 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "memory_search",
             "context_run_detail",
             "context_run_history",
+            "validation_recommend",
             "multi_repo_assemble_context",
             "assemble_context",
             "handoff_packet",
