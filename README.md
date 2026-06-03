@@ -48,6 +48,28 @@ The retrieval contract is explicit and bounded:
 
 The control plane does not invent readiness, savings, or live health state. It renders the current backend truth contract from `/truth`.
 
+## Quickstart
+
+From a fresh checkout on this machine:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
+cargo run -p mcp-server -- --cli truth
+```
+
+To run against one of your own repos:
+
+```powershell
+cargo run -p mcp-server -- --cli register <state_root> <repo_root>
+cargo run -p mcp-server -- --cli sync <repo_root>
+cargo run -p mcp-server -- --cli search <repo_root> <query> 5
+cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
+cargo run -p mcp-server -- --cli state <repo_root>
+```
+
+Use a dedicated local `state_root` when you want to register multiple repositories as a workspace. Quotarelay writes local state under `.quotarelay` inside the roots you pass to tools.
+
 ## Local validation
 
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`
