@@ -34,7 +34,7 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 
 ## Security and control plane
 
-- Local HTTP endpoints do not implement authentication, authorization, TLS, or access control.
+- Local HTTP endpoints do not implement authentication, authorization, TLS, or access control, and the backend refuses non-loopback bind addresses.
 - No encryption-at-rest is claimed for `.quotarelay/` files.
 - The control plane reads backend truth and tool-backed route data only. It must show unavailable or not-configured states when the backend cannot be reached.
 - The control plane does not expose live health, readiness, progress, provider status, or savings metrics unless the backend exposes those fields in a shipped contract.

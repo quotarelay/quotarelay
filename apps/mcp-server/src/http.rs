@@ -31,6 +31,13 @@ struct ContextRunsQuery {
 }
 
 pub async fn run_http(addr: SocketAddr) -> io::Result<()> {
+    if !addr.ip().is_loopback() {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            "local HTTP control plane must bind to a loopback address",
+        ));
+    }
+
     let listener = tokio::net::TcpListener::bind(addr)
         .await
         .map_err(io::Error::other)?;

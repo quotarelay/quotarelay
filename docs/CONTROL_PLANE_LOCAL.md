@@ -10,6 +10,8 @@ Run the backend HTTP server from the repository root:
 cargo run -p mcp-server -- --http 127.0.0.1:3030
 ```
 
+The local HTTP backend refuses non-loopback bind addresses. Do not expose these endpoints on a public or LAN interface.
+
 Then verify the truth endpoint in another terminal:
 
 ```powershell

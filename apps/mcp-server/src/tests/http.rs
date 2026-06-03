@@ -1,5 +1,6 @@
 use std::fs;
 use std::io::Cursor;
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
 
 use axum::body::Body;
 use axum::http::Request;
@@ -9,7 +10,7 @@ use tower::ServiceExt;
 use context_engine::{assemble_context, memory_write, register_repository};
 
 use super::common::{decode_responses, json_rpc_request, temp_repo};
-use crate::{http_router, run_stdio};
+use crate::{http_router, run_http, run_stdio};
 
 async fn truth_payload() -> Value {
     let response = http_router()
@@ -26,6 +27,17 @@ async fn truth_payload() -> Value {
         .await
         .expect("body should read");
     serde_json::from_slice(&body).expect("truth payload should be valid json")
+}
+
+#[tokio::test]
+async fn http_server_rejects_non_loopback_bind_addresses() {
+    let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 0);
+    let error = run_http(addr)
+        .await
+        .expect_err("non-loopback bind should be rejected");
+
+    assert_eq!(error.kind(), std::io::ErrorKind::PermissionDenied);
+    assert!(error.to_string().contains("loopback"));
 }
 
 #[tokio::test]

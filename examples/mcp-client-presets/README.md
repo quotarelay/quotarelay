@@ -15,10 +15,10 @@ The preset is intentionally small:
 }
 ```
 
-If your client supports a working-directory field, set it to your local checkout path. For this workspace that path is:
+If your client supports a working-directory field, set it to your local checkout path, for example:
 
 ```text
-C:\Users\brogrammer\source\quotarelay
+C:\path\to\quotarelay
 ```
 
 ## Boundaries

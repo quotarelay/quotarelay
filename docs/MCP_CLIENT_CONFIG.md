@@ -31,7 +31,7 @@ If your client supports a working directory field, point it at the checkout:
 {
   "command": "cargo",
   "args": ["run", "-p", "mcp-server"],
-  "cwd": "C:\\Users\\brogrammer\\source\\quotarelay"
+  "cwd": "C:\\path\\to\\quotarelay"
 }
 ```
 
@@ -39,8 +39,8 @@ When passing repository or state roots to Quotarelay tools, use normal Windows p
 
 ```json
 {
-  "root": "C:\\Users\\brogrammer\\source\\quotarelay",
-  "repo_root": "C:\\Users\\brogrammer\\source\\quotarelay"
+  "root": "C:\\path\\to\\quotarelay",
+  "repo_root": "C:\\path\\to\\quotarelay"
 }
 ```
 

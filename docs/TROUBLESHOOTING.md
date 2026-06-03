@@ -70,9 +70,9 @@ Do not remove all `.quotarelay` state unless you have reviewed what is stored th
 Quotarelay canonicalizes registered repo roots. These path forms should resolve consistently when they point at the same local repo:
 
 ```text
-C:\Users\brogrammer\source\quotarelay
-C:/Users/brogrammer/source/quotarelay
-C:\Users\brogrammer\source\quotarelay\.
+C:\path\to\quotarelay
+C:/path/to/quotarelay
+C:\path\to\quotarelay\.
 ```
 
 If a client starts in the wrong directory, configure its `cwd` or use an absolute checkout path in the MCP client configuration.

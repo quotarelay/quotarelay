@@ -172,6 +172,10 @@ After extracting the zip, run the packaged backend locally with:
 
 See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what the local MVP does not send, what not to commit, and current limitations.
 
+## Security
+
+See `SECURITY.md` for supported security boundaries, vulnerability reporting guidance, local data handling, and the loopback-only HTTP policy.
+
 ## Known limitations
 
 See `docs/KNOWN_LIMITATIONS.md` for local-only boundaries, indexing limits, provider/network non-goals, control-plane limits, and deferred platform work.
