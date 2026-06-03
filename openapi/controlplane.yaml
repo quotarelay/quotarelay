@@ -41,6 +41,10 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/RegisteredRepositoryState'
+        '400':
+          $ref: '#/components/responses/BadRequestText'
+        '500':
+          $ref: '#/components/responses/InternalErrorText'
   /memory:
     get:
       operationId: getMemorySearch
@@ -70,6 +74,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MemorySearchResult'
+        '400':
+          $ref: '#/components/responses/BadRequestText'
+        '500':
+          $ref: '#/components/responses/InternalErrorText'
   /context-runs:
     get:
       operationId: getContextRuns
@@ -96,7 +104,24 @@ paths:
                 type: array
                 items:
                   $ref: '#/components/schemas/ContextAssembly'
+        '400':
+          $ref: '#/components/responses/BadRequestText'
+        '500':
+          $ref: '#/components/responses/InternalErrorText'
 components:
+  responses:
+    BadRequestText:
+      description: Plain-text validation error for missing or empty query parameters.
+      content:
+        text/plain:
+          schema:
+            type: string
+    InternalErrorText:
+      description: Plain-text backend error for local state or filesystem failures.
+      content:
+        text/plain:
+          schema:
+            type: string
   schemas:
     BackendTruthPayload:
       type: object
@@ -398,15 +423,14 @@ components:
         memory_notes:
           type: array
           items:
-            type: object
-            additionalProperties: true
+            $ref: '#/components/schemas/ContextMemoryNote'
         omissions:
           type: array
           items:
             $ref: '#/components/schemas/OmissionReason'
     ContextSnippet:
       type: object
-      additionalProperties: true
+      additionalProperties: false
       required:
         - path
         - line_number
@@ -418,6 +442,23 @@ components:
         line_number:
           type: integer
         line:
+          type: string
+        reason:
+          $ref: '#/components/schemas/InclusionReason'
+    ContextMemoryNote:
+      type: object
+      additionalProperties: false
+      required:
+        - id
+        - title
+        - content
+        - reason
+      properties:
+        id:
+          type: string
+        title:
+          type: string
+        content:
           type: string
         reason:
           $ref: '#/components/schemas/InclusionReason'
