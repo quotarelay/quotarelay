@@ -134,3 +134,5 @@ See `docs/COMMERCIAL_STRATEGY.md` for the open-core gating model, hosted managem
 See `docs/HOSTED_CONTROL_PLANE_PLAN.md` for the privacy and security gates before public login or hosted organization management ships.
 
 See `docs/PLATFORM_SURFACES.md` for the local DOM surfaces, planned deployment management path, and deferred Android/iOS companion preview boundary.
+
+See `docs/HOSTED_THREAT_MODEL.md` for the threat model required before hosted auth, tenant isolation, audit logging, integrations, or deployment management begin.

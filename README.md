@@ -192,6 +192,7 @@ See `SECURITY.md` for supported security boundaries, vulnerability reporting gui
 - `docs/VERSIONING.md`: versioning and release checklist.
 - `docs/DEPLOYMENT_READINESS.md`: what is local-only today and what is required before hosted deployment.
 - `docs/PLATFORM_SURFACES.md`: current DOM/local surfaces, planned deployment management, and deferred Android/iOS preview boundaries.
+- `docs/HOSTED_THREAT_MODEL.md`: hosted auth, tenancy, audit, privacy, integration, and deployment security gate.
 - `docs/PUBLICATION_CHECKLIST.md`: public push/release checklist.
 - `docs/COMMERCIAL_STRATEGY.md`: open-core monetization path that keeps the local core free.
 

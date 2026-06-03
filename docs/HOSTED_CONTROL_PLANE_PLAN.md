@@ -2,6 +2,8 @@
 
 This is the planning contract for a future public login and management surface. It is not shipped behavior.
 
+See `docs/HOSTED_THREAT_MODEL.md` for the security gate that must be satisfied before hosted implementation starts.
+
 ## Current Slice
 
 The first implementation slice is local team policy profiles:
