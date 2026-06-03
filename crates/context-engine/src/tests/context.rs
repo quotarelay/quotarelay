@@ -1,5 +1,4 @@
 use std::fs;
-use std::io::ErrorKind;
 use std::thread;
 use std::time::Duration;
 
@@ -268,8 +267,11 @@ fn retrieve_context_exposes_explicit_modes() {
     assert!(overview.snippets.is_empty());
 
     let missing = retrieve_context(&root, RetrievalMode::TaskCapsule, None, 2)
-        .expect_err("task_capsule without query should fail");
-    assert_eq!(missing.kind(), ErrorKind::InvalidInput);
+        .expect("task_capsule without query should clarify");
+    assert_eq!(missing.mode, RetrievalMode::TaskCapsule);
+    assert_eq!(missing.cache_status.kind, CacheStatusKind::NotApplicable);
+    assert!(missing.clarification.is_some());
+    assert!(missing.documents.is_empty());
 }
 
 #[test]
