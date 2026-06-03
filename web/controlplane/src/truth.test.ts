@@ -290,8 +290,10 @@ describe('control-plane truth boundary', () => {
           query: 'needle',
           generated_at_epoch_ms: 42,
           budget: {
+            raw_bytes_considered: 120,
             included_bytes: 12,
-            approximate_tokens: 3
+            approximate_tokens: 3,
+            estimated_reduction_ratio: 0.9
           },
           stale: {
             is_stale: true,
@@ -318,7 +320,9 @@ describe('control-plane truth boundary', () => {
     })
     expect(state.fetchState).toBe('Live')
     expect(state.runs).toHaveLength(1)
+    expect(state.runs[0].budget?.raw_bytes_considered).toBe(120)
     expect(state.runs[0].budget?.approximate_tokens).toBe(3)
+    expect(state.runs[0].budget?.estimated_reduction_ratio).toBe(0.9)
     expect(state.runs[0].stale?.is_stale).toBe(true)
     expect(state.runs[0].cache_status?.kind).toBe('hit')
     expect(state.runs[0].omissions?.[0].kind).toBe('item_limit_reached')

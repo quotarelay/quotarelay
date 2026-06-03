@@ -4,6 +4,7 @@ use std::path::Path;
 use repo_index::{changed_documents, index_freshness, matching_documents, ChangedDocumentStatus};
 
 use super::*;
+use crate::budget::{budget_estimate, included_document_bytes};
 
 pub fn assemble_diff_aware(
     root: &Path,
@@ -53,6 +54,10 @@ pub fn assemble_diff_aware(
         }
     }
 
+    let raw_document_bytes = prepared
+        .iter()
+        .map(|document| document.contents.len())
+        .sum::<usize>();
     let (documents, mut omissions) = pack_prepared_documents(prepared, capped_limit);
     if documents.is_empty() && !freshness.is_stale {
         omissions.push(OmissionReason {
@@ -78,10 +83,13 @@ pub fn assemble_diff_aware(
             CacheStatusKind::NotApplicable,
             "diff_aware reads current local changes and is not cached.",
         ),
-        budget: ContextBudgetEstimate::default(),
+        budget: budget_estimate(0, raw_document_bytes),
         stale: ContextStaleStatus::default(),
     };
-    capsule.budget = budget_estimate(&capsule);
+    capsule.budget = budget_estimate(
+        included_document_bytes(&capsule.documents),
+        capsule.budget.raw_bytes_considered,
+    );
     capsule.stale = stale_status(root)?;
     Ok(capsule)
 }
@@ -131,18 +139,6 @@ fn pack_prepared_documents(
     }
 
     (packed, omissions)
-}
-
-fn budget_estimate(capsule: &ContextCapsule) -> ContextBudgetEstimate {
-    let included_bytes = capsule
-        .documents
-        .iter()
-        .map(|document| document.contents.len())
-        .sum::<usize>();
-    ContextBudgetEstimate {
-        included_bytes,
-        approximate_tokens: included_bytes.div_ceil(4),
-    }
 }
 
 fn stale_status(root: &Path) -> io::Result<ContextStaleStatus> {

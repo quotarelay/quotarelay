@@ -158,10 +158,14 @@ pub enum CacheStatusKind {
     NotApplicable,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq)]
 pub struct ContextBudgetEstimate {
+    #[serde(default)]
+    pub raw_bytes_considered: usize,
     pub included_bytes: usize,
     pub approximate_tokens: usize,
+    #[serde(default)]
+    pub estimated_reduction_ratio: f64,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]

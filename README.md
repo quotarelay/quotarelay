@@ -50,7 +50,7 @@ The retrieval contract is explicit and bounded:
 - Local-change mode: `diff_aware` assembles bounded context around changed/new files and optional related indexed matches
 - Hard limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, 10 history runs
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
-- Budget estimate: context packs include local included-byte counts and approximate tokens derived from those bytes
+- Budget estimate: context packs include local raw bytes considered, included-byte counts, approximate tokens, and a derived reduction ratio
 - Stale status: context packs report whether indexed files appear changed, missing, or new since the last explicit sync
 - Cache status: context packs report local cache hit, miss, or not-applicable state; cache clear reports cleared or empty state
 - Clarification: underspecified exact/task requests return 1-3 focused questions instead of broad context dumps

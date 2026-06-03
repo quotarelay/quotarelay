@@ -1,4 +1,7 @@
 use super::*;
+use crate::budget::{
+    budget_estimate, included_document_bytes, included_memory_bytes, included_snippet_bytes,
+};
 use crate::clarification::{clarification_context, clarification_for_request};
 use crate::diff::assemble_diff_aware;
 use crate::memory::{find_memory_notes, pack_memory_notes};
@@ -28,9 +31,14 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
     }
 
     let hits = search_code(root, &query, capped_limit + 1)?;
+    let raw_hit_bytes = hits.iter().map(|hit| hit.line.len()).sum::<usize>();
     let (snippets, omissions) = pack_snippets(&query, hits, capped_limit);
-    let (memory_notes, memory_omissions) =
-        pack_memory_notes(&query, find_memory_notes(root, &query)?, capped_limit);
+    let memory_matches = find_memory_notes(root, &query)?;
+    let raw_memory_bytes = memory_matches
+        .iter()
+        .map(|note| note.content.len())
+        .sum::<usize>();
+    let (memory_notes, memory_omissions) = pack_memory_notes(&query, memory_matches, capped_limit);
     let mut omissions = omissions;
     omissions.extend(memory_omissions);
     let assembly = assembly_with_budget_and_stale(
@@ -45,7 +53,7 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
                 CacheStatusKind::Miss,
                 "exact_search cache miss; context pack was assembled and cached.",
             ),
-            budget: ContextBudgetEstimate::default(),
+            budget: budget_estimate(0, raw_hit_bytes + raw_memory_bytes),
             stale: ContextStaleStatus::default(),
         },
     )?;
@@ -212,6 +220,10 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
     let documents = indexed_documents(root, capped_limit + 1)?;
+    let raw_document_bytes = documents
+        .iter()
+        .map(|document| document.contents.len())
+        .sum::<usize>();
     let (documents, omissions) = pack_documents(
         documents,
         capped_limit,
@@ -229,7 +241,7 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
                 CacheStatusKind::Miss,
                 "overview cache miss; context pack was assembled and cached.",
             ),
-            budget: ContextBudgetEstimate::default(),
+            budget: budget_estimate(0, raw_document_bytes),
             stale: ContextStaleStatus::default(),
         },
     )?;
@@ -249,6 +261,10 @@ pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Resu
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
     let documents = matching_documents(root, &query, capped_limit + 1)?;
+    let raw_document_bytes = documents
+        .iter()
+        .map(|document| document.contents.len())
+        .sum::<usize>();
     let reason_detail = format!("Indexed document contents matched query '{query}'.");
     let scope = format!("query '{query}'");
     let (documents, omissions) = pack_documents(
@@ -268,7 +284,7 @@ pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Resu
                 CacheStatusKind::Miss,
                 "task_capsule cache miss; context pack was assembled and cached.",
             ),
-            budget: ContextBudgetEstimate::default(),
+            budget: budget_estimate(0, raw_document_bytes),
             stale: ContextStaleStatus::default(),
         },
     )?;
@@ -427,17 +443,9 @@ fn assembly_with_budget_and_stale(
     root: &Path,
     mut assembly: ContextAssembly,
 ) -> io::Result<ContextAssembly> {
-    let snippet_bytes = assembly
-        .snippets
-        .iter()
-        .map(|snippet| snippet.line.len())
-        .sum::<usize>();
-    let memory_bytes = assembly
-        .memory_notes
-        .iter()
-        .map(|note| note.content.len())
-        .sum::<usize>();
-    assembly.budget = budget_estimate(snippet_bytes + memory_bytes);
+    let included_bytes =
+        included_snippet_bytes(&assembly.snippets) + included_memory_bytes(&assembly.memory_notes);
+    assembly.budget = budget_estimate(included_bytes, assembly.budget.raw_bytes_considered);
     assembly.stale = stale_status(root)?;
     Ok(assembly)
 }
@@ -455,12 +463,8 @@ fn capsule_with_budget_and_stale(
     root: &Path,
     mut capsule: ContextCapsule,
 ) -> io::Result<ContextCapsule> {
-    let document_bytes = capsule
-        .documents
-        .iter()
-        .map(|document| document.contents.len())
-        .sum::<usize>();
-    capsule.budget = budget_estimate(document_bytes);
+    let included_bytes = included_document_bytes(&capsule.documents);
+    capsule.budget = budget_estimate(included_bytes, capsule.budget.raw_bytes_considered);
     capsule.stale = stale_status(root)?;
     Ok(capsule)
 }
@@ -478,13 +482,6 @@ pub(crate) fn cache_status(kind: CacheStatusKind, detail: &str) -> CacheStatus {
     CacheStatus {
         kind,
         detail: detail.to_string(),
-    }
-}
-
-fn budget_estimate(included_bytes: usize) -> ContextBudgetEstimate {
-    ContextBudgetEstimate {
-        included_bytes,
-        approximate_tokens: included_bytes.div_ceil(4),
     }
 }
 

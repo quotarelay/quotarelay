@@ -54,8 +54,10 @@ export type ContextRunState = {
   query?: string
   generated_at_epoch_ms?: number
   budget?: {
+    raw_bytes_considered?: number
     included_bytes?: number
     approximate_tokens?: number
+    estimated_reduction_ratio?: number
   }
   stale?: {
     is_stale?: boolean

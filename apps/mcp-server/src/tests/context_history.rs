@@ -56,6 +56,15 @@ fn assemble_context_reports_byte_budget_omissions_over_stdio() {
     )
     .expect("assembly payload should be valid json");
     assert_eq!(assembly["omissions"][0]["kind"], "byte_budget_reached");
+    assert!(
+        assembly["budget"]["raw_bytes_considered"]
+            .as_u64()
+            .expect("raw considered bytes should exist")
+            >= assembly["budget"]["included_bytes"]
+                .as_u64()
+                .expect("included bytes should exist")
+    );
+    assert!(assembly["budget"]["estimated_reduction_ratio"].is_number());
     assert!(assembly["snippets"][0]["line"]
         .as_str()
         .expect("snippet line should exist")

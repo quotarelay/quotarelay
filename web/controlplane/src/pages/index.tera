@@ -170,8 +170,10 @@
         <h3>{{ run.query }}</h3>
         <p>{{ run.generated_at_epoch_ms }}</p>
         <div class="chip-row">
-          <span class="chip" v-if="run.budget">bytes: {{ run.budget.included_bytes }}</span>
+          <span class="chip" v-if="run.budget">raw bytes: {{ run.budget.raw_bytes_considered }}</span>
+          <span class="chip" v-if="run.budget">included bytes: {{ run.budget.included_bytes }}</span>
           <span class="chip" v-if="run.budget">approx tokens: {{ run.budget.approximate_tokens }}</span>
+          <span class="chip" v-if="run.budget">reduction: {{ Math.round((run.budget.estimated_reduction_ratio || 0) * 100) }}%</span>
           <span class="chip" v-if="run.cache_status">cache: {{ run.cache_status.kind }}</span>
           <span class="chip" v-if="run.stale">{{ run.stale.is_stale ? 'stale' : 'fresh' }}</span>
           <span class="chip" v-for="snippet in run.snippets" :key="snippet.path">{{ snippet.reason.kind }}</span>

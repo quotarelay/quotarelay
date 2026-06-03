@@ -94,8 +94,16 @@ fn local_cli_register_sync_assemble_and_truth_workflow() {
         "needle in repo".len()
     );
     assert_eq!(
+        assembly["result"]["context"]["budget"]["raw_bytes_considered"],
+        "needle in repo".len()
+    );
+    assert_eq!(
         assembly["result"]["context"]["budget"]["approximate_tokens"],
         4
+    );
+    assert_eq!(
+        assembly["result"]["context"]["budget"]["estimated_reduction_ratio"],
+        0.0
     );
     assert_eq!(assembly["result"]["context"]["stale"]["is_stale"], false);
 

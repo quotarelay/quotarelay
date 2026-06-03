@@ -282,7 +282,9 @@ fn context_outputs_include_local_budget_estimates() {
     let exact = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 2)
         .expect("exact_search should succeed");
     assert_eq!(exact.budget.included_bytes, "needle bytes".len());
+    assert_eq!(exact.budget.raw_bytes_considered, "needle bytes".len());
     assert_eq!(exact.budget.approximate_tokens, 3);
+    assert_eq!(exact.budget.estimated_reduction_ratio, 0.0);
 
     let overview =
         retrieve_context(&root, RetrievalMode::Overview, None, 1).expect("overview should succeed");
@@ -294,6 +296,9 @@ fn context_outputs_include_local_budget_estimates() {
         overview.budget.approximate_tokens,
         overview.budget.included_bytes.div_ceil(4)
     );
+    assert!(overview.budget.raw_bytes_considered >= overview.budget.included_bytes);
+    assert!(overview.budget.estimated_reduction_ratio >= 0.0);
+    assert!(overview.budget.estimated_reduction_ratio <= 1.0);
 }
 
 #[test]

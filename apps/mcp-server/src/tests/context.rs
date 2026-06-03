@@ -440,6 +440,15 @@ fn handoff_packet_works_over_stdio() {
             .map(|items| items.len()),
         Some(1)
     );
+    assert!(
+        packet["context"]["budget"]["raw_bytes_considered"]
+            .as_u64()
+            .expect("raw considered bytes should be exposed")
+            >= packet["context"]["budget"]["included_bytes"]
+                .as_u64()
+                .expect("included bytes should be exposed")
+    );
+    assert!(packet["context"]["budget"]["estimated_reduction_ratio"].is_number());
     assert!(packet["validation_commands"].is_array());
     assert!(packet["known_blockers"].is_array());
     assert!(packet["omissions"].is_array());

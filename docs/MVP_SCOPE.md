@@ -45,6 +45,7 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 | Durable memory | Shipped local MVP behavior | Write/read/update/delete/search/export/import are local and bounded; empty memory search is rejected. |
 | Cache inspection and clear | Shipped local MVP behavior | Cache inspect/clear, corrupt cache errors, canonicalization, separation, and sync invalidation are tested. |
 | Cache hit visibility | Shipped local token-saver behavior | Context packs expose hit, miss, or not-applicable cache status; cache clear reports cleared or empty state. |
+| Savings clarity surface | Shipped local token-saver behavior | Context and handoff packets expose raw bytes considered, included bytes, approximate tokens, local reduction ratio, cache status, stale status, and omissions. |
 | Ambiguous request clarification | Shipped local token-saver behavior | Underspecified exact/task context and handoff requests return bounded clarification questions instead of broad repo dumps. |
 | Repository registration and profiles | Shipped local MVP behavior | Registration, dedupe, removal, metadata rename, detail lookup, bounded listing, and workspace profiles are tested. |
 | Truth surfaces | Shipped local MVP behavior | `/truth`, CLI truth, OpenAPI mirror, and control-plane rendering are constrained to shipped backend behavior. |

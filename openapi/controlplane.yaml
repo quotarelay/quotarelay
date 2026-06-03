@@ -523,15 +523,24 @@ components:
       type: object
       additionalProperties: false
       required:
+        - raw_bytes_considered
         - included_bytes
         - approximate_tokens
+        - estimated_reduction_ratio
       properties:
+        raw_bytes_considered:
+          type: integer
+          description: Local candidate byte count considered by the bounded context assembler.
         included_bytes:
           type: integer
           description: Local byte count for text included in the bounded context packet.
         approximate_tokens:
           type: integer
           description: Local approximate token estimate derived from included bytes; not provider billing truth.
+        estimated_reduction_ratio:
+          type: number
+          format: double
+          description: Local ratio derived from raw and included bytes; not provider billing truth.
     ContextStaleStatus:
       type: object
       additionalProperties: false
