@@ -12,6 +12,7 @@ mod models;
 mod repositories;
 mod retrieval;
 mod storage;
+mod team_policy;
 mod validation;
 
 pub use diff::assemble_diff_aware;
@@ -35,6 +36,7 @@ pub use retrieval::{
 pub(crate) use retrieval::{fit_within_budget, normalize_query};
 pub(crate) use storage::*;
 pub use storage::{clear_retrieval_caches, inspect_local_state, inspect_retrieval_caches};
+pub use team_policy::{list_team_policy_profiles, save_team_policy_profile};
 pub use validation::recommend_validation;
 
 impl EngineInfo {

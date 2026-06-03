@@ -22,3 +22,5 @@
 18. BYOK key storage is rejected for the local MVP; no provider keys are stored until a future decision defines storage, encryption, and rotation rules.
 19. Provider capability truth is rejected for the local MVP; Quotarelay does not detect models, route provider calls, or recommend providers.
 20. Hosted multi-user feasibility remains a decision-only topic; no multi-user implementation starts until tenancy, identity, storage, and repository-content boundaries are approved.
+21. Local team policy profiles are open for implementation as a privacy-preserving team layer. They may store guardrails, validation recipes, MCP client presets, and an explicit source-upload preference under local `.quotarelay` state.
+22. Hosted login and organization management are open for planning only. Implementation must wait for an approved threat model covering auth, authorization, tenant isolation, audit logs, retention, abuse controls, and source-content opt-in.

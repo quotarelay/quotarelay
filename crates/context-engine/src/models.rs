@@ -9,6 +9,8 @@ pub(crate) const MAX_HISTORY_RUNS: usize = 10;
 pub(crate) const MAX_REGISTERED_REPOSITORIES: usize = 20;
 pub(crate) const MAX_MEMORY_TRANSFER_NOTES: usize = 50;
 pub(crate) const MAX_WORKSPACE_PROFILES: usize = 20;
+pub(crate) const MAX_TEAM_POLICY_PROFILES: usize = 20;
+pub(crate) const MAX_TEAM_POLICY_ITEMS: usize = 20;
 
 pub struct EngineInfo {
     pub(crate) name: &'static str,
@@ -372,6 +374,20 @@ pub struct WorkspaceProfileSaveResult {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TeamPolicyProfile {
+    pub name: String,
+    pub guardrails: Vec<String>,
+    pub validation_recipes: Vec<String>,
+    pub mcp_client_presets: Vec<String>,
+    pub allow_source_upload: bool,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct TeamPolicyProfileSaveResult {
+    pub profile: TeamPolicyProfile,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct RetrievalLimits {
     pub max_context_items: usize,
     pub max_snippet_pack_bytes: usize,
@@ -398,6 +414,7 @@ pub struct LocalStateInspection {
     pub context_run_history: LocalStateArtifact,
     pub context_feedback: LocalStateArtifact,
     pub registered_repositories: LocalStateArtifact,
+    pub team_policy_profiles: LocalStateArtifact,
     pub exact_search_cache: LocalStateArtifact,
     pub retrieval_capsule_cache: LocalStateArtifact,
 }
@@ -467,4 +484,9 @@ pub(crate) struct StoredRegisteredRepositories {
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub(crate) struct StoredWorkspaceProfiles {
     pub(crate) profiles: Vec<WorkspaceProfile>,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub(crate) struct StoredTeamPolicyProfiles {
+    pub(crate) profiles: Vec<TeamPolicyProfile>,
 }

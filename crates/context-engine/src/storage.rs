@@ -51,6 +51,7 @@ pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
     let history = load_history(root)?;
     let feedback = load_context_feedback(root)?;
     let registered_repositories = load_registered_repositories(root)?;
+    let team_policy_profiles = load_team_policy_profiles(root)?;
     let exact_cache = load_exact_match_cache(root)?;
     let capsule_cache = load_capsule_cache(root)?;
 
@@ -71,6 +72,10 @@ pub fn inspect_local_state(root: &Path) -> io::Result<LocalStateInspection> {
         registered_repositories: LocalStateArtifact {
             present: registered_repositories_path(root).exists(),
             item_count: registered_repositories.repositories.len(),
+        },
+        team_policy_profiles: LocalStateArtifact {
+            present: team_policy_profiles_path(root).exists(),
+            item_count: team_policy_profiles.profiles.len(),
         },
         exact_search_cache: LocalStateArtifact {
             present: exact_match_cache_path(root).exists(),
@@ -156,6 +161,12 @@ pub(crate) fn workspace_profiles_path(state_root: &Path) -> PathBuf {
         .join("workspace_profiles.json")
 }
 
+pub(crate) fn team_policy_profiles_path(state_root: &Path) -> PathBuf {
+    state_root
+        .join(".quotarelay")
+        .join("team_policy_profiles.json")
+}
+
 fn parse_state_json<T>(path: &Path, bytes: &[u8]) -> io::Result<T>
 where
     T: for<'de> Deserialize<'de>,
@@ -231,6 +242,30 @@ pub(crate) fn persist_workspace_profiles(
     profiles: &StoredWorkspaceProfiles,
 ) -> io::Result<()> {
     let path = workspace_profiles_path(state_root);
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(
+        path,
+        serde_json::to_vec_pretty(profiles).map_err(io::Error::other)?,
+    )
+}
+
+pub(crate) fn load_team_policy_profiles(state_root: &Path) -> io::Result<StoredTeamPolicyProfiles> {
+    let path = team_policy_profiles_path(state_root);
+    if !path.exists() {
+        return Ok(StoredTeamPolicyProfiles::default());
+    }
+
+    let bytes = fs::read(&path)?;
+    parse_state_json(&path, &bytes)
+}
+
+pub(crate) fn persist_team_policy_profiles(
+    state_root: &Path,
+    profiles: &StoredTeamPolicyProfiles,
+) -> io::Result<()> {
+    let path = team_policy_profiles_path(state_root);
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }

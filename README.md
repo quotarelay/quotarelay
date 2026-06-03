@@ -27,6 +27,8 @@ Today the backend exposes these MCP tools:
 - `remove_repository`
 - `workspace_profile_save`
 - `workspace_profile_list`
+- `team_policy_profile_save`
+- `team_policy_profile_list`
 - `search_code`
 - `memory_write`
 - `memory_read`
@@ -57,6 +59,7 @@ The retrieval contract is explicit and bounded:
 - Durable memory: stored locally under `.quotarelay/`
 - Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
 - Registered repository state: stored locally and exposed with sync status, indexed counts, bounded repo maps, and recent run metadata
+- Team policy profiles: stored locally with guardrails, validation recipes, MCP client presets, and explicit source-upload preference
 - Validation recommendations: exact local commands with reasons for touched or queried paths; commands are returned, not run
 - Context feedback: local bounded records for useful/not-useful context packs; feedback is inspectable and does not change ranking
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync

@@ -79,6 +79,7 @@ Goal: let teams share the brain of the repo while each developer can keep code l
 Core outcomes:
 
 - Team profile config for repo groups, default retrieval limits, validation recipes, and guardrails.
+- Local team policy profiles for guardrails, validation recipes, MCP client presets, and explicit source-upload preference.
 - Shared decision memory that agents load before edits.
 - Handoff packet templates for bug fix, feature slice, review, refactor, and release work.
 - MCP client presets for verified local setups.
@@ -129,3 +130,5 @@ Paid value should come from:
 Do not make the free version a crippled demo. Community trust and solo-developer adoption are part of the business strategy.
 
 See `docs/COMMERCIAL_STRATEGY.md` for the open-core gating model, hosted management surface, and savings metrics boundaries.
+
+See `docs/HOSTED_CONTROL_PLANE_PLAN.md` for the privacy and security gates before public login or hosted organization management ships.

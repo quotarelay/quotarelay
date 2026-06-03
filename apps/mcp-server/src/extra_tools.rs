@@ -51,3 +51,39 @@ pub(crate) fn validation_recommend_tool() -> Value {
         }
     })
 }
+
+pub(crate) fn team_policy_profile_save_tool() -> Value {
+    json!({
+        "name": "team_policy_profile_save",
+        "description": "Persists a local team policy profile for guardrails, validation recipes, MCP presets, and source-upload preference.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "name": { "type": "string" },
+                "guardrails": { "type": "array", "items": { "type": "string" }, "maxItems": 20 },
+                "validation_recipes": { "type": "array", "items": { "type": "string" }, "maxItems": 20 },
+                "mcp_client_presets": { "type": "array", "items": { "type": "string" }, "maxItems": 20 },
+                "allow_source_upload": { "type": "boolean", "default": false }
+            },
+            "required": ["root", "name"],
+            "additionalProperties": false
+        }
+    })
+}
+
+pub(crate) fn team_policy_profile_list_tool() -> Value {
+    json!({
+        "name": "team_policy_profile_list",
+        "description": "Lists bounded local team policy profiles without uploading source code or local state.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 20 }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}

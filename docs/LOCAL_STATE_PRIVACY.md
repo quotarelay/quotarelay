@@ -15,9 +15,10 @@ Quotarelay writes local state under `.quotarelay` inside roots passed to tools.
 | `.quotarelay/retrieval_capsules.json` | Local overview and task-capsule retrieval cache. |
 | `.quotarelay/registered_repositories.json` | Registered repo roots and display metadata for a chosen state root. |
 | `.quotarelay/workspace_profiles.json` | Local workspace profile names, repo roots, and default retrieval limits. |
+| `.quotarelay/team_policy_profiles.json` | Local team guardrails, validation recipes, MCP presets, and source-upload preference. |
 | `.quotarelay/ignore.json` | Optional local index ignore config when the operator creates it. |
 
-State files can contain source snippets, memory text, repo paths, queries, and context history. Treat them as project-local working data.
+State files can contain source snippets, memory text, repo paths, queries, context history, guardrails, and validation recipes. Treat them as project-local working data.
 
 ## What The Local MVP Does Not Send
 

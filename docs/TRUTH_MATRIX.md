@@ -13,6 +13,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Memory | Durable local memory supports write/read/update/delete/search/export/import under `.quotarelay`. Empty memory search is rejected instead of dumping notes. |
 | Cache | Local retrieval caches can be inspected, cleared, reused, invalidated by explicit sync, and recovered from corrupt JSON by operator action. |
 | Token-saving clarity | Context and handoff packets expose local raw bytes considered, included bytes, approximate tokens, reduction ratio, cache status, stale status, omissions, and one-command demo output without provider billing claims. |
+| Team policy profiles | Local `.quotarelay` policy profiles can store guardrails, validation recipes, MCP client presets, and explicit source-upload preference without hosted sync. |
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |
 | Public guidance | `AGENTS.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, versioning docs, deployment-readiness docs, `LICENSE`, and `NOTICE` define the public operating surface. |
