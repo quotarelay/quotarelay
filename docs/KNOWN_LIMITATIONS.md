@@ -22,7 +22,7 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 - Context assembly is bounded by fixed item and byte limits and explains inclusion and omission reasons.
 - The shipped MVP does not claim exact tokenizer output, provider billing reduction, pricing impact, or guaranteed savings.
 - Token-saving work is limited to local, explainable context reduction. Current byte counts, approximate-token estimates, and reduction ratios are local approximations, not provider tokenizer or billing truth.
-- Local savings demo polish remains queued future local work, not shipped behavior in this release candidate.
+- Local savings demos are local fixtures only; they are not real-world billing benchmarks or provider traces.
 - Decision and guardrail memory profiles prioritize local notes in bounded packets, but they do not enforce policy or override tracker/docs truth.
 - Stale context detection is read-only. It reports changed, missing, or new files relative to the last explicit sync; it does not watch files, refresh caches, or sync automatically.
 

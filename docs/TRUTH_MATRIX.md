@@ -12,6 +12,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Repository index | Local sync writes a bounded `.quotarelay/index.json`, respects explicit ignore config, and supports inventory/search/document lookup. |
 | Memory | Durable local memory supports write/read/update/delete/search/export/import under `.quotarelay`. Empty memory search is rejected instead of dumping notes. |
 | Cache | Local retrieval caches can be inspected, cleared, reused, invalidated by explicit sync, and recovered from corrupt JSON by operator action. |
+| Token-saving clarity | Context and handoff packets expose local raw bytes considered, included bytes, approximate tokens, reduction ratio, cache status, stale status, omissions, and one-command demo output without provider billing claims. |
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |
 
@@ -20,11 +21,8 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Area | Next useful work |
 |---|---|
 | Docs and release readiness | Bootstrap docs, MCP client setup, local quickstart, troubleshooting, known limitations, changelog, and release rehearsal. |
-| Token-saving clarity | Add cache hit/miss visibility and local reduction benchmarks without provider billing claims; local byte counts, approximate token estimates, and stale state now ship for context packets. |
-| Agent handoff | Bounded handoff packets now ship with active task, context, decision/guardrail memory notes, validation commands, blockers, and omission reasons. |
-| Repo intelligence | Bounded repo maps and diff-aware context ship locally; validation recommendations return exact local commands without running them. |
-| Context feedback | Bounded local feedback records can be written and listed; feedback does not change retrieval ranking and is not telemetry. |
-| Demo and validation | Provide a local example workspace, demo script, and one-command validation suite with no external services. |
+| Release-readiness audit | Keep shipped docs aligned as local token-saving and release-support slices finish. |
+| End-to-end operator suite | Keep one local proof path covering register, sync, memory, assemble, cache, CLI, and control-plane truth. |
 
 ## Deferred Platform Decisions
 
