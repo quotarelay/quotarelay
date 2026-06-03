@@ -4,6 +4,8 @@
 
 This release candidate documents the current local MVP behavior. It is not a hosted service, deployment artifact, provider gateway, or billing-savings claim.
 
+Public-readiness update: the local core is Apache-2.0, with public guidance for humans and AI agents plus an open-core commercial strategy that keeps local functionality free while reserving hosted/team/enterprise coordination, governance, support, and deployment as paid product surfaces.
+
 ### Shipped local behavior
 
 - Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, context run history, and local state inspection.

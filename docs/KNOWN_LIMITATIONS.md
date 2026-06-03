@@ -44,6 +44,8 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 - Quotarelay does not run background schedulers, background sync workers, automatic cache warming, or silent state repair.
 - Cache clearing and corrupt JSON recovery are explicit operator actions.
 - Release, publish, deploy, push, tag, and installer automation are outside the shipped local MVP.
+- Apache-2.0 permits third-party commercial use; Quotarelay monetization should come from hosted product, support, enterprise controls, integrations, policy, deployment, branding, and execution rather than source-code exclusivity.
+- Hosted login, team management, shared policy, shared memory, and enterprise audit surfaces are planned commercial layers, not shipped local MVP behavior.
 
 ## Deferred platform work
 
@@ -55,3 +57,4 @@ These areas remain closed until `docs/DECISIONS.md` and `EXECUTION_TRACKER.md` e
 - BYOK and provider key management.
 - Provider request routing.
 - Enterprise SSO, audit, compliance, and packaging surfaces.
+- Hosted deployment controls, including auth, TLS, identity, audit logs, monitoring, rollout, and rollback.

@@ -127,3 +127,5 @@ Paid value should come from:
 - Enterprise assurance.
 
 Do not make the free version a crippled demo. Community trust and solo-developer adoption are part of the business strategy.
+
+See `docs/COMMERCIAL_STRATEGY.md` for the open-core gating model, hosted management surface, and savings metrics boundaries.

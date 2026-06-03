@@ -176,6 +176,20 @@ See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what th
 
 See `SECURITY.md` for supported security boundaries, vulnerability reporting guidance, local data handling, and the loopback-only HTTP policy.
 
+## Public repo guidance
+
+- `AGENTS.md`: instructions for AI agents and bots working in this repo.
+- `CONTRIBUTING.md`: contribution workflow and validation expectations.
+- `SUPPORT.md`: support boundaries and issue guidance.
+- `docs/VERSIONING.md`: versioning and release checklist.
+- `docs/DEPLOYMENT_READINESS.md`: what is local-only today and what is required before hosted deployment.
+- `docs/PUBLICATION_CHECKLIST.md`: public push/release checklist.
+- `docs/COMMERCIAL_STRATEGY.md`: open-core monetization path that keeps the local core free.
+
+## License
+
+Quotarelay is licensed under Apache-2.0. See `LICENSE` and `NOTICE`.
+
 ## Known limitations
 
 See `docs/KNOWN_LIMITATIONS.md` for local-only boundaries, indexing limits, provider/network non-goals, control-plane limits, and deferred platform work.

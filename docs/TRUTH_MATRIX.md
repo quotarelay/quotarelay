@@ -15,6 +15,8 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Token-saving clarity | Context and handoff packets expose local raw bytes considered, included bytes, approximate tokens, reduction ratio, cache status, stale status, omissions, and one-command demo output without provider billing claims. |
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |
+| Public guidance | `AGENTS.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, versioning docs, deployment-readiness docs, `LICENSE`, and `NOTICE` define the public operating surface. |
+| Commercial posture | Apache-2.0 local core stays useful; paid value is planned around hosted/team/enterprise coordination, governance, integrations, support, and deployment. |
 
 ## Queued Local Work
 
@@ -34,6 +36,8 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | BYOK | Decision only until storage rules are approved; no provider calls or forwarding. |
 | Cloud sync | Closed for MVP; local-first state remains the default. |
 | Enterprise packaging | Future work may add private deployment guidance, auditability, and support paths after local MVP release readiness. |
+| Hosted deployment | Deferred until auth, TLS, identity, audit, state, rollout, rollback, and monitoring controls are designed and implemented. |
+| Hosted team control plane | Deferred until organization login, roles, policy storage, shared memory workflow, audit events, and privacy boundaries are implemented. |
 
 ## Explicit Non-Goals
 
