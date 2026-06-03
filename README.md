@@ -46,6 +46,7 @@ The retrieval contract is explicit and bounded:
 - Hard limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, 10 history runs
 - Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
 - Budget estimate: context packs include local included-byte counts and approximate tokens derived from those bytes
+- Stale status: context packs report whether indexed files appear changed, missing, or new since the last explicit sync
 - Durable memory: stored locally under `.quotarelay/`
 - Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
 - Registered repository state: stored locally and exposed with sync status, indexed counts, and recent run metadata

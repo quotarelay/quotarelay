@@ -1,7 +1,7 @@
 use std::io;
 use std::path::Path;
 
-use repo_index::{indexed_documents, matching_documents, search_code};
+use repo_index::{index_freshness, indexed_documents, matching_documents, search_code};
 
 use super::*;
 use crate::memory::{find_memory_notes, pack_memory_notes};
@@ -18,7 +18,7 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
     let query = normalize_query(query);
     let capped_limit = limit.clamp(1, 5);
     if let Some(assembly) = read_exact_match_cache(root, &query)? {
-        let assembly = assembly_with_budget(assembly);
+        let assembly = assembly_with_budget_and_stale(root, assembly)?;
         append_history(root, &assembly)?;
         return Ok(assembly);
     }
@@ -29,14 +29,18 @@ pub fn assemble_context(root: &Path, query: &str, limit: usize) -> io::Result<Co
         pack_memory_notes(&query, find_memory_notes(root, &query)?, capped_limit);
     let mut omissions = omissions;
     omissions.extend(memory_omissions);
-    let assembly = assembly_with_budget(ContextAssembly {
-        query: query.clone(),
-        generated_at_epoch_ms: now_epoch_ms()?,
-        snippets,
-        memory_notes,
-        omissions,
-        budget: ContextBudgetEstimate::default(),
-    });
+    let assembly = assembly_with_budget_and_stale(
+        root,
+        ContextAssembly {
+            query: query.clone(),
+            generated_at_epoch_ms: now_epoch_ms()?,
+            snippets,
+            memory_notes,
+            omissions,
+            budget: ContextBudgetEstimate::default(),
+            stale: ContextStaleStatus::default(),
+        },
+    )?;
 
     persist_exact_match_cache(root, &query, &assembly)?;
     append_history(root, &assembly)?;
@@ -86,6 +90,7 @@ pub fn retrieve_context(
                 documents: Vec::new(),
                 omissions: assembly.omissions,
                 budget: assembly.budget,
+                stale: assembly.stale,
             })
         }
         RetrievalMode::Overview => {
@@ -99,6 +104,7 @@ pub fn retrieve_context(
                 documents: capsule.documents,
                 omissions: capsule.omissions,
                 budget: capsule.budget,
+                stale: capsule.stale,
             })
         }
         RetrievalMode::TaskCapsule => {
@@ -116,6 +122,7 @@ pub fn retrieve_context(
                 documents: capsule.documents,
                 omissions: capsule.omissions,
                 budget: capsule.budget,
+                stale: capsule.stale,
             })
         }
     }
@@ -161,7 +168,7 @@ pub fn invalidate_exact_match_cache(root: &Path) -> io::Result<()> {
 
 pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule> {
     if let Some(capsule) = read_capsule_cache(root, RetrievalMode::Overview, None)? {
-        return Ok(capsule_with_budget(capsule));
+        return capsule_with_budget_and_stale(root, capsule);
     }
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
@@ -173,12 +180,16 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
         "Indexed document supports repository overview.",
         "repository overview",
     );
-    let capsule = capsule_with_budget(ContextCapsule {
-        generated_at_epoch_ms: now_epoch_ms()?,
-        documents,
-        omissions,
-        budget: ContextBudgetEstimate::default(),
-    });
+    let capsule = capsule_with_budget_and_stale(
+        root,
+        ContextCapsule {
+            generated_at_epoch_ms: now_epoch_ms()?,
+            documents,
+            omissions,
+            budget: ContextBudgetEstimate::default(),
+            stale: ContextStaleStatus::default(),
+        },
+    )?;
     persist_capsule_cache(root, RetrievalMode::Overview, None, &capsule)?;
     Ok(capsule)
 }
@@ -186,7 +197,7 @@ pub fn assemble_overview(root: &Path, limit: usize) -> io::Result<ContextCapsule
 pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Result<ContextCapsule> {
     let query = normalize_query(query);
     if let Some(capsule) = read_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query))? {
-        return Ok(capsule_with_budget(capsule));
+        return capsule_with_budget_and_stale(root, capsule);
     }
 
     let capped_limit = limit.clamp(1, MAX_CONTEXT_ITEMS);
@@ -200,12 +211,16 @@ pub fn assemble_task_capsule(root: &Path, query: &str, limit: usize) -> io::Resu
         &reason_detail,
         &scope,
     );
-    let capsule = capsule_with_budget(ContextCapsule {
-        generated_at_epoch_ms: now_epoch_ms()?,
-        documents,
-        omissions,
-        budget: ContextBudgetEstimate::default(),
-    });
+    let capsule = capsule_with_budget_and_stale(
+        root,
+        ContextCapsule {
+            generated_at_epoch_ms: now_epoch_ms()?,
+            documents,
+            omissions,
+            budget: ContextBudgetEstimate::default(),
+            stale: ContextStaleStatus::default(),
+        },
+    )?;
     persist_capsule_cache(root, RetrievalMode::TaskCapsule, Some(&query), &capsule)?;
     Ok(capsule)
 }
@@ -357,7 +372,10 @@ pub(crate) fn fit_within_budget(
     Some((truncated, true))
 }
 
-fn assembly_with_budget(mut assembly: ContextAssembly) -> ContextAssembly {
+fn assembly_with_budget_and_stale(
+    root: &Path,
+    mut assembly: ContextAssembly,
+) -> io::Result<ContextAssembly> {
     let snippet_bytes = assembly
         .snippets
         .iter()
@@ -369,17 +387,22 @@ fn assembly_with_budget(mut assembly: ContextAssembly) -> ContextAssembly {
         .map(|note| note.content.len())
         .sum::<usize>();
     assembly.budget = budget_estimate(snippet_bytes + memory_bytes);
-    assembly
+    assembly.stale = stale_status(root)?;
+    Ok(assembly)
 }
 
-fn capsule_with_budget(mut capsule: ContextCapsule) -> ContextCapsule {
+fn capsule_with_budget_and_stale(
+    root: &Path,
+    mut capsule: ContextCapsule,
+) -> io::Result<ContextCapsule> {
     let document_bytes = capsule
         .documents
         .iter()
         .map(|document| document.contents.len())
         .sum::<usize>();
     capsule.budget = budget_estimate(document_bytes);
-    capsule
+    capsule.stale = stale_status(root)?;
+    Ok(capsule)
 }
 
 fn budget_estimate(included_bytes: usize) -> ContextBudgetEstimate {
@@ -387,4 +410,14 @@ fn budget_estimate(included_bytes: usize) -> ContextBudgetEstimate {
         included_bytes,
         approximate_tokens: included_bytes.div_ceil(4),
     }
+}
+
+fn stale_status(root: &Path) -> io::Result<ContextStaleStatus> {
+    let freshness = index_freshness(root)?;
+    Ok(ContextStaleStatus {
+        is_stale: freshness.is_stale,
+        changed_files: freshness.changed_count,
+        missing_files: freshness.missing_count,
+        new_files: freshness.new_count,
+    })
 }

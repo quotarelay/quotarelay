@@ -45,6 +45,12 @@ export type ContextRunState = {
     included_bytes?: number
     approximate_tokens?: number
   }
+  stale?: {
+    is_stale?: boolean
+    changed_files?: number
+    missing_files?: number
+    new_files?: number
+  }
   snippets?: Array<{
     path?: string
     reason?: {

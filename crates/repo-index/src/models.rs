@@ -30,6 +30,14 @@ pub struct SyncResult {
     pub index_path: String,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct IndexFreshness {
+    pub is_stale: bool,
+    pub changed_count: usize,
+    pub missing_count: usize,
+    pub new_count: usize,
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SearchHit {
     pub path: String,

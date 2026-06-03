@@ -85,6 +85,7 @@ fn local_cli_register_sync_assemble_and_truth_workflow() {
         assembly["result"]["context"]["budget"]["approximate_tokens"],
         4
     );
+    assert_eq!(assembly["result"]["context"]["stale"]["is_stale"], false);
 
     output.clear();
     super::run_cli(["truth".to_string()], &mut output).expect("cli truth should succeed");

@@ -1,5 +1,7 @@
 use std::fs;
 use std::io::ErrorKind;
+use std::thread;
+use std::time::Duration;
 
 use super::common::temp_repo;
 use crate::*;
@@ -256,6 +258,46 @@ fn context_outputs_include_local_budget_estimates() {
         overview.budget.approximate_tokens,
         overview.budget.included_bytes.div_ceil(4)
     );
+}
+
+#[test]
+fn context_outputs_report_fresh_stale_and_resynced_state() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "needle original\n").expect("alpha file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+
+    let fresh = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 2)
+        .expect("fresh context should succeed");
+    assert_eq!(fresh.stale.is_stale, false);
+
+    thread::sleep(Duration::from_millis(20));
+    fs::write(root.join("alpha.txt"), "needle changed\n").expect("alpha file should rewrite");
+    fs::write(root.join("beta.txt"), "needle new\n").expect("beta file should write");
+
+    let stale = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 2)
+        .expect("stale context should still return");
+    assert_eq!(stale.stale.is_stale, true);
+    assert_eq!(stale.stale.changed_files, 1);
+    assert_eq!(stale.stale.new_files, 1);
+
+    repo_index::sync_repo(&root).expect("resync should succeed");
+    let resynced = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 2)
+        .expect("resynced context should succeed");
+    assert_eq!(resynced.stale.is_stale, false);
+}
+
+#[test]
+fn context_outputs_report_missing_indexed_files_as_stale() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "needle original\n").expect("alpha file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+    fs::remove_file(root.join("alpha.txt")).expect("alpha file should be removed");
+
+    let stale = retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 2)
+        .expect("stale cached context should still return");
+
+    assert_eq!(stale.stale.is_stale, true);
+    assert_eq!(stale.stale.missing_files, 1);
 }
 
 #[test]

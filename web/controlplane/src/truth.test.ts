@@ -280,6 +280,12 @@ describe('control-plane truth boundary', () => {
             included_bytes: 12,
             approximate_tokens: 3
           },
+          stale: {
+            is_stale: true,
+            changed_files: 1,
+            missing_files: 0,
+            new_files: 1
+          },
           snippets: [{ path: 'alpha.txt', reason: { kind: 'query_line_match' } }],
           omissions: [{ kind: 'item_limit_reached' }]
         }
@@ -296,6 +302,7 @@ describe('control-plane truth boundary', () => {
     expect(state.fetchState).toBe('Live')
     expect(state.runs).toHaveLength(1)
     expect(state.runs[0].budget?.approximate_tokens).toBe(3)
+    expect(state.runs[0].stale?.is_stale).toBe(true)
     expect(state.runs[0].omissions?.[0].kind).toBe('item_limit_reached')
   })
 })

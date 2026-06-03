@@ -71,6 +71,8 @@ pub struct ContextAssembly {
     pub omissions: Vec<OmissionReason>,
     #[serde(default)]
     pub budget: ContextBudgetEstimate,
+    #[serde(default)]
+    pub stale: ContextStaleStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -96,6 +98,8 @@ pub struct ContextCapsule {
     pub omissions: Vec<OmissionReason>,
     #[serde(default)]
     pub budget: ContextBudgetEstimate,
+    #[serde(default)]
+    pub stale: ContextStaleStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -109,12 +113,22 @@ pub struct RetrievedContext {
     pub omissions: Vec<OmissionReason>,
     #[serde(default)]
     pub budget: ContextBudgetEstimate,
+    #[serde(default)]
+    pub stale: ContextStaleStatus,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
 pub struct ContextBudgetEstimate {
     pub included_bytes: usize,
     pub approximate_tokens: usize,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+pub struct ContextStaleStatus {
+    pub is_stale: bool,
+    pub changed_files: usize,
+    pub missing_files: usize,
+    pub new_files: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -421,6 +421,7 @@ components:
         - memory_notes
         - omissions
         - budget
+        - stale
       properties:
         query:
           type: string
@@ -440,6 +441,8 @@ components:
             $ref: '#/components/schemas/OmissionReason'
         budget:
           $ref: '#/components/schemas/ContextBudgetEstimate'
+        stale:
+          $ref: '#/components/schemas/ContextStaleStatus'
     ContextBudgetEstimate:
       type: object
       additionalProperties: false
@@ -453,6 +456,23 @@ components:
         approximate_tokens:
           type: integer
           description: Local approximate token estimate derived from included bytes; not provider billing truth.
+    ContextStaleStatus:
+      type: object
+      additionalProperties: false
+      required:
+        - is_stale
+        - changed_files
+        - missing_files
+        - new_files
+      properties:
+        is_stale:
+          type: boolean
+        changed_files:
+          type: integer
+        missing_files:
+          type: integer
+        new_files:
+          type: integer
     ContextSnippet:
       type: object
       additionalProperties: false
