@@ -1,6 +1,6 @@
 # Quotarelay Truth Matrix
 
-This matrix separates what is shipped from what is queued or deferred. It is a planning guardrail, not a marketing page.
+This matrix separates what is shipped, useful next work, and deferred platform decisions. It is a planning guardrail, not a marketing page.
 
 ## Shipped Local Behavior
 

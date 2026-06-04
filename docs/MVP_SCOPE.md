@@ -71,4 +71,4 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 | Version metadata and notes | Local release blocker | T91-T93 must align version metadata, changelog/release notes, and known limitations. |
 | Release blocker triage and dry run | Local release blocker | T94-T100 must finish blocker triage, artifact smoke, release candidate dry run, final review, commit plan, and go/no-go. |
 | Auth, multi-user tenancy, BYOK, provider routing, cloud sync | Deferred platform capability | Closed by decisions until explicit decision slices open them; not required for local MVP releasability. |
-| Token-saving clarity and benchmarks | Post-core token-saver release path | T101-T114 add local estimates, handoff packets, stale/diff context, repo maps, validation recommendations, cache visibility, savings clarity, and demos without provider billing claims. |
+| Token-saving clarity and benchmarks | Shipped local token-saver behavior | T101-T114 added local estimates, handoff packets, stale/diff context, repo maps, validation recommendations, cache visibility, savings clarity, and demos without provider billing claims. |

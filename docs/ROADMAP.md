@@ -2,7 +2,7 @@
 
 This roadmap locks the product path. It is not a shipped-behavior document; `README.md` remains the source for what works today, and `EXECUTION_TRACKER.md` remains the active execution queue.
 
-For a compact shipped/queued/deferred boundary, see `docs/TRUTH_MATRIX.md`.
+For a compact shipped/next/deferred boundary, see `docs/TRUTH_MATRIX.md`.
 
 ## North star
 

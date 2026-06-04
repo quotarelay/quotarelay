@@ -23,6 +23,8 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 - The shipped MVP does not claim exact tokenizer output, provider billing reduction, pricing impact, or guaranteed savings.
 - Token-saving work is limited to local, explainable context reduction. Current byte counts, approximate-token estimates, and reduction ratios are local approximations, not provider tokenizer or billing truth.
 - Local savings demos are local fixtures only; they are not real-world billing benchmarks or provider traces.
+- Local savings reports summarize context-run metadata only; they do not include source snippets, telemetry, provider traces, or billing data.
+- Local onboarding packs summarize repo-shape and validation metadata only; they do not upload source code or dump repository contents.
 - Decision and guardrail memory profiles prioritize local notes in bounded packets, but they do not enforce policy or override tracker/docs truth.
 - Stale context detection is read-only. It reports changed, missing, or new files relative to the last explicit sync; it does not watch files, refresh caches, or sync automatically.
 
