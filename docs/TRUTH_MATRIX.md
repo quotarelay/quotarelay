@@ -19,13 +19,14 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Public guidance | `AGENTS.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, versioning docs, deployment-readiness docs, `LICENSE`, and `NOTICE` define the public operating surface. |
 | Commercial posture | Apache-2.0 local core stays useful; paid value is planned around hosted/team/enterprise coordination, governance, integrations, support, and deployment. |
 
-## Queued Local Work
+## Next Useful Work
 
 | Area | Next useful work |
 |---|---|
-| Docs and release readiness | Bootstrap docs, MCP client setup, local quickstart, troubleshooting, known limitations, changelog, and release rehearsal. |
-| Release-readiness audit | Keep shipped docs aligned as local token-saving and release-support slices finish. |
-| End-to-end operator suite | Keep one local proof path covering register, sync, memory, assemble, cache, CLI, and control-plane truth. |
+| Public launch | Keep README, SECURITY, support, agent guidance, public homepage, release notes, and known limitations aligned with shipped local behavior. |
+| Proof suite | Keep one local proof path covering register, sync, memory, assemble, cache hit visibility, savings estimates, CLI, HTTP truth, and control-plane rendering. |
+| Hosted/team planning | Keep paid surfaces focused on coordination, shared policy, aggregate savings reporting, auditability, integrations, support, and deployment management. |
+| Deployment readiness | Close private deployment decisions, signing/provenance choices, rollout/rollback expectations, and container proof tests before shipping customer-managed deployment behavior. |
 
 ## Deferred Platform Decisions
 
