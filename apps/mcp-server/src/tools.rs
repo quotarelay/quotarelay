@@ -1,8 +1,9 @@
 use serde_json::{json, Value};
 
 use crate::extra_tools::{
-    context_feedback_list_tool, context_feedback_write_tool, savings_report_tool,
-    team_policy_profile_list_tool, team_policy_profile_save_tool, validation_recommend_tool,
+    context_feedback_list_tool, context_feedback_write_tool, onboarding_pack_tool,
+    savings_report_tool, team_policy_profile_list_tool, team_policy_profile_save_tool,
+    validation_recommend_tool,
 };
 
 pub(crate) fn current_tool_registry() -> Vec<Value> {
@@ -38,6 +39,7 @@ pub(crate) fn current_tool_registry() -> Vec<Value> {
         context_feedback_list_tool(),
         validation_recommend_tool(),
         savings_report_tool(),
+        onboarding_pack_tool(),
         multi_repo_assemble_context_tool(),
         assemble_context_tool(),
         handoff_packet_tool(),

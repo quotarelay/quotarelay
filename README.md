@@ -43,6 +43,7 @@ Today the backend exposes these MCP tools:
 - `context_feedback_list`
 - `validation_recommend`
 - `savings_report`
+- `onboarding_pack`
 - `multi_repo_assemble_context`
 - `assemble_context`
 - `handoff_packet`
@@ -63,6 +64,7 @@ The retrieval contract is explicit and bounded:
 - Team policy profiles: stored locally with guardrails, validation recipes, MCP client presets, and explicit source-upload preference
 - Validation recommendations: exact local commands with reasons for touched or queried paths; commands are returned, not run
 - Savings reports: aggregate local context-run history into bounded byte/token/cache metadata without source upload or provider billing claims
+- Onboarding packs: bounded repo-shape metadata, validation commands, handoff template names, and privacy notes without source snippets or upload
 - Context feedback: local bounded records for useful/not-useful context packs; feedback is inspectable and does not change ranking
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
 

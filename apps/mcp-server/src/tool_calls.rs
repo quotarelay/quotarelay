@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 
 use crate::args::*;
 use crate::feedback_args::*;
+use crate::onboarding_args::*;
 use crate::savings_args::*;
 use crate::team_policy_args::*;
 use crate::validation_args::*;
@@ -317,6 +318,16 @@ pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
             }),
         },
         Some("savings_report") => match savings_report_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("onboarding_pack") => match onboarding_pack_from_args(&arguments) {
             Ok(result) => json!({
                 "type": "text",
                 "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())

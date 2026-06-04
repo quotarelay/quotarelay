@@ -15,6 +15,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Token-saving clarity | Context and handoff packets expose local raw bytes considered, included bytes, approximate tokens, reduction ratio, cache status, stale status, omissions, and one-command demo output without provider billing claims. |
 | Handoff templates | Local handoff packets can include bug fix, feature slice, review, refactor, or release focus guidance without hosted sync or source upload. |
 | Savings reports | Local context-run history can be aggregated into byte, approximate-token, cache, stale, and omission metadata without snippets, telemetry, or provider billing claims. |
+| Onboarding packs | Local MCP onboarding packs summarize repo-shape metadata, validation commands, handoff templates, and privacy notes without source snippets or upload. |
 | Team policy profiles | Local `.quotarelay` policy profiles can store guardrails, validation recipes, MCP client presets, and explicit source-upload preference without hosted sync. |
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |

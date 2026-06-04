@@ -22,6 +22,7 @@ The free local core includes:
 - local control plane,
 - local savings demos and benchmarks,
 - local savings reports,
+- local onboarding packs,
 - local `.quotarelay` state.
 
 Do not remove or cripple these capabilities to force upgrades. Adoption and trust come from the local core being useful on real work.

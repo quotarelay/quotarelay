@@ -9,6 +9,7 @@ mod feedback;
 mod handoff;
 mod memory;
 mod models;
+mod onboarding;
 mod repositories;
 mod retrieval;
 mod savings;
@@ -27,6 +28,7 @@ pub use memory::{
     memory_update_with_profile, memory_write, memory_write_with_profile,
 };
 pub use models::*;
+pub use onboarding::{onboarding_pack, OnboardingPack};
 pub use repositories::{
     assemble_context_for_registered_repositories, list_registered_repositories,
     list_workspace_profiles, register_repository, registered_repository_detail,

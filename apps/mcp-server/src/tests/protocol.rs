@@ -86,6 +86,7 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "context_feedback_list",
             "validation_recommend",
             "savings_report",
+            "onboarding_pack",
             "multi_repo_assemble_context",
             "assemble_context",
             "handoff_packet",

@@ -12,6 +12,8 @@ Team workflow update: handoff packets now support local templates for bug fixes,
 
 Savings proof update: local savings reports now aggregate recent context-run history into bounded byte, approximate-token, cache, stale, and omission metadata without uploading snippets or claiming provider billing savings.
 
+Onboarding update: local MCP onboarding packs now expose bounded repo-shape metadata, validation commands, handoff template names, and privacy notes without dumping source.
+
 ### Shipped local behavior
 
 - Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, team policy profiles, context run history, and local state inspection.
@@ -25,6 +27,7 @@ Savings proof update: local savings reports now aggregate recent context-run his
 - Control plane that renders backend truth without inventing readiness, live health, provider state, or savings metrics.
 - Local validation scripts for bootstrap, clean checks, release checks, demo smoke, and source line-count guardrails.
 - Local savings reports generated from context-run history metadata only.
+- Local onboarding packs generated from repository index metadata only.
 
 ### Validation commands
 

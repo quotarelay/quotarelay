@@ -84,6 +84,7 @@ Core outcomes:
 - Local handoff packet templates for bug fix, feature slice, review, refactor, and release work.
 - MCP client presets for verified local setups.
 - Team-visible savings reports generated from local run metadata.
+- Local onboarding packs generated from repo metadata, validation commands, handoff templates, and privacy notes.
 
 Boundary:
 

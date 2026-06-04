@@ -51,6 +51,7 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 | Savings clarity surface | Shipped local token-saver behavior | Context and handoff packets expose raw bytes considered, included bytes, approximate tokens, local reduction ratio, cache status, stale status, and omissions. |
 | Handoff templates | Shipped local team-layer behavior | Handoff packets can carry local bug fix, feature slice, review, refactor, and release focus guidance without hosted sync or source upload. |
 | Savings reports | Shipped local team-layer behavior | Recent context-run history can be aggregated into bounded local savings metadata without snippets, telemetry, or provider billing claims. |
+| Onboarding packs | Shipped local team-layer behavior | MCP onboarding packs summarize bounded repo-shape metadata, validation commands, handoff templates, and privacy notes without source snippets or upload. |
 | Ambiguous request clarification | Shipped local token-saver behavior | Underspecified exact/task context and handoff requests return bounded clarification questions instead of broad repo dumps. |
 | Repository registration and profiles | Shipped local MVP behavior | Registration, dedupe, removal, metadata rename, detail lookup, bounded listing, and workspace profiles are tested. |
 | Truth surfaces | Shipped local MVP behavior | `/truth`, CLI truth, OpenAPI mirror, and control-plane rendering are constrained to shipped backend behavior. |

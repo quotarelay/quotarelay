@@ -297,3 +297,69 @@ fn savings_report_works_over_stdio_without_snippets() {
         .unwrap_or("")
         .contains("not provider billing"));
 }
+
+#[test]
+fn onboarding_pack_works_over_stdio_without_source_dump() {
+    let repo_root = temp_repo();
+    fs::create_dir_all(repo_root.join("src")).expect("src dir should write");
+    fs::write(
+        repo_root.join("src/lib.rs"),
+        "pub fn local_onboarding() {}\n",
+    )
+    .expect("repo file should write");
+
+    let sync_request = json_rpc_request(
+        55,
+        "tools/call",
+        json!({
+            "name": "sync_repo",
+            "arguments": {
+                "root": repo_root.to_string_lossy()
+            }
+        }),
+    );
+    let onboarding_request = json_rpc_request(
+        56,
+        "tools/call",
+        json!({
+            "name": "onboarding_pack",
+            "arguments": {
+                "root": repo_root.to_string_lossy(),
+                "touched_paths": ["apps/mcp-server/src/lib.rs"]
+            }
+        }),
+    );
+    let framed = format!(
+        "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+        sync_request.len(),
+        sync_request,
+        onboarding_request.len(),
+        onboarding_request
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("onboarding call should succeed");
+
+    let responses = decode_responses(&output);
+    assert_eq!(responses[1]["id"], 56);
+    let pack: Value = serde_json::from_str(
+        responses[1]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("onboarding text should exist"),
+    )
+    .expect("onboarding payload should be valid json");
+
+    assert_eq!(pack["indexed_files"], 1);
+    assert!(pack["recommended_validation"]
+        .as_array()
+        .unwrap_or(&Vec::new())
+        .iter()
+        .any(|command| command.as_str().unwrap_or("") == "cargo test -p mcp-server"));
+    assert!(pack["handoff_templates"]
+        .as_array()
+        .unwrap_or(&Vec::new())
+        .iter()
+        .any(|name| name.as_str().unwrap_or("") == "review"));
+    assert!(pack.get("snippets").is_none());
+}

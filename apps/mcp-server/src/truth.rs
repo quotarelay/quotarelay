@@ -103,6 +103,10 @@ pub(crate) fn backend_truth_payload() -> BackendTruthPayload {
                 command: "cargo test -p mcp-server savings_report_works_over_stdio_without_snippets",
             },
             BackendProof {
+                id: "onboarding_pack",
+                command: "cargo test -p mcp-server onboarding_pack_works_over_stdio_without_source_dump",
+            },
+            BackendProof {
                 id: "repository_state",
                 command:
                     "cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio",
