@@ -81,7 +81,7 @@ Core outcomes:
 - Team profile config for repo groups, default retrieval limits, validation recipes, and guardrails.
 - Local team policy profiles for guardrails, validation recipes, MCP client presets, and explicit source-upload preference.
 - Shared decision memory that agents load before edits.
-- Handoff packet templates for bug fix, feature slice, review, refactor, and release work.
+- Local handoff packet templates for bug fix, feature slice, review, refactor, and release work.
 - MCP client presets for verified local setups.
 - Team-visible savings reports generated from local runs.
 

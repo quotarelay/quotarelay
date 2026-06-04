@@ -183,6 +183,11 @@ fn cli_truth() -> CliTruth {
                 command:
                     "cargo run -p mcp-server -- --cli handoff <repo-root> <active-task> exact_search <query>",
             },
+            CliCommandTruth {
+                label: "Templated handoff",
+                command:
+                    "cargo run -p mcp-server -- --cli handoff-template <repo-root> <active-task> review exact_search <query>",
+            },
         ],
     }
 }

@@ -2,10 +2,10 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use context_engine::{
-    assemble_handoff_packet, context_feedback_list, context_feedback_write, inspect_local_state,
-    invalidate_exact_match_cache, list_team_policy_profiles, recommend_validation,
-    register_repository, retrieve_context, save_team_policy_profile, ContextFeedbackRating,
-    RetrievalMode,
+    assemble_handoff_packet, assemble_handoff_packet_with_template, context_feedback_list,
+    context_feedback_write, inspect_local_state, invalidate_exact_match_cache,
+    list_team_policy_profiles, parse_handoff_template, recommend_validation, register_repository,
+    retrieve_context, save_team_policy_profile, ContextFeedbackRating, RetrievalMode,
 };
 use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
@@ -40,6 +40,7 @@ where
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
         "handoff" => run_cli_handoff(&mut args_iter),
+        "handoff-template" => run_cli_handoff_template(&mut args_iter),
         "truth" => Ok(json!({"truth": backend_truth_payload()})),
         _ => {
             return write_cli_error(
@@ -268,6 +269,42 @@ where
     let packet = assemble_handoff_packet(
         &PathBuf::from(&root),
         &active_task,
+        parse_retrieval_mode_from_str(&mode)?,
+        query.as_deref(),
+        limit,
+    )
+    .map_err(|error| format!("handoff failed: {error}"))?;
+    Ok(json!({"handoff": packet}))
+}
+
+fn run_cli_handoff_template<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let active_task = parse_cli_arg(args, "active_task")?;
+    let template_name = parse_cli_arg(args, "template")?;
+    let template = parse_handoff_template(&template_name)
+        .ok_or_else(|| format!("handoff template is not supported: {template_name}"))?;
+    let mode = parse_cli_arg(args, "mode")?;
+    let (query, limit) = match mode.as_str() {
+        "overview" => (None, parse_cli_limit(args, 3)?),
+        "diff_aware" => parse_cli_optional_query_and_limit(args, 3)?,
+        "exact_search" | "task_capsule" => {
+            let query = parse_cli_arg(args, "query")?;
+            (Some(query), parse_cli_limit(args, 3)?)
+        }
+        other => {
+            return Err(format!(
+            "handoff mode must be exact_search, overview, task_capsule, or diff_aware; got {other}"
+        ))
+        }
+    };
+    let packet = assemble_handoff_packet_with_template(
+        &PathBuf::from(&root),
+        &active_task,
+        template,
         parse_retrieval_mode_from_str(&mode)?,
         query.as_deref(),
         limit,

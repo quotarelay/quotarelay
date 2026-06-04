@@ -407,6 +407,7 @@ fn handoff_packet_works_over_stdio() {
             "arguments": {
                 "root": root.to_string_lossy(),
                 "active_task": "Continue T102",
+                "template": "bug_fix",
                 "mode": "exact_search",
                 "query": "needle",
                 "limit": 2
@@ -434,6 +435,11 @@ fn handoff_packet_works_over_stdio() {
     .expect("handoff payload should be valid json");
 
     assert_eq!(packet["active_task"], "Continue T102");
+    assert_eq!(packet["template"], "bug_fix");
+    assert!(packet["template_focus"]
+        .as_array()
+        .map(|items| items.len() > 1)
+        .unwrap_or(false));
     assert_eq!(packet["context"]["mode"], "exact_search");
     assert_eq!(
         packet["context"]["snippets"]

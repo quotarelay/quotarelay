@@ -8,10 +8,12 @@ Public-readiness update: the local core is Apache-2.0, with public guidance for 
 
 Team-layer planning update: local team policy profiles now store guardrails, validation recipes, MCP presets, and explicit source-upload preference under `.quotarelay`, with MCP save/list tools and hosted control-plane security/privacy gates documented before public login work proceeds.
 
+Team workflow update: handoff packets now support local templates for bug fixes, feature slices, reviews, refactors, and releases, adding bounded workflow focus without hosted sync or source upload.
+
 ### Shipped local behavior
 
 - Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, team policy profiles, context run history, and local state inspection.
-- Local CLI JSON workflows for `truth`, `register`, `sync`, `state`, `search`, and `assemble`.
+- Local CLI JSON workflows for `truth`, `register`, `sync`, `state`, `search`, `assemble`, and templated handoff packets.
 - Bounded retrieval modes: `exact_search`, `overview`, and `task_capsule`.
 - Explicit packing limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, and 10 history runs.
 - Typed inclusion and omission reasons across engine, MCP, CLI, and context history boundaries.

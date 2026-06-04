@@ -15,6 +15,7 @@ The free local core includes:
 - local repository sync and search,
 - local context assembly,
 - local handoff packets,
+- local handoff templates,
 - local memory,
 - local retrieval cache,
 - local validation recommendations,

@@ -130,6 +130,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]`
 - `cargo run -p mcp-server -- --cli assemble <repo_root> diff_aware [query] [limit]`
 - `cargo run -p mcp-server -- --cli handoff <repo_root> <active_task> exact_search <query> [limit]`
+- `cargo run -p mcp-server -- --cli handoff-template <repo_root> <active_task> bug_fix|feature_slice|review|refactor|release exact_search <query> [limit]`
 
 ## MCP client setup
 

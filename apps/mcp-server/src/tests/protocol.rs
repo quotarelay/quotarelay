@@ -99,4 +99,20 @@ fn tools_list_exposes_current_backend_truth_surface() {
         assemble_tool["inputSchema"]["properties"]["mode"]["enum"],
         json!(["exact_search", "overview", "task_capsule", "diff_aware"])
     );
+
+    let handoff_tool = tools
+        .iter()
+        .find(|tool| tool["name"] == "handoff_packet")
+        .expect("handoff_packet tool should exist");
+    assert_eq!(
+        handoff_tool["inputSchema"]["properties"]["template"]["enum"],
+        json!([
+            "general",
+            "bug_fix",
+            "feature_slice",
+            "review",
+            "refactor",
+            "release"
+        ])
+    );
 }

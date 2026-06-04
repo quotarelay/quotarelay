@@ -17,7 +17,10 @@ mod validation;
 
 pub use diff::assemble_diff_aware;
 pub use feedback::{context_feedback_list, context_feedback_write};
-pub use handoff::assemble_handoff_packet;
+pub use handoff::{
+    assemble_handoff_packet, assemble_handoff_packet_with_template, parse_handoff_template,
+    HandoffTemplate,
+};
 pub use memory::{
     memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,
     memory_update_with_profile, memory_write, memory_write_with_profile,

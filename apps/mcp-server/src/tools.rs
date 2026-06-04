@@ -473,6 +473,11 @@ fn handoff_packet_tool() -> Value {
                     "enum": ["exact_search", "overview", "task_capsule", "diff_aware"],
                     "default": "exact_search"
                 },
+                "template": {
+                    "type": "string",
+                    "enum": ["general", "bug_fix", "feature_slice", "review", "refactor", "release"],
+                    "default": "general"
+                },
                 "query": { "type": "string" },
                 "limit": { "type": "integer", "minimum": 1, "maximum": 5 }
             },
