@@ -41,6 +41,10 @@ Invoke-CleanStep "mcp-server tests" {
 }
 
 if (-not $SkipFrontend) {
+    Invoke-CleanStep "control-plane tests" {
+        npm --prefix web/controlplane run test -- --run
+    }
+
     Invoke-CleanStep "control-plane build" {
         npm --prefix web/controlplane run build
     }

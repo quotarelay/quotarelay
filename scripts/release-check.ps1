@@ -33,6 +33,16 @@ Invoke-ReleaseStep "local demo smoke" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 }
 
+if (-not $SkipFrontend) {
+    Invoke-ReleaseStep "public site smoke" {
+        powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+    }
+}
+
+Invoke-ReleaseStep "public surface scan" {
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+}
+
 Invoke-ReleaseStep "docs sanity" {
     rg -n "local MVP|Deferred platform|provider billing|docs/TRUTH_MATRIX.md|docs/LOCAL_STATE_PRIVACY.md|docs/TROUBLESHOOTING.md" README.md docs
 }
