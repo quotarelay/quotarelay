@@ -43,6 +43,17 @@ function Assert-UnderPath {
     }
 }
 
+function Assert-PackageFile {
+    param(
+        [string]$RelativePath
+    )
+
+    $packagePath = Join-Path $StageRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
+        throw "Package is missing required file: $RelativePath"
+    }
+}
+
 Invoke-PackageStep "Backend build" {
     cargo build -p mcp-server
 }
@@ -107,6 +118,21 @@ Invoke-PackageStep "Write local run notes" {
 
 Invoke-PackageStep "Package backend truth smoke" {
     & $BinaryTarget --cli truth | Out-Null
+}
+
+Invoke-PackageStep "Package contents smoke" {
+    Assert-PackageFile -RelativePath "README.md"
+    Assert-PackageFile -RelativePath "CHANGELOG.md"
+    Assert-PackageFile -RelativePath "LICENSE"
+    Assert-PackageFile -RelativePath "NOTICE"
+    Assert-PackageFile -RelativePath "RUNNING_LOCAL.md"
+    Assert-PackageFile -RelativePath "docs\CONTROL_PLANE_LOCAL.md"
+    Assert-PackageFile -RelativePath "docs\DEPLOYMENT_READINESS.md"
+    Assert-PackageFile -RelativePath "docs\MCP_CLIENT_CONFIG.md"
+    Assert-PackageFile -RelativePath "docs\KNOWN_LIMITATIONS.md"
+    Assert-PackageFile -RelativePath "docs\PLATFORM_SURFACES.md"
+    Assert-PackageFile -RelativePath "docs\PRIVATE_DEPLOYMENT_PLAN.md"
+    Assert-PackageFile -RelativePath "scripts\demo-local.ps1"
 }
 
 Invoke-PackageStep "Create zip archive" {
