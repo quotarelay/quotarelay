@@ -1,10 +1,10 @@
 # Quotarelay
 
-Quotarelay is an MCP-first context engine for local agent workflows. The shipped workspace has three Rust crates and one Terajs control-plane scaffold:
+Quotarelay is an MCP-first context engine for local agent workflows. The core product is the local `quotarelay-mcp` agent tool, not a desktop or mobile app. The shipped workspace has three Rust crates and one Terajs control-plane scaffold:
 
 Current local MVP version: `0.1.0`.
 
-- `apps/mcp-server`: stdio MCP server plus a thin HTTP `/truth` endpoint.
+- `apps/mcp-server`: stdio MCP server plus a thin HTTP `/truth` endpoint. Installed workflows expose the branded `quotarelay-mcp` command.
 - `crates/repo-index`: local repository indexing, inventory, and search.
 - `crates/context-engine`: bounded context assembly, durable memory, repository registration, and derived repository state truth.
 - `web/controlplane`: a Terajs page that reads the live backend `/truth` payload and renders the current backend contract.
@@ -70,6 +70,8 @@ The retrieval contract is explicit and bounded:
 
 The control plane does not invent readiness, savings, or live health state. It renders the current backend truth contract from `/truth`.
 
+Desktop, mobile, Electron, tray, and app-store surfaces are not part of the launch product. They remain deferred unless users prove a companion wrapper is needed for one-click MCP setup or local service management.
+
 ## Quickstart
 
 From a fresh checkout on this machine:
@@ -78,6 +80,13 @@ From a fresh checkout on this machine:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 cargo run -p mcp-server -- --cli truth
+```
+
+To prove the installed local MCP command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
+target\install-smoke\bin\quotarelay-mcp.exe --cli truth
 ```
 
 To run against one of your own repos:
@@ -106,6 +115,7 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`
 - `cargo test -p mcp-server backend_truth_endpoint_exposes_current_contract`
@@ -117,6 +127,8 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 ## Local CLI
 
 The MCP server binary also exposes a non-interactive local CLI for operator workflows. CLI responses are newline-terminated JSON objects with `ok`, `command`, and either `result` or `error` plus `error_category`.
+
+When installed through the local install smoke, the branded command is `quotarelay-mcp`. The source checkout command remains `cargo run -p mcp-server --`.
 
 - `cargo run -p mcp-server -- --cli truth`
 - `cargo run -p mcp-server -- --cli register <state_root> <repo_root>`
@@ -136,10 +148,13 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli assemble <repo_root> diff_aware [query] [limit]`
 - `cargo run -p mcp-server -- --cli handoff <repo_root> <active_task> exact_search <query> [limit]`
 - `cargo run -p mcp-server -- --cli handoff-template <repo_root> <active_task> bug_fix|feature_slice|review|refactor|release exact_search <query> [limit]`
+- `quotarelay-mcp --cli truth`
 
 ## MCP client setup
 
 See `docs/MCP_CLIENT_CONFIG.md` and `examples/mcp-client-presets/` for the local stdio command, generic client JSON shape, Windows path examples, state-root guidance, and startup troubleshooting.
+
+Use `examples/mcp-client-presets/generic-stdio.json` when launching from source, or `examples/mcp-client-presets/installed-stdio.json` after proving the installed `quotarelay-mcp` command.
 
 ## Troubleshooting
 
@@ -178,8 +193,8 @@ Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.p
 After extracting the zip, run the packaged backend locally with:
 
 ```powershell
-.\bin\mcp-server.exe --cli truth
-.\bin\mcp-server.exe --http 127.0.0.1:3030
+.\bin\quotarelay-mcp.exe --cli truth
+.\bin\quotarelay-mcp.exe --http 127.0.0.1:3030
 ```
 
 ## Local state privacy
@@ -189,6 +204,10 @@ See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what th
 ## Security
 
 See `SECURITY.md` for supported security boundaries, vulnerability reporting guidance, local data handling, and the loopback-only HTTP policy.
+
+## Community feedback
+
+GitHub Discussions are the opt-in feedback path for demo success reports and team interest. Do not paste private source, `.quotarelay` state, secrets, raw context packets, or internal URLs into public discussions.
 
 ## Public repo guidance
 

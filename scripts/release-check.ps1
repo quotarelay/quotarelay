@@ -33,6 +33,10 @@ Invoke-ReleaseStep "local demo smoke" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 }
 
+Invoke-ReleaseStep "local install smoke" {
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
+}
+
 if (-not $SkipFrontend) {
     Invoke-ReleaseStep "public site smoke" {
         powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild

@@ -1,8 +1,8 @@
 <meta>
   title: Quotarelay
-  description: Local-first context compression for coding agents, with a free Apache-2.0 core and planned paid team coordination.
+  description: MCP-first context compression for coding agents, with a free Apache-2.0 local tool and planned paid team coordination.
   keywords: quotarelay, mcp, coding agents, context compression, local first, token savings
-  aiSummary: Quotarelay is a local-first MCP context engine that assembles bounded, explainable context packets for coding agents while keeping repository contents local by default.
+  aiSummary: Quotarelay is an MCP-first agent tool that assembles bounded, explainable context packets for coding agents while keeping repository contents local by default.
   aiKeywords: mcp, context-engine, local-first, coding-agents, privacy, open-core
 </meta>
 
@@ -11,7 +11,7 @@
 </route>
 
 <ai>
-  summary: Public product homepage for Quotarelay. Keep claims limited to shipped local behavior and clearly distinguish planned hosted team features.
+  summary: Public product homepage for Quotarelay. Present Quotarelay as an MCP-first agent tool, not a desktop or mobile app, and clearly distinguish planned hosted team features.
   audience:
     - solo developers
     - engineering teams
@@ -42,11 +42,12 @@
   <main class="public-site">
     <section class="public-hero">
       <div class="public-hero__copy">
-        <p class="eyebrow">Local-first MCP context engine</p>
+        <p class="eyebrow">MCP-first agent tool</p>
         <h1>Quotarelay</h1>
         <p class="public-lede">
-          Give coding agents the smallest useful packet: relevant code, durable decisions, validation commands,
-          cache state, stale-state warnings, and clear omission reasons without uploading your repository by default.
+          Connect Quotarelay to your coding agent so it sends less repo context. The local MCP tool returns relevant
+          code, durable decisions, validation commands, cache state, stale-state warnings, and omission reasons without
+          uploading your repository by default.
         </p>
         <div class="public-actions">
           <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
@@ -80,9 +81,13 @@
     <section class="public-band">
       <div class="section-heading">
         <p class="eyebrow">What ships free</p>
-        <h2>Useful local core, not a crippled demo.</h2>
+        <h2>A useful local MCP tool, not a native app detour.</h2>
       </div>
       <div class="feature-grid">
+        <article class="feature-card">
+          <h3>Agent connection</h3>
+          <p>Run from source with Cargo or install the local `quotarelay-mcp` command for stdio MCP clients.</p>
+        </article>
         <article class="feature-card">
           <h3>Bounded retrieval</h3>
           <p>Exact, overview, task, and diff-aware modes return limited context with typed inclusion and omission reasons.</p>
@@ -109,7 +114,8 @@
         <p class="public-copy">
           Quotarelay should be easy to adopt as an open-source local tool. The commercial layer is planned around
           hosted team management, shared policy profiles, aggregate savings reports, auditability, integrations,
-          private deployment guidance, SSO, onboarding, and support.
+          private deployment guidance, SSO, onboarding, and support. Desktop and mobile apps are deferred until
+          users prove a companion wrapper is more useful than direct agent integration.
         </p>
       </div>
       <ul class="team-list">

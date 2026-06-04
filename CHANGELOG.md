@@ -14,6 +14,8 @@ Savings proof update: local savings reports now aggregate recent context-run his
 
 Onboarding update: local MCP onboarding packs now expose bounded repo-shape metadata, validation commands, handoff template names, and privacy notes without dumping source.
 
+Productization update: Quotarelay now has an agent-tool-first install surface with a branded `quotarelay-mcp` local MCP command, a source/Cargo install smoke, and public wording that defers desktop and mobile apps.
+
 ### Shipped local behavior
 
 - Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, team policy profiles, context run history, and local state inspection.
@@ -28,6 +30,7 @@ Onboarding update: local MCP onboarding packs now expose bounded repo-shape meta
 - Local validation scripts for bootstrap, clean checks, release checks, demo smoke, and source line-count guardrails.
 - Local savings reports generated from context-run history metadata only.
 - Local onboarding packs generated from repository index metadata only.
+- Branded local MCP command `quotarelay-mcp` for installed stdio agent workflows.
 
 ### Validation commands
 
@@ -38,6 +41,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
 ```
 
 Focused checks used by the current release-readiness track:

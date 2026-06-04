@@ -19,6 +19,7 @@ describe('deployment surface planning model', () => {
       'local-engine'
     ])
     expect(deploymentSurfaces.find((surface) => surface.id === 'native-companion')?.status).toBe('deferred')
+    expect(deploymentSurfaces.find((surface) => surface.id === 'local-engine')?.localPreview).toContain('quotarelay-mcp')
   })
 
   it('keeps deployment boundaries explicit and privacy-first', () => {
@@ -28,6 +29,7 @@ describe('deployment surface planning model', () => {
     }
 
     expect(deploymentSurfaces.find((surface) => surface.id === 'local-control-plane')?.deploymentBoundary).toContain('do not expose')
+    expect(deploymentSurfaces.find((surface) => surface.id === 'local-engine')?.deploymentBoundary).toContain('no native desktop/mobile app')
     expect(deploymentSurfaces.find((surface) => surface.id === 'hosted-team-console')?.deploymentBoundary).toContain('privacy controls')
     expect(surfaceStatusLabel('available')).toBe('Available locally')
     expect(surfaceStatusLabel('planned')).toBe('Planned')

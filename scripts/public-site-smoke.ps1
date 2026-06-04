@@ -37,7 +37,7 @@ foreach ($route in @("src/pages/index.tera", "src/pages/control-plane.tera")) {
 $indexHtml = Get-Content $indexPath -Raw
 foreach ($needle in @(
         "<title>Quotarelay</title>",
-        "Local-first context compression for coding agents"
+        "MCP-first context compression for coding agents"
     )) {
     if (-not $indexHtml.Contains($needle)) {
         throw "built index.html is missing expected public metadata: $needle"
@@ -52,6 +52,17 @@ $routeAssets = Get-ChildItem $assetDir -Filter "*.js" | Where-Object {
 
 if ($routeAssets.Count -eq 0) {
     throw "built assets do not include public/control-plane route metadata"
+}
+
+$assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+foreach ($needle in @(
+        "MCP-first agent tool",
+        "quotarelay-mcp",
+        "not a desktop or mobile app"
+    )) {
+    if (-not $assetText.Contains($needle)) {
+        throw "built assets are missing expected agent-tool positioning: $needle"
+    }
 }
 
 [PSCustomObject]@{

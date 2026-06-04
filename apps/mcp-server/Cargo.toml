@@ -3,6 +3,7 @@ name = "mcp-server"
 edition.workspace = true
 license.workspace = true
 version.workspace = true
+default-run = "mcp-server"
 
 [dependencies]
 axum = "0.8"

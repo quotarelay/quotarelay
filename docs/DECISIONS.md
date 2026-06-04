@@ -24,3 +24,4 @@
 20. Hosted multi-user feasibility remains a decision-only topic; no multi-user implementation starts until tenancy, identity, storage, and repository-content boundaries are approved.
 21. Local team policy profiles are open for implementation as a privacy-preserving team layer. They may store guardrails, validation recipes, MCP client presets, and an explicit source-upload preference under local `.quotarelay` state.
 22. Hosted login and organization management are open for planning only. Implementation must wait for an approved threat model covering auth, authorization, tenant isolation, audit logs, retention, abuse controls, and source-content opt-in.
+23. Quotarelay productization is agent-tool first: `quotarelay-mcp` is the branded local MCP command, while desktop, mobile, Electron, tray, and app-store surfaces are deferred until user evidence shows a companion wrapper is needed.
