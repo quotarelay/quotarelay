@@ -67,9 +67,14 @@ Invoke-PackageStep "Copy local artifacts" {
     Copy-Item -LiteralPath $BinarySource -Destination $BinaryTarget
     Copy-Item -LiteralPath "README.md" -Destination (Join-Path $StageRoot "README.md")
     Copy-Item -LiteralPath "CHANGELOG.md" -Destination (Join-Path $StageRoot "CHANGELOG.md")
+    Copy-Item -LiteralPath "LICENSE" -Destination (Join-Path $StageRoot "LICENSE")
+    Copy-Item -LiteralPath "NOTICE" -Destination (Join-Path $StageRoot "NOTICE")
     Copy-Item -LiteralPath "docs\CONTROL_PLANE_LOCAL.md" -Destination (Join-Path $StageRoot "docs\CONTROL_PLANE_LOCAL.md")
+    Copy-Item -LiteralPath "docs\DEPLOYMENT_READINESS.md" -Destination (Join-Path $StageRoot "docs\DEPLOYMENT_READINESS.md")
     Copy-Item -LiteralPath "docs\MCP_CLIENT_CONFIG.md" -Destination (Join-Path $StageRoot "docs\MCP_CLIENT_CONFIG.md")
     Copy-Item -LiteralPath "docs\KNOWN_LIMITATIONS.md" -Destination (Join-Path $StageRoot "docs\KNOWN_LIMITATIONS.md")
+    Copy-Item -LiteralPath "docs\PLATFORM_SURFACES.md" -Destination (Join-Path $StageRoot "docs\PLATFORM_SURFACES.md")
+    Copy-Item -LiteralPath "docs\PRIVATE_DEPLOYMENT_PLAN.md" -Destination (Join-Path $StageRoot "docs\PRIVATE_DEPLOYMENT_PLAN.md")
     Copy-Item -LiteralPath "scripts\demo-local.ps1" -Destination (Join-Path $StageRoot "scripts\demo-local.ps1")
     if (-not $SkipFrontend) {
         Copy-Item -LiteralPath "web\controlplane\dist" -Destination (Join-Path $StageRoot "controlplane-dist") -Recurse

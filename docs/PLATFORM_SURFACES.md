@@ -15,7 +15,7 @@ This document separates Quotarelay surfaces so public site, local tooling, hoste
 | Surface | Status | Before implementation |
 |---|---|---|
 | Hosted team console | Planned | Auth, authorization, tenant isolation, audit, retention, rate limits, data export/deletion, and privacy controls. |
-| Private deployment | Planned | Container/package decision, signing, rollout, rollback, monitoring, backup, support, and incident-response model. |
+| Private deployment | Planned | See `docs/PRIVATE_DEPLOYMENT_PLAN.md`; requires container/package decision, signing, rollout, rollback, monitoring, backup, support, and incident-response model. |
 | Native companion previews | Deferred | Android/iOS value proposition, threat model, local-state policy, mobile secret policy, and Terajs native target proof. |
 
 ## Local Preview Goals

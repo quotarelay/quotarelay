@@ -136,3 +136,5 @@ See `docs/HOSTED_CONTROL_PLANE_PLAN.md` for the privacy and security gates befor
 See `docs/PLATFORM_SURFACES.md` for the local DOM surfaces, planned deployment management path, and deferred Android/iOS companion preview boundary.
 
 See `docs/HOSTED_THREAT_MODEL.md` for the threat model required before hosted auth, tenant isolation, audit logging, integrations, or deployment management begin.
+
+See `docs/PRIVATE_DEPLOYMENT_PLAN.md` for the planned private deployment shapes and tests required before container or customer-managed deployment work ships.

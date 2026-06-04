@@ -12,7 +12,7 @@ Quotarelay is not currently a hosted service. The shipped surface is local-first
 
 Local operators can run the MCP server over stdio, run CLI workflows, run the HTTP truth surface on `127.0.0.1`, build a local zip artifact with `scripts/local-package.ps1`, and run `scripts/release-check.ps1` to validate the local release surface.
 
-See `docs/PLATFORM_SURFACES.md` for the current split between the public DOM site, local control plane, local MCP engine, planned hosted team console, private deployment, and deferred Android/iOS companion previews. See `docs/HOSTED_THREAT_MODEL.md` before any hosted login, tenant, audit, or deployment-management implementation starts.
+See `docs/PLATFORM_SURFACES.md` for the current split between the public DOM site, local control plane, local MCP engine, planned hosted team console, private deployment, and deferred Android/iOS companion previews. See `docs/HOSTED_THREAT_MODEL.md` before any hosted login, tenant, audit, or deployment-management implementation starts. See `docs/PRIVATE_DEPLOYMENT_PLAN.md` before adding container, customer-managed, or production deployment behavior.
 
 ## Not Production-Deployment Ready
 
@@ -51,7 +51,7 @@ It should not upload source code, raw context packets, local caches, or `.quotar
 ## Safe Future Deployment Path
 
 1. Keep the local engine and adapter boundaries intact.
-2. Add a decision doc for the target deployment model.
+2. Close the deployment decisions in `docs/PRIVATE_DEPLOYMENT_PLAN.md`.
 3. Add a threat model and controls before adding network exposure.
 4. Add tests that prove unauthorized local state cannot be read.
 5. Add packaging and signing only after release validation is stable.
