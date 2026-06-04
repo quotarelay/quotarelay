@@ -99,6 +99,10 @@ pub(crate) fn backend_truth_payload() -> BackendTruthPayload {
                 command: "cargo test -p mcp-server local_cli_team_policy_save_and_list_are_stable_json",
             },
             BackendProof {
+                id: "savings_report",
+                command: "cargo test -p mcp-server savings_report_works_over_stdio_without_snippets",
+            },
+            BackendProof {
                 id: "repository_state",
                 command:
                     "cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio",
@@ -173,6 +177,10 @@ fn cli_truth() -> CliTruth {
             CliCommandTruth {
                 label: "List context feedback",
                 command: "cargo run -p mcp-server -- --cli feedback-list <repo-root> [limit]",
+            },
+            CliCommandTruth {
+                label: "Savings report",
+                command: "cargo run -p mcp-server -- --cli savings-report <repo-root> [limit]",
             },
             CliCommandTruth {
                 label: "Assemble context",

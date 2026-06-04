@@ -21,6 +21,7 @@ The free local core includes:
 - local validation recommendations,
 - local control plane,
 - local savings demos and benchmarks,
+- local savings reports,
 - local `.quotarelay` state.
 
 Do not remove or cripple these capabilities to force upgrades. Adoption and trust come from the local core being useful on real work.
@@ -89,6 +90,7 @@ Free local metrics:
 - stale status,
 - omission reasons,
 - one-command demo and benchmark output.
+- bounded local savings reports from context-run history.
 
 Paid team metrics:
 

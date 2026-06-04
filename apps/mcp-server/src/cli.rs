@@ -5,7 +5,8 @@ use context_engine::{
     assemble_handoff_packet, assemble_handoff_packet_with_template, context_feedback_list,
     context_feedback_write, inspect_local_state, invalidate_exact_match_cache,
     list_team_policy_profiles, parse_handoff_template, recommend_validation, register_repository,
-    retrieve_context, save_team_policy_profile, ContextFeedbackRating, RetrievalMode,
+    retrieve_context, save_team_policy_profile, savings_report, ContextFeedbackRating,
+    RetrievalMode,
 };
 use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
@@ -35,6 +36,7 @@ where
         "validate" => run_cli_validate(&mut args_iter),
         "feedback-write" => run_cli_feedback_write(&mut args_iter),
         "feedback-list" => run_cli_feedback_list(&mut args_iter),
+        "savings-report" => run_cli_savings_report(&mut args_iter),
         "team-policy-save" => run_cli_team_policy_save(&mut args_iter),
         "team-policy-list" => run_cli_team_policy_list(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
@@ -163,6 +165,19 @@ where
         .map_err(|error| format!("feedback-list failed: {error}"))?;
 
     Ok(json!({"feedback": result}))
+}
+
+fn run_cli_savings_report<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let limit = parse_cli_limit(args, 10)?;
+    let report = savings_report(&PathBuf::from(&root), limit)
+        .map_err(|error| format!("savings-report failed: {error}"))?;
+
+    Ok(json!({"savings_report": report}))
 }
 
 fn run_cli_team_policy_save<I, S>(args: &mut I) -> Result<Value, String>

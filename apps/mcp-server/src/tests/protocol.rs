@@ -85,6 +85,7 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "context_feedback_write",
             "context_feedback_list",
             "validation_recommend",
+            "savings_report",
             "multi_repo_assemble_context",
             "assemble_context",
             "handoff_packet",

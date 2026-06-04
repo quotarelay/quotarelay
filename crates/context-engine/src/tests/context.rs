@@ -304,6 +304,29 @@ fn context_outputs_include_local_budget_estimates() {
 }
 
 #[test]
+fn savings_report_aggregates_context_run_metadata() {
+    let root = temp_repo();
+    fs::write(root.join("alpha.txt"), "needle alpha\nneedle beta\n")
+        .expect("repo file should write");
+    repo_index::sync_repo(&root).expect("sync should succeed");
+
+    retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 1)
+        .expect("first context should assemble");
+    retrieve_context(&root, RetrievalMode::ExactSearch, Some("needle"), 1)
+        .expect("second context should reuse cache");
+
+    let report = savings_report(&root, 10).expect("savings report should aggregate");
+
+    assert_eq!(report.run_count, 2);
+    assert!(report.raw_bytes_considered >= report.included_bytes);
+    assert!(report.approximate_tokens > 0);
+    assert!(report.estimated_reduction_ratio >= 0.0);
+    assert_eq!(report.cache_hits, 1);
+    assert_eq!(report.cache_misses, 1);
+    assert!(report.note.contains("Local aggregate"));
+}
+
+#[test]
 fn context_outputs_report_fresh_stale_and_resynced_state() {
     let root = temp_repo();
     fs::write(root.join("alpha.txt"), "needle original\n").expect("alpha file should write");

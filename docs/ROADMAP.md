@@ -83,7 +83,7 @@ Core outcomes:
 - Shared decision memory that agents load before edits.
 - Local handoff packet templates for bug fix, feature slice, review, refactor, and release work.
 - MCP client presets for verified local setups.
-- Team-visible savings reports generated from local runs.
+- Team-visible savings reports generated from local run metadata.
 
 Boundary:
 

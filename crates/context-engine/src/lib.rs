@@ -11,6 +11,7 @@ mod memory;
 mod models;
 mod repositories;
 mod retrieval;
+mod savings;
 mod storage;
 mod team_policy;
 mod validation;
@@ -37,6 +38,7 @@ pub use retrieval::{
     context_run_history, invalidate_exact_match_cache, retrieval_truth, retrieve_context,
 };
 pub(crate) use retrieval::{fit_within_budget, normalize_query};
+pub use savings::{savings_report, SavingsReport};
 pub(crate) use storage::*;
 pub use storage::{clear_retrieval_caches, inspect_local_state, inspect_retrieval_caches};
 pub use team_policy::{list_team_policy_profiles, save_team_policy_profile};

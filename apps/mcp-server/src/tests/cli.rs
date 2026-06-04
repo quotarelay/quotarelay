@@ -251,6 +251,33 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
     output.clear();
     super::run_cli(
         [
+            "savings-report".to_string(),
+            repo_root.to_string_lossy().to_string(),
+            "10".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli savings-report should succeed");
+
+    let savings: Value = serde_json::from_slice(&output).expect("savings payload should parse");
+    assert!(savings["ok"].as_bool().unwrap_or(false));
+    assert_eq!(savings["command"], "savings-report");
+    assert!(
+        savings["result"]["savings_report"]["raw_bytes_considered"]
+            .as_u64()
+            .unwrap_or(0)
+            >= savings["result"]["savings_report"]["included_bytes"]
+                .as_u64()
+                .unwrap_or(0)
+    );
+    assert!(savings["result"]["savings_report"]["note"]
+        .as_str()
+        .unwrap_or("")
+        .contains("not provider billing"));
+
+    output.clear();
+    super::run_cli(
+        [
             "search".to_string(),
             repo_root.to_string_lossy().to_string(),
             "needle".to_string(),

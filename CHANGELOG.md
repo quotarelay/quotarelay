@@ -10,6 +10,8 @@ Team-layer planning update: local team policy profiles now store guardrails, val
 
 Team workflow update: handoff packets now support local templates for bug fixes, feature slices, reviews, refactors, and releases, adding bounded workflow focus without hosted sync or source upload.
 
+Savings proof update: local savings reports now aggregate recent context-run history into bounded byte, approximate-token, cache, stale, and omission metadata without uploading snippets or claiming provider billing savings.
+
 ### Shipped local behavior
 
 - Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, team policy profiles, context run history, and local state inspection.
@@ -22,6 +24,7 @@ Team workflow update: handoff packets now support local templates for bug fixes,
 - Thin HTTP routes for local control-plane use: `GET /truth`, `GET /repositories`, `GET /memory`, and `GET /context-runs`.
 - Control plane that renders backend truth without inventing readiness, live health, provider state, or savings metrics.
 - Local validation scripts for bootstrap, clean checks, release checks, demo smoke, and source line-count guardrails.
+- Local savings reports generated from context-run history metadata only.
 
 ### Validation commands
 

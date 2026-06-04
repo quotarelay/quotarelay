@@ -226,3 +226,74 @@ fn context_run_detail_works_over_stdio() {
     assert_eq!(detail["snippets"][0]["reason"]["kind"], "query_line_match");
     assert_eq!(detail["omissions"][0]["kind"], "item_limit_reached");
 }
+
+#[test]
+fn savings_report_works_over_stdio_without_snippets() {
+    let repo_root = temp_repo();
+    fs::write(repo_root.join("src.txt"), "alpha needle\nbeta needle\n")
+        .expect("repo file should write");
+
+    let sync_request = json_rpc_request(
+        45,
+        "tools/call",
+        json!({
+            "name": "sync_repo",
+            "arguments": {
+                "root": repo_root.to_string_lossy()
+            }
+        }),
+    );
+    let assemble_request = json_rpc_request(
+        46,
+        "tools/call",
+        json!({
+            "name": "assemble_context",
+            "arguments": {
+                "root": repo_root.to_string_lossy(),
+                "mode": "exact_search",
+                "query": "needle",
+                "limit": 1
+            }
+        }),
+    );
+    let report_request = json_rpc_request(
+        47,
+        "tools/call",
+        json!({
+            "name": "savings_report",
+            "arguments": {
+                "root": repo_root.to_string_lossy(),
+                "limit": 10
+            }
+        }),
+    );
+    let framed = format!(
+        "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+        sync_request.len(),
+        sync_request,
+        assemble_request.len(),
+        assemble_request,
+        report_request.len(),
+        report_request
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("report call should succeed");
+
+    let responses = decode_responses(&output);
+    assert_eq!(responses[2]["id"], 47);
+    let report: Value = serde_json::from_str(
+        responses[2]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("report text should exist"),
+    )
+    .expect("report payload should be valid json");
+
+    assert_eq!(report["run_count"], 1);
+    assert!(report["raw_bytes_considered"].as_u64().unwrap_or(0) > 0);
+    assert!(report.get("snippets").is_none());
+    assert!(report["note"]
+        .as_str()
+        .unwrap_or("")
+        .contains("not provider billing"));
+}

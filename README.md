@@ -42,6 +42,7 @@ Today the backend exposes these MCP tools:
 - `context_feedback_write`
 - `context_feedback_list`
 - `validation_recommend`
+- `savings_report`
 - `multi_repo_assemble_context`
 - `assemble_context`
 - `handoff_packet`
@@ -61,6 +62,7 @@ The retrieval contract is explicit and bounded:
 - Registered repository state: stored locally and exposed with sync status, indexed counts, bounded repo maps, and recent run metadata
 - Team policy profiles: stored locally with guardrails, validation recipes, MCP client presets, and explicit source-upload preference
 - Validation recommendations: exact local commands with reasons for touched or queried paths; commands are returned, not run
+- Savings reports: aggregate local context-run history into bounded byte/token/cache metadata without source upload or provider billing claims
 - Context feedback: local bounded records for useful/not-useful context packs; feedback is inspectable and does not change ranking
 - Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
 
@@ -122,6 +124,7 @@ The MCP server binary also exposes a non-interactive local CLI for operator work
 - `cargo run -p mcp-server -- --cli validate <path> [path...]`
 - `cargo run -p mcp-server -- --cli feedback-write <repo_root> <generated_at_epoch_ms> useful|not_useful <reason>`
 - `cargo run -p mcp-server -- --cli feedback-list <repo_root> [limit]`
+- `cargo run -p mcp-server -- --cli savings-report <repo_root> [limit]`
 - `cargo run -p mcp-server -- --cli team-policy-save <state_root> <name> <guardrails_semicolon_list> <validation_recipes_semicolon_list> <mcp_presets_semicolon_list> [true|false]`
 - `cargo run -p mcp-server -- --cli team-policy-list <state_root> [limit]`
 - `cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]`
