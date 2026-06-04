@@ -1,7 +1,7 @@
 # Guardrails
 
 - `README.md` documents shipped behavior only.
-- `docs/TRUTH_MATRIX.md` separates shipped local behavior, queued local work, deferred platform decisions, and explicit non-goals.
+- `docs/TRUTH_MATRIX.md` separates shipped local behavior, next useful work, deferred platform decisions, and explicit non-goals.
 - `EXECUTION_TRACKER.md` is the active local execution mirror.
 - `docs/VISION.md` is directional only.
 - Handlers and routes stay thin; persistence and retrieval logic belong in backend crates.
