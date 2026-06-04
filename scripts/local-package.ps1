@@ -43,6 +43,17 @@ function Assert-UnderPath {
     }
 }
 
+function Assert-PackageFile {
+    param(
+        [string]$RelativePath
+    )
+
+    $packagePath = Join-Path $StageRoot $RelativePath
+    if (-not (Test-Path -LiteralPath $packagePath -PathType Leaf)) {
+        throw "Package is missing required file: $RelativePath"
+    }
+}
+
 Invoke-PackageStep "Backend build" {
     cargo build -p mcp-server
 }
@@ -67,9 +78,14 @@ Invoke-PackageStep "Copy local artifacts" {
     Copy-Item -LiteralPath $BinarySource -Destination $BinaryTarget
     Copy-Item -LiteralPath "README.md" -Destination (Join-Path $StageRoot "README.md")
     Copy-Item -LiteralPath "CHANGELOG.md" -Destination (Join-Path $StageRoot "CHANGELOG.md")
+    Copy-Item -LiteralPath "LICENSE" -Destination (Join-Path $StageRoot "LICENSE")
+    Copy-Item -LiteralPath "NOTICE" -Destination (Join-Path $StageRoot "NOTICE")
     Copy-Item -LiteralPath "docs\CONTROL_PLANE_LOCAL.md" -Destination (Join-Path $StageRoot "docs\CONTROL_PLANE_LOCAL.md")
+    Copy-Item -LiteralPath "docs\DEPLOYMENT_READINESS.md" -Destination (Join-Path $StageRoot "docs\DEPLOYMENT_READINESS.md")
     Copy-Item -LiteralPath "docs\MCP_CLIENT_CONFIG.md" -Destination (Join-Path $StageRoot "docs\MCP_CLIENT_CONFIG.md")
     Copy-Item -LiteralPath "docs\KNOWN_LIMITATIONS.md" -Destination (Join-Path $StageRoot "docs\KNOWN_LIMITATIONS.md")
+    Copy-Item -LiteralPath "docs\PLATFORM_SURFACES.md" -Destination (Join-Path $StageRoot "docs\PLATFORM_SURFACES.md")
+    Copy-Item -LiteralPath "docs\PRIVATE_DEPLOYMENT_PLAN.md" -Destination (Join-Path $StageRoot "docs\PRIVATE_DEPLOYMENT_PLAN.md")
     Copy-Item -LiteralPath "scripts\demo-local.ps1" -Destination (Join-Path $StageRoot "scripts\demo-local.ps1")
     if (-not $SkipFrontend) {
         Copy-Item -LiteralPath "web\controlplane\dist" -Destination (Join-Path $StageRoot "controlplane-dist") -Recurse
@@ -102,6 +118,21 @@ Invoke-PackageStep "Write local run notes" {
 
 Invoke-PackageStep "Package backend truth smoke" {
     & $BinaryTarget --cli truth | Out-Null
+}
+
+Invoke-PackageStep "Package contents smoke" {
+    Assert-PackageFile -RelativePath "README.md"
+    Assert-PackageFile -RelativePath "CHANGELOG.md"
+    Assert-PackageFile -RelativePath "LICENSE"
+    Assert-PackageFile -RelativePath "NOTICE"
+    Assert-PackageFile -RelativePath "RUNNING_LOCAL.md"
+    Assert-PackageFile -RelativePath "docs\CONTROL_PLANE_LOCAL.md"
+    Assert-PackageFile -RelativePath "docs\DEPLOYMENT_READINESS.md"
+    Assert-PackageFile -RelativePath "docs\MCP_CLIENT_CONFIG.md"
+    Assert-PackageFile -RelativePath "docs\KNOWN_LIMITATIONS.md"
+    Assert-PackageFile -RelativePath "docs\PLATFORM_SURFACES.md"
+    Assert-PackageFile -RelativePath "docs\PRIVATE_DEPLOYMENT_PLAN.md"
+    Assert-PackageFile -RelativePath "scripts\demo-local.ps1"
 }
 
 Invoke-PackageStep "Create zip archive" {

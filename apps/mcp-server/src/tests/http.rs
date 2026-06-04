@@ -46,7 +46,7 @@ async fn backend_truth_endpoint_exposes_current_contract() {
 
     assert_eq!(
         payload["tools"].as_array().map(|items| items.len()),
-        Some(31)
+        Some(33)
     );
     assert_eq!(
         payload["retrieval"]["modes"],
@@ -72,6 +72,13 @@ async fn backend_truth_endpoint_exposes_current_contract() {
     );
     assert_eq!(payload["config"]["max_workspace_profiles"], 20);
     assert_eq!(payload["config"]["max_profile_repo_roots"], 5);
+    assert_eq!(payload["config"]["team_policy_profiles_enabled"], true);
+    assert_eq!(payload["config"]["max_team_policy_profiles"], 20);
+    assert_eq!(payload["config"]["max_team_policy_items"], 20);
+    assert_eq!(
+        payload["config"]["team_policy_source_upload_default"],
+        false
+    );
     assert_eq!(payload["config"]["default_mode"], "exact_search");
     assert_eq!(payload["config"]["default_limit"], 3);
     assert_eq!(payload["config"]["per_repo_limit"], 3);
@@ -136,6 +143,8 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "remove_repository",
             "workspace_profile_save",
             "workspace_profile_list",
+            "team_policy_profile_save",
+            "team_policy_profile_list",
             "search_code",
             "memory_write",
             "memory_read",
@@ -176,6 +185,10 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "workspace_profiles_apply_to_retrieval": false,
             "max_workspace_profiles": 20,
             "max_profile_repo_roots": 5,
+            "team_policy_profiles_enabled": true,
+            "max_team_policy_profiles": 20,
+            "max_team_policy_items": 20,
+            "team_policy_source_upload_default": false,
             "default_mode": "exact_search",
             "default_limit": 3,
             "per_repo_limit": 3
@@ -203,6 +216,8 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "memory_tools",
             "memory_aware_context",
             "registered_repositories",
+            "team_policy_profiles",
+            "team_policy_cli",
             "repository_state",
             "local_operator_workflow",
         ]

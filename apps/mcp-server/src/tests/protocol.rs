@@ -70,6 +70,8 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "remove_repository",
             "workspace_profile_save",
             "workspace_profile_list",
+            "team_policy_profile_save",
+            "team_policy_profile_list",
             "search_code",
             "memory_write",
             "memory_read",

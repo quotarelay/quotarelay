@@ -26,7 +26,7 @@ Before a public version tag:
 3. Confirm `SECURITY.md`, `README.md`, `CHANGELOG.md`, `docs/TRUTH_MATRIX.md`, and `docs/KNOWN_LIMITATIONS.md` match shipped behavior.
 4. Confirm OpenAPI mirrors shipped HTTP routes.
 5. Confirm `Cargo.toml`, `web/controlplane/package.json`, and release notes use the same version.
-6. Confirm release artifacts include `LICENSE` and `NOTICE`.
+6. Confirm release artifacts include `LICENSE`, `NOTICE`, and deployment-readiness docs.
 
 ## Tagging
 

@@ -6,14 +6,16 @@ This release candidate documents the current local MVP behavior. It is not a hos
 
 Public-readiness update: the local core is Apache-2.0, with public guidance for humans and AI agents plus an open-core commercial strategy that keeps local functionality free while reserving hosted/team/enterprise coordination, governance, support, and deployment as paid product surfaces.
 
+Team-layer planning update: local team policy profiles now store guardrails, validation recipes, MCP presets, and explicit source-upload preference under `.quotarelay`, with MCP save/list tools and hosted control-plane security/privacy gates documented before public login work proceeds.
+
 ### Shipped local behavior
 
-- Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, context run history, and local state inspection.
+- Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, team policy profiles, context run history, and local state inspection.
 - Local CLI JSON workflows for `truth`, `register`, `sync`, `state`, `search`, and `assemble`.
 - Bounded retrieval modes: `exact_search`, `overview`, and `task_capsule`.
 - Explicit packing limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, and 10 history runs.
 - Typed inclusion and omission reasons across engine, MCP, CLI, and context history boundaries.
-- Local repository index, memory, cache, context history, registered repositories, and workspace profiles stored under `.quotarelay/`.
+- Local repository index, memory, cache, context history, registered repositories, workspace profiles, and team policy profiles stored under `.quotarelay/`.
 - Optional `.quotarelay/ignore.json` support for exact paths and prefixes applied on explicit sync.
 - Thin HTTP routes for local control-plane use: `GET /truth`, `GET /repositories`, `GET /memory`, and `GET /context-runs`.
 - Control plane that renders backend truth without inventing readiness, live health, provider state, or savings metrics.

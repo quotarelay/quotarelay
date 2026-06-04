@@ -13,18 +13,20 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Memory | Durable local memory supports write/read/update/delete/search/export/import under `.quotarelay`. Empty memory search is rejected instead of dumping notes. |
 | Cache | Local retrieval caches can be inspected, cleared, reused, invalidated by explicit sync, and recovered from corrupt JSON by operator action. |
 | Token-saving clarity | Context and handoff packets expose local raw bytes considered, included bytes, approximate tokens, reduction ratio, cache status, stale status, omissions, and one-command demo output without provider billing claims. |
+| Team policy profiles | Local `.quotarelay` policy profiles can store guardrails, validation recipes, MCP client presets, and explicit source-upload preference without hosted sync. |
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |
 | Public guidance | `AGENTS.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, versioning docs, deployment-readiness docs, `LICENSE`, and `NOTICE` define the public operating surface. |
 | Commercial posture | Apache-2.0 local core stays useful; paid value is planned around hosted/team/enterprise coordination, governance, integrations, support, and deployment. |
 
-## Queued Local Work
+## Next Useful Work
 
 | Area | Next useful work |
 |---|---|
-| Docs and release readiness | Bootstrap docs, MCP client setup, local quickstart, troubleshooting, known limitations, changelog, and release rehearsal. |
-| Release-readiness audit | Keep shipped docs aligned as local token-saving and release-support slices finish. |
-| End-to-end operator suite | Keep one local proof path covering register, sync, memory, assemble, cache, CLI, and control-plane truth. |
+| Public launch | Keep README, SECURITY, support, agent guidance, public homepage, release notes, and known limitations aligned with shipped local behavior. |
+| Proof suite | Keep one local proof path covering register, sync, memory, assemble, cache hit visibility, savings estimates, CLI, HTTP truth, and control-plane rendering. |
+| Hosted/team planning | Keep paid surfaces focused on coordination, shared policy, aggregate savings reporting, auditability, integrations, support, and deployment management. |
+| Deployment readiness | Close private deployment decisions, signing/provenance choices, rollout/rollback expectations, and container proof tests before shipping customer-managed deployment behavior. |
 
 ## Deferred Platform Decisions
 

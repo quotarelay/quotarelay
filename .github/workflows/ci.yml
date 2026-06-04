@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Verify local surface
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/controlplane/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm.cmd --prefix web/controlplane ci
+
+      - name: Rust format
+        run: cargo fmt --all --check
+
+      - name: Source line-count guardrail
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+
+      - name: Rust tests
+        run: cargo test --workspace
+
+      - name: Frontend tests
+        run: npm.cmd --prefix web/controlplane run test -- --run
+
+      - name: Frontend build
+        run: npm.cmd --prefix web/controlplane run build
+
+      - name: Public site smoke
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+
+      - name: Public surface scan
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+
+      - name: Dependency audit
+        run: npm.cmd --prefix web/controlplane audit --audit-level=moderate

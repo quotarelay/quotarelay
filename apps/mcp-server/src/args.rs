@@ -462,7 +462,7 @@ fn parse_optional_memory_profile(arguments: &Value) -> Result<Option<MemoryProfi
     }
 }
 
-fn parse_root(arguments: &Value) -> Result<PathBuf, String> {
+pub(crate) fn parse_root(arguments: &Value) -> Result<PathBuf, String> {
     let root = arguments
         .get("root")
         .and_then(Value::as_str)

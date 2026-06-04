@@ -3,8 +3,9 @@ use std::path::PathBuf;
 
 use context_engine::{
     assemble_handoff_packet, context_feedback_list, context_feedback_write, inspect_local_state,
-    invalidate_exact_match_cache, recommend_validation, register_repository, retrieve_context,
-    ContextFeedbackRating, RetrievalMode,
+    invalidate_exact_match_cache, list_team_policy_profiles, recommend_validation,
+    register_repository, retrieve_context, save_team_policy_profile, ContextFeedbackRating,
+    RetrievalMode,
 };
 use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
@@ -34,6 +35,8 @@ where
         "validate" => run_cli_validate(&mut args_iter),
         "feedback-write" => run_cli_feedback_write(&mut args_iter),
         "feedback-list" => run_cli_feedback_list(&mut args_iter),
+        "team-policy-save" => run_cli_team_policy_save(&mut args_iter),
+        "team-policy-list" => run_cli_team_policy_list(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
         "handoff" => run_cli_handoff(&mut args_iter),
@@ -161,6 +164,43 @@ where
     Ok(json!({"feedback": result}))
 }
 
+fn run_cli_team_policy_save<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let name = parse_cli_arg(args, "name")?;
+    let guardrails = parse_cli_list_arg(args, "guardrails")?;
+    let validation_recipes = parse_cli_list_arg(args, "validation_recipes")?;
+    let mcp_client_presets = parse_cli_list_arg(args, "mcp_client_presets")?;
+    let allow_source_upload = parse_cli_bool_arg(args, false)?;
+    let result = save_team_policy_profile(
+        &PathBuf::from(&root),
+        &name,
+        &guardrails,
+        &validation_recipes,
+        &mcp_client_presets,
+        allow_source_upload,
+    )
+    .map_err(|error| format!("team-policy-save failed: {error}"))?;
+
+    Ok(json!({"team_policy": result}))
+}
+
+fn run_cli_team_policy_list<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let limit = parse_cli_limit(args, 20)?;
+    let profiles = list_team_policy_profiles(&PathBuf::from(&root), limit)
+        .map_err(|error| format!("team-policy-list failed: {error}"))?;
+
+    Ok(json!({"team_policies": profiles}))
+}
+
 fn run_cli_search<I, S>(args: &mut I) -> Result<Value, String>
 where
     I: Iterator<Item = S>,
@@ -264,6 +304,34 @@ where
             .parse::<usize>()
             .map_err(|error| format!("limit must be a positive integer: {error}")),
         None => Ok(default),
+    }
+}
+
+fn parse_cli_list_arg<I, S>(args: &mut I, name: &str) -> Result<Vec<String>, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    Ok(parse_cli_arg(args, name)?
+        .split(';')
+        .map(str::trim)
+        .filter(|item| !item.is_empty())
+        .map(ToOwned::to_owned)
+        .collect())
+}
+
+fn parse_cli_bool_arg<I, S>(args: &mut I, default: bool) -> Result<bool, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    match parse_cli_arg_opt(args).as_deref() {
+        None => Ok(default),
+        Some("true") => Ok(true),
+        Some("false") => Ok(false),
+        Some(other) => Err(format!(
+            "boolean argument must be true or false; got {other}"
+        )),
     }
 }
 

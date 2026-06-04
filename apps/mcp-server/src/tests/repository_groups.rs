@@ -182,3 +182,85 @@ fn workspace_profiles_save_and_list_over_stdio() {
     assert_eq!(listed.as_array().map(Vec::len), Some(1));
     assert_eq!(listed[0]["repo_roots"].as_array().map(Vec::len), Some(2));
 }
+
+#[test]
+fn team_policy_profiles_save_list_and_inspect_over_stdio() {
+    let state_root = temp_repo();
+
+    let save_request = json_rpc_request(
+        46,
+        "tools/call",
+        json!({
+            "name": "team_policy_profile_save",
+            "arguments": {
+                "root": state_root.to_string_lossy(),
+                "name": "backend-team",
+                "guardrails": ["keep source local by default"],
+                "validation_recipes": ["cargo test -p context-engine"],
+                "mcp_client_presets": ["examples/mcp-client-presets/generic-stdio.json"]
+            }
+        }),
+    );
+    let list_request = json_rpc_request(
+        47,
+        "tools/call",
+        json!({
+            "name": "team_policy_profile_list",
+            "arguments": {
+                "root": state_root.to_string_lossy(),
+                "limit": 10
+            }
+        }),
+    );
+    let inspect_request = json_rpc_request(
+        48,
+        "tools/call",
+        json!({
+            "name": "inspect_local_state",
+            "arguments": {
+                "root": state_root.to_string_lossy()
+            }
+        }),
+    );
+    let framed = format!(
+        "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+        save_request.len(),
+        save_request,
+        list_request.len(),
+        list_request,
+        inspect_request.len(),
+        inspect_request
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("team policy profile calls should succeed");
+
+    let responses = decode_responses(&output);
+    let saved: Value = serde_json::from_str(
+        responses[0]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("team policy profile save text should exist"),
+    )
+    .expect("team policy profile save payload should be valid json");
+    let listed: Value = serde_json::from_str(
+        responses[1]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("team policy profile list text should exist"),
+    )
+    .expect("team policy profile list payload should be valid json");
+    let inspected: Value = serde_json::from_str(
+        responses[2]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("local state inspection text should exist"),
+    )
+    .expect("local state inspection payload should be valid json");
+
+    assert_eq!(saved["profile"]["name"], "backend-team");
+    assert_eq!(saved["profile"]["allow_source_upload"], false);
+    assert_eq!(listed.as_array().map(Vec::len), Some(1));
+    assert_eq!(listed[0]["guardrails"].as_array().map(Vec::len), Some(1));
+    assert_eq!(inspected["team_policy_profiles"]["present"], true);
+    assert_eq!(inspected["team_policy_profiles"]["item_count"], 1);
+    assert!(inspected.get("guardrails").is_none());
+}

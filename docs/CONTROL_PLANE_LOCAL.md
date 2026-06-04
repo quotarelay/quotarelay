@@ -39,6 +39,11 @@ Run the local dev server:
 npm --prefix web/controlplane run dev
 ```
 
+Open:
+
+- `http://127.0.0.1:4174/` for the public product homepage.
+- `http://127.0.0.1:4174/control-plane?root=<repo_root>&memory_query=<query>` for the local operator control plane.
+
 The frontend reads the backend truth surface. If it cannot reach the backend URL configured by the local environment, it must show unavailable/not-configured state rather than fake readiness.
 
 ## Boundaries

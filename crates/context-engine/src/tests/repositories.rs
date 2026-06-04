@@ -296,3 +296,73 @@ fn workspace_profiles_persist_repo_groups_and_default_limits() {
         .join("workspace_profiles.json")
         .exists());
 }
+
+#[test]
+fn team_policy_profiles_persist_replace_and_bound_public_team_config() {
+    let state_root = temp_repo();
+    let many_guardrails = (0..25)
+        .map(|index| format!("guardrail {index}"))
+        .collect::<Vec<_>>();
+
+    let saved = save_team_policy_profile(
+        &state_root,
+        "backend-team",
+        &many_guardrails,
+        &[
+            "cargo test -p context-engine".to_string(),
+            " ".to_string(),
+            "npm --prefix web/controlplane run build".to_string(),
+        ],
+        &["examples/mcp-client-presets/generic-stdio.json".to_string()],
+        false,
+    )
+    .expect("team policy profile should save");
+
+    assert_eq!(saved.profile.name, "backend-team");
+    assert_eq!(saved.profile.guardrails.len(), 20);
+    assert_eq!(saved.profile.validation_recipes.len(), 2);
+    assert_eq!(saved.profile.mcp_client_presets.len(), 1);
+    assert!(!saved.profile.allow_source_upload);
+
+    let replacement = save_team_policy_profile(
+        &state_root,
+        "backend-team",
+        &["Keep source local by default.".to_string()],
+        &[
+            "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\release-check.ps1"
+                .to_string(),
+        ],
+        &[],
+        true,
+    )
+    .expect("team policy profile replacement should save");
+    let profiles =
+        list_team_policy_profiles(&state_root, 10).expect("team policy profiles should list");
+
+    assert_eq!(profiles.len(), 1);
+    assert_eq!(profiles[0], replacement.profile);
+    assert!(profiles[0].allow_source_upload);
+    assert!(state_root
+        .join(".quotarelay")
+        .join("team_policy_profiles.json")
+        .exists());
+}
+
+#[test]
+fn local_state_inspection_counts_team_policy_without_dumping_contents() {
+    let state_root = temp_repo();
+    save_team_policy_profile(
+        &state_root,
+        "privacy-team",
+        &["never upload repository contents by default".to_string()],
+        &[],
+        &[],
+        false,
+    )
+    .expect("team policy profile should save");
+
+    let inspection = inspect_local_state(&state_root).expect("local state should inspect");
+
+    assert!(inspection.team_policy_profiles.present);
+    assert_eq!(inspection.team_policy_profiles.item_count, 1);
+}

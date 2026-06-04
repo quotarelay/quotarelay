@@ -275,6 +275,7 @@ fn assemble_context_supports_diff_aware_mode_over_stdio() {
     let repo_root = temp_repo();
     fs::write(repo_root.join("src.txt"), "needle original\n").expect("repo file should write");
     repo_index::sync_repo(&repo_root).expect("sync should succeed");
+    std::thread::sleep(std::time::Duration::from_millis(1200));
     fs::write(repo_root.join("src.txt"), "needle changed\n").expect("repo file should rewrite");
 
     let request = json_rpc_request(

@@ -3,6 +3,7 @@ use serde_json::{json, Value};
 
 use crate::args::*;
 use crate::feedback_args::*;
+use crate::team_policy_args::*;
 use crate::validation_args::*;
 
 pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
@@ -235,6 +236,26 @@ pub(crate) fn bootstrap_tool_call(request: &Value) -> Value {
             }),
         },
         Some("workspace_profile_list") => match workspace_profile_list_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "[]".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("team_policy_profile_save") => match team_policy_profile_save_from_args(&arguments) {
+            Ok(result) => json!({
+                "type": "text",
+                "text": serde_json::to_string(&result).unwrap_or_else(|_| "{}".to_string())
+            }),
+            Err(error) => json!({
+                "type": "text",
+                "text": error
+            }),
+        },
+        Some("team_policy_profile_list") => match team_policy_profile_list_from_args(&arguments) {
             Ok(result) => json!({
                 "type": "text",
                 "text": serde_json::to_string(&result).unwrap_or_else(|_| "[]".to_string())

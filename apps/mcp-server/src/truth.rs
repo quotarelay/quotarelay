@@ -34,6 +34,10 @@ struct ConfigTruth {
     workspace_profiles_apply_to_retrieval: bool,
     max_workspace_profiles: usize,
     max_profile_repo_roots: usize,
+    team_policy_profiles_enabled: bool,
+    max_team_policy_profiles: usize,
+    max_team_policy_items: usize,
+    team_policy_source_upload_default: bool,
     default_mode: &'static str,
     default_limit: usize,
     per_repo_limit: usize,
@@ -87,6 +91,14 @@ pub(crate) fn backend_truth_payload() -> BackendTruthPayload {
                 command: "cargo test -p mcp-server repository_registration_tools_work_over_stdio",
             },
             BackendProof {
+                id: "team_policy_profiles",
+                command: "cargo test -p mcp-server team_policy_profiles_save_list_and_inspect_over_stdio",
+            },
+            BackendProof {
+                id: "team_policy_cli",
+                command: "cargo test -p mcp-server local_cli_team_policy_save_and_list_are_stable_json",
+            },
+            BackendProof {
                 id: "repository_state",
                 command:
                     "cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio",
@@ -115,6 +127,10 @@ fn config_truth() -> ConfigTruth {
         workspace_profiles_apply_to_retrieval: false,
         max_workspace_profiles: 20,
         max_profile_repo_roots: 5,
+        team_policy_profiles_enabled: true,
+        max_team_policy_profiles: 20,
+        max_team_policy_items: 20,
+        team_policy_source_upload_default: false,
         default_mode: "exact_search",
         default_limit: 3,
         per_repo_limit: 3,
