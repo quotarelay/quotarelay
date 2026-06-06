@@ -37,6 +37,10 @@ Invoke-ReleaseStep "local install smoke" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
 }
 
+Invoke-ReleaseStep "MCP preset smoke" {
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1 -SkipInstall
+}
+
 if (-not $SkipFrontend) {
     Invoke-ReleaseStep "public site smoke" {
         powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild

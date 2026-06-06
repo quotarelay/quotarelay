@@ -116,6 +116,7 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1`
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`
 - `cargo test -p mcp-server backend_truth_endpoint_exposes_current_contract`

@@ -37,3 +37,4 @@ After local install smoke, clients can use the installed command directly:
 - Client-specific config keys vary by client; use `generic-stdio.json` for source runs and `installed-stdio.json` after local install proof.
 - Run `cargo run -p mcp-server -- --cli truth` from the checkout before adding the preset to a client.
 - Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1` before using `installed-stdio.json`.
+- Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1` to prove both presets answer MCP `initialize`.

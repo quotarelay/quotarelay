@@ -90,6 +90,12 @@ To prove the installed command:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
 ```
 
+To prove both checked-in stdio presets launch and respond to MCP `initialize`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
+```
+
 For a fuller repo check:
 
 ```powershell

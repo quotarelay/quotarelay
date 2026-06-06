@@ -15,6 +15,7 @@ Recently completed slices:
 | Local savings reports | Shipped | Recent context-run history aggregates byte, approximate-token, cache, stale, and omission metadata without snippets or provider billing claims. |
 | Local onboarding packs | Shipped | Repo-shape metadata, validation commands, handoff template names, and privacy notes are exposed without source dumps. |
 | MCP-first productization | Shipped | `quotarelay-mcp` is the branded local MCP command; desktop and mobile app surfaces remain deferred. |
+| MCP client preset verification | Shipped | Source and installed stdio presets are smoke-tested against real MCP `initialize` responses. |
 
 ## Completed Slice
 
@@ -106,12 +107,44 @@ Proof:
 - `powershell -NoProfile -ExecutionPolicy Bypass -Command '$env:PATH = "$env:USERPROFILE\.cargo\bin;$env:PATH"; & "scripts\release-check.ps1"'` passed.
 - Release check covered clean check, Rust package tests, control-plane tests/build, local demo smoke, local install smoke, public site smoke, public surface scan, and docs sanity.
 
+### T117: MCP Client Preset Verification
+
+Status: done
+
+Goal: prove checked-in source-run and installed-command MCP presets can launch Quotarelay and answer MCP `initialize` without adding publishing, marketplace, or native-app behavior.
+
+Allowed files:
+
+- `scripts/mcp-preset-smoke.ps1`
+- `scripts/release-check.ps1`
+- `README.md`
+- `docs/MCP_CLIENT_CONFIG.md`
+- `examples/mcp-client-presets/README.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not add global install, publishing, marketplace integration, native app behavior, or deployment automation.
+- Do not change MCP tool contracts, persisted state, provider boundaries, auth, or hosted behavior.
+- Do not claim client-specific support beyond the generic stdio command/args presets tested here.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Proof:
+
+- `scripts\mcp-preset-smoke.ps1` passed with `source preset initialize`, `cargo install quotarelay-mcp`, `installed command truth`, and `installed preset initialize`.
+- `scripts\release-check.ps1` includes the MCP preset smoke after local install proof.
+
 ## Next Candidate Slices
 
 | Candidate | Boundary |
 |---|---|
 | Control-plane truth polish | UI may render existing backend truth more clearly, but must not invent readiness, provider health, or savings state. |
-| MCP client preset verification | Add or clarify verified local stdio preset guidance only; no global install or publishing automation. |
 | Private deployment decisions | Planning only until threat model, signing, provenance, auth, storage, backup, rollout, and rollback decisions close. |
 
 ## Closed Until Explicitly Opened
