@@ -175,7 +175,7 @@ Proof:
 - Control-plane tests passed: `2 passed (2)`, `12 passed (12)`.
 - Control-plane build passed with Vite.
 - A direct loopback preview proof passed by starting the real backend at `127.0.0.1:3030`, starting Vite dev at `127.0.0.1:4174`, and confirming `http://127.0.0.1:4174/truth` returns backend tools and retrieval modes.
-- Browser visual verification was attempted twice, but the in-app browser runtime failed to attach before page load; no product behavior was changed to work around that local tooling failure.
+- Playwright visual verification passed against real loopback backend truth: the control plane rendered 6 truth-summary cards, 35 backend tools, no warning notes, and no summary-card overlaps.
 - `scripts\release-check.ps1` passed after the slice.
 
 ## Next Candidate Slices

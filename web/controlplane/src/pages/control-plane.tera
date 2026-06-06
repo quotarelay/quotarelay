@@ -202,26 +202,26 @@
 </template>
 
 <script>
-  import { ref, shallowRef } from '@terajs/reactivity'
+  import { ref } from '@terajs/reactivity'
   import { onMounted } from '@terajs/runtime'
   import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState, proofTitle, toolSignals } from '../truth'
 
   const truthRouteRef = ref('/truth')
   const fetchStateRef = ref('Loading')
   const fetchErrorRef = ref('')
-  const backendToolsRef = shallowRef([])
-  const proofsRef = shallowRef([])
-  const truthSummaryRef = shallowRef([])
-  const retrievalTruthRef = shallowRef([])
-  const configTruthRef = shallowRef([])
-  const cliCommandsRef = shallowRef([])
-  const repositoryStateRef = shallowRef([])
+  const backendToolsRef = ref([])
+  const proofsRef = ref([])
+  const truthSummaryRef = ref([])
+  const retrievalTruthRef = ref([])
+  const configTruthRef = ref([])
+  const cliCommandsRef = ref([])
+  const repositoryStateRef = ref([])
   const repositoryFetchStateRef = ref('Not configured')
   const repositoryFetchErrorRef = ref('')
-  const memoryStateRef = shallowRef({ notes: [], omitted_count: 0 })
+  const memoryStateRef = ref({ notes: [], omitted_count: 0 })
   const memoryFetchStateRef = ref('Not configured')
   const memoryFetchErrorRef = ref('')
-  const runHistoryRef = shallowRef([])
+  const runHistoryRef = ref([])
   const runFetchStateRef = ref('Not configured')
   const runFetchErrorRef = ref('')
 
