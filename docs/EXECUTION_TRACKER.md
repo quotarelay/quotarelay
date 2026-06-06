@@ -16,6 +16,7 @@ Recently completed slices:
 | Local onboarding packs | Shipped | Repo-shape metadata, validation commands, handoff template names, and privacy notes are exposed without source dumps. |
 | MCP-first productization | Shipped | `quotarelay-mcp` is the branded local MCP command; desktop and mobile app surfaces remain deferred. |
 | MCP client preset verification | Shipped | Source and installed stdio presets are smoke-tested against real MCP `initialize` responses. |
+| Control-plane truth polish | Shipped | The local control plane summarizes existing `/truth` tool, retrieval, cache, memory, budget, and CLI entrypoint fields without inventing readiness or provider state. |
 
 ## Completed Slice
 
@@ -140,11 +141,47 @@ Proof:
 - `scripts\mcp-preset-smoke.ps1` passed with `source preset initialize`, `cargo install quotarelay-mcp`, `installed command truth`, and `installed preset initialize`.
 - `scripts\release-check.ps1` includes the MCP preset smoke after local install proof.
 
+### T118: Control-plane Truth Summary
+
+Status: done
+
+Goal: make the existing backend truth payload easier to scan in the local control plane while preserving the rule that UI mirrors shipped backend truth only.
+
+Allowed files:
+
+- `web/controlplane/src/`
+- `web/controlplane/vite.config.ts`
+- `docs/CONTROL_PLANE_LOCAL.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not add health, readiness, provider, auth, savings, telemetry, hosted, or deployment state.
+- Do not change MCP, CLI, HTTP, OpenAPI, persisted-state, retrieval, memory, cache, or repository contracts.
+- Do not expose local HTTP endpoints beyond loopback.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+npm.cmd --prefix web/controlplane run test -- --run
+npm.cmd --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Proof:
+
+- `scripts\check-line-counts.ps1` passed: `line-count guardrail passed (max 500 lines). Checked 94 source files.`
+- Control-plane tests passed: `2 passed (2)`, `12 passed (12)`.
+- Control-plane build passed with Vite.
+- A direct loopback preview proof passed by starting the real backend at `127.0.0.1:3030`, starting Vite dev at `127.0.0.1:4174`, and confirming `http://127.0.0.1:4174/truth` returns backend tools and retrieval modes.
+- Browser visual verification was attempted twice, but the in-app browser runtime failed to attach before page load; no product behavior was changed to work around that local tooling failure.
+- `scripts\release-check.ps1` passed after the slice.
+
 ## Next Candidate Slices
 
 | Candidate | Boundary |
 |---|---|
-| Control-plane truth polish | UI may render existing backend truth more clearly, but must not invent readiness, provider health, or savings state. |
 | Private deployment decisions | Planning only until threat model, signing, provenance, auth, storage, backup, rollout, and rollback decisions close. |
 
 ## Closed Until Explicitly Opened

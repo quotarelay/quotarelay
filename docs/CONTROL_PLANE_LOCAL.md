@@ -39,6 +39,8 @@ Run the local dev server:
 npm --prefix web/controlplane run dev
 ```
 
+The dev server binds to `127.0.0.1:4174` and proxies the shipped backend JSON routes to `127.0.0.1:3030` for local preview only.
+
 Open:
 
 - `http://127.0.0.1:4174/` for the public product homepage.

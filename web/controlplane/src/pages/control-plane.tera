@@ -53,6 +53,14 @@
         </li>
       </ol>
     </div>
+
+    <div class="truth-summary" aria-label="Backend truth summary">
+      <div class="truth-summary__item" v-for="item in truthSummary()" :key="item.label">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+        <p>{{ item.detail }}</p>
+      </div>
+    </div>
   </section>
 
   <section class="section">
@@ -203,6 +211,7 @@
   const fetchErrorRef = ref('')
   const backendToolsRef = shallowRef([])
   const proofsRef = shallowRef([])
+  const truthSummaryRef = shallowRef([])
   const retrievalTruthRef = shallowRef([])
   const configTruthRef = shallowRef([])
   const cliCommandsRef = shallowRef([])
@@ -234,6 +243,10 @@
 
   function proofs() {
     return proofsRef.value
+  }
+
+  function truthSummary() {
+    return truthSummaryRef.value
   }
 
   function retrievalTruth() {
@@ -290,6 +303,7 @@
     const state = await loadBackendTruth(fetch, truthRouteRef.value)
     backendToolsRef.value = state.backendTools
     proofsRef.value = state.proofs
+    truthSummaryRef.value = state.truthSummary
     retrievalTruthRef.value = state.retrievalTruth
     configTruthRef.value = state.configTruth
     cliCommandsRef.value = state.cliCommands

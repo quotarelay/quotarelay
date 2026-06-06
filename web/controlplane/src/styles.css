@@ -1,3 +1,5 @@
+@import "./control-plane-summary.css";
+
 :root {
   --page-bg: #081019;
   --page-bg-soft: #122131;

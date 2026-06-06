@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 
 import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState, proofTitle, toolSignals, toConfigTruthItems, toRetrievalTruthItems } from './truth'
+import { toTruthSummaryItems } from './truthSummary'
 
 describe('control-plane truth boundary', () => {
   it('normalizes the live /truth payload for the page', async () => {
@@ -75,6 +76,35 @@ describe('control-plane truth boundary', () => {
     expect(state.backendTools).toHaveLength(1)
     expect(toolSignals(state.backendTools[0])).toEqual(['required: root', 'fields: root, limit'])
     expect(proofTitle(state.proofs[0])).toBe('tools list')
+    expect(state.truthSummary).toEqual(toTruthSummaryItems(state.backendTools, {
+      modes: ['exact_search', 'overview', 'task_capsule', 'diff_aware'],
+      inclusion_reason_kinds: ['query_line_match', 'diff_changed_file', 'diff_related_match'],
+      omission_reason_kinds: ['byte_budget_reached', 'missing_indexed_file'],
+      limits: {
+        max_context_items: 5,
+        max_snippet_pack_bytes: 160,
+        max_document_pack_bytes: 640,
+        max_memory_pack_bytes: 320,
+        max_history_runs: 10
+      },
+      durable_memory_enabled: true,
+      budget_estimate_enabled: true,
+      budget_estimate_unit: 'approximate_tokens_from_included_bytes',
+      cache: {
+        exact_search_enabled: true,
+        overview_enabled: true,
+        task_capsule_enabled: true,
+        sync_invalidates_caches: true
+      }
+    }, {
+      local_entrypoint_enabled: true,
+      commands: [
+        {
+          label: 'Truth',
+          command: 'cargo run -p mcp-server -- --cli truth'
+        }
+      ]
+    }))
     expect(state.retrievalTruth).toEqual(toRetrievalTruthItems({
       modes: ['exact_search', 'overview', 'task_capsule', 'diff_aware'],
       inclusion_reason_kinds: ['query_line_match', 'diff_changed_file', 'diff_related_match'],
@@ -125,9 +155,70 @@ describe('control-plane truth boundary', () => {
       fetchError: 'network down',
       backendTools: [],
       proofs: [],
+      truthSummary: [],
       retrievalTruth: [],
       configTruth: [],
       cliCommands: []
+    })
+  })
+
+  it('summarizes only reported backend truth fields', () => {
+    const summary = toTruthSummaryItems([], {
+      modes: [],
+      durable_memory_enabled: undefined,
+      budget_estimate_enabled: false,
+      cache: null
+    }, null)
+
+    expect(summary).toEqual([
+      {
+        label: 'Tools',
+        value: '0',
+        detail: 'MCP tools exposed by the backend truth payload.'
+      },
+      {
+        label: 'Retrieval',
+        value: 'not reported',
+        detail: 'No retrieval modes were reported by /truth.'
+      },
+      {
+        label: 'Cache',
+        value: 'not reported',
+        detail: 'No cache contract was reported by /truth.'
+      },
+      {
+        label: 'Memory',
+        value: 'not reported',
+        detail: 'Durable memory availability as reported by /truth.'
+      },
+      {
+        label: 'Budget',
+        value: 'disabled',
+        detail: 'Budget estimate unit was not reported.'
+      },
+      {
+        label: 'Entrypoint',
+        value: 'not reported',
+        detail: 'No CLI command was reported by /truth.'
+      }
+    ])
+  })
+
+  it('summarizes cache modes separately from sync invalidation', () => {
+    const summary = toTruthSummaryItems([], {
+      modes: ['exact_search'],
+      cache: {
+        exact_search_enabled: true,
+        overview_enabled: false,
+        task_capsule_enabled: true,
+        sync_invalidates_caches: false
+      }
+    }, null)
+
+    expect(summary.find((item) => item.label === 'Cache')).toEqual({
+      label: 'Cache',
+      value: '2 modes',
+      detail: 'exact enabled; overview disabled; task enabled; sync invalidation disabled'
     })
   })
 
