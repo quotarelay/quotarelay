@@ -37,4 +37,4 @@ Long-range direction:
 - Quotarelay is not a fake token-savings dashboard.
 - Quotarelay should prove local context reduction with bounded byte/token estimates and local benchmarks, without claiming exact provider billing savings.
 
-This document is directional only. Shipped behavior is documented in `README.md` and the current execution mirror in `EXECUTION_TRACKER.md`.
+This document is directional only. Shipped behavior is documented in `README.md` and the current execution mirror in `docs/EXECUTION_TRACKER.md`.

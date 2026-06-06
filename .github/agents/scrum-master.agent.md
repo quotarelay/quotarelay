@@ -26,7 +26,7 @@ Your job is to convert goals into bounded implementation slices that match the l
 - When an active implementation slice exposes a required schema, docs, proof, or tracker mirror outside the current allowed files, prefer a minimal active-slice amendment over a new task if all of these are true:
 	- the behavior already belongs to the active slice
 	- the extra file is a truth mirror or contract artifact for that behavior
-	- `EXECUTION_TRACKER.md` is already allowed
+	- `docs/EXECUTION_TRACKER.md` is already allowed
 	- the amendment does not weaken non-goals or widen product scope
 - Create a follow-up task only when the extra file represents a separable feature, release concern, or product direction change.
 - Do not allow partner or frontend work to enter early unless the core tracker justifies it.
@@ -47,7 +47,7 @@ Your job is to convert goals into bounded implementation slices that match the l
 
 ## Procedure
 
-1. Read `EXECUTION_TRACKER.md` first.
+1. Read `docs/EXECUTION_TRACKER.md` first.
 2. Identify the active task.
 3. If the ask is `next task`, `next slice`, or equivalent after a completed task, determine whether tracker truth explicitly opens one executable next slice. If it does not, return `BLOCKED`.
 4. Read:

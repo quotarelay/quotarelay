@@ -14,7 +14,7 @@ Your job is to implement the active backend slice exactly as defined by the live
 
 ## Constraints
 
-- Start from `EXECUTION_TRACKER.md` and implement only the current approved task unless the user explicitly opens planning or review work.
+- Start from `docs/EXECUTION_TRACKER.md` and implement only the current approved task unless the user explicitly opens planning or review work.
 - Auto-mode safety: if model capability feels limited, make fewer changes, not broader changes. Touch only the exact tracker files, add the narrowest proof, and stop with `BLOCKED` if the controlling seam is unclear.
 - Do not touch frontend files unless the tracker explicitly allows it.
 - Keep routes as HTTP adapters only.

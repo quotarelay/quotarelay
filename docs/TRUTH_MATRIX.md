@@ -51,6 +51,6 @@ This matrix separates what is shipped, useful next work, and deferred platform d
 | Fake savings | Do not claim exact provider billing savings from local byte or approximate token estimates. |
 | Fake readiness | Do not render health, progress, or readiness state that the backend does not expose. |
 | Unbounded context | Do not dump full repos, memory stores, cache files, or histories into agents. |
-| Provider forwarding | Do not route model calls or store provider keys unless decision docs and tracker slices explicitly open that work. |
+| Provider forwarding | Do not route model calls or store provider keys unless `docs/DECISIONS.md` and `docs/EXECUTION_TRACKER.md` explicitly open that work. |
 | Hidden automation | Do not silently refresh, clear, sync, or repair local state without operator action. |
 | Monolith drift | Keep adapters thin and business rules in engine/service modules under the line-count guardrail. |

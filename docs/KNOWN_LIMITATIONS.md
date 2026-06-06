@@ -51,7 +51,7 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 
 ## Deferred platform work
 
-These areas remain closed until `docs/DECISIONS.md` and `EXECUTION_TRACKER.md` explicitly open future slices:
+These areas remain closed until `docs/DECISIONS.md` and `docs/EXECUTION_TRACKER.md` explicitly open future slices:
 
 - Auth and local control-plane protection.
 - Hosted multi-user tenancy.
