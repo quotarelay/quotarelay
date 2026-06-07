@@ -2,7 +2,7 @@ use std::io::Cursor;
 
 use serde_json::{json, Value};
 
-use super::common::decode_response;
+use super::common::{decode_response, decode_responses, json_rpc_request, temp_repo};
 use crate::run_stdio;
 
 #[test]
@@ -32,6 +32,72 @@ fn responds_to_tool_call_over_stdio() {
     assert_eq!(
         response["result"]["content"][0]["text"],
         "quotarelay bootstrap"
+    );
+}
+
+#[test]
+fn malformed_tool_calls_return_explicit_text_without_panic() {
+    let repo_root = temp_repo();
+    let missing_name = json_rpc_request(20, "tools/call", json!({}));
+    let unknown_tool = json_rpc_request(
+        21,
+        "tools/call",
+        json!({
+            "name": "not_a_real_tool",
+            "arguments": {}
+        }),
+    );
+    let missing_root = json_rpc_request(
+        22,
+        "tools/call",
+        json!({
+            "name": "assemble_context",
+            "arguments": {
+                "query": "needle"
+            }
+        }),
+    );
+    let invalid_mode = json_rpc_request(
+        23,
+        "tools/call",
+        json!({
+            "name": "assemble_context",
+            "arguments": {
+                "root": repo_root.to_string_lossy(),
+                "mode": "everything",
+                "query": "needle"
+            }
+        }),
+    );
+    let framed = format!(
+        "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+        missing_name.len(),
+        missing_name,
+        unknown_tool.len(),
+        unknown_tool,
+        missing_root.len(),
+        missing_root,
+        invalid_mode.len(),
+        invalid_mode
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("malformed tool calls should still produce responses");
+
+    let responses = decode_responses(&output);
+    let response_text = |index: usize| {
+        responses[index]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("tool response text should exist")
+    };
+
+    assert_eq!(response_text(0), "missing tool name");
+    assert_eq!(response_text(1), "unknown tool: not_a_real_tool");
+    assert_eq!(response_text(2), "tool requires a string root");
+    assert_eq!(
+        response_text(3),
+        "assemble_context mode must be one of exact_search, overview, task_capsule, diff_aware; got everything"
     );
 }
 

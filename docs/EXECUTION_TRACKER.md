@@ -21,6 +21,7 @@ Recently completed slices:
 | Adoption proof pack | Shipped | The release proof path now includes the token-saver benchmark and public-site overclaim checks. |
 | First-run polish | Shipped | README, troubleshooting, MCP client setup, and preset docs now guide a fresh checkout through proof, install, and client setup cleanly. |
 | Contract regression tests | Shipped | MCP tools/list now locks public tool descriptions, closed input schemas, and required-field shapes. |
+| Error-message edge polish | Shipped | MCP stdio malformed tool calls now have regression coverage for explicit text responses. |
 
 ## Completed Slice
 
@@ -375,9 +376,50 @@ Proof:
 - `cargo test -p mcp-server` passed: 57 tests.
 - `scripts\release-check.ps1` passed after the test hardening.
 
+## Completed Slice
+
+### T123: Error-message And Edge-case Polish
+
+Status: done
+
+Goal: audit missing paths, unsynced repos, ignored files, corrupt local state, empty queries, stale cache, binary/generated files, and invalid MCP arguments; add focused tests only for real gaps.
+
+Allowed files:
+
+- `apps/mcp-server/src/tests/`
+- `crates/context-engine/src/tests/`
+- `crates/repo-index/src/tests/`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change shipped behavior unless an existing test exposes an actual bug.
+- Do not loosen bounded context limits, local-state privacy, typed reasons, or public contract checks.
+- Do not add hosted, billing, auth, provider routing, cloud sync, telemetry, deployment, publishing, desktop, or mobile behavior.
+
+Validation:
+
+```powershell
+cargo test -p mcp-server malformed_tool_calls_return_explicit_text_without_panic
+cargo test -p mcp-server
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- Existing edge-case coverage is audited before adding tests.
+- MCP stdio malformed tool calls return explicit text responses for missing tool name, unknown tool, missing required root, and invalid retrieval mode.
+- Full release-check passes after the edge-case test hardening.
+
+Proof:
+
+- `cargo test -p mcp-server malformed_tool_calls_return_explicit_text_without_panic` passed.
+- `cargo test -p mcp-server` passed: 58 tests.
+- `scripts\release-check.ps1` passed after the edge-case test hardening.
+
 ## Active Slice
 
-No active slice. Next recommended slice is T123 Error-message and edge-case polish.
+No active slice. Next recommended slice is T124 Example quality.
 
 ## Polish Plan Extension
 
