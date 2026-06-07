@@ -22,11 +22,12 @@ Until `1.0.0`:
 Before a public version tag:
 
 1. Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1`.
-2. Run public-surface scans for secrets, private paths, local state, and stale shipped/deferred claims.
-3. Confirm `SECURITY.md`, `README.md`, `CHANGELOG.md`, `docs/TRUTH_MATRIX.md`, and `docs/KNOWN_LIMITATIONS.md` match shipped behavior.
-4. Confirm OpenAPI mirrors shipped HTTP routes.
-5. Confirm `Cargo.toml`, `web/controlplane/package.json`, and release notes use the same version.
-6. Confirm release artifacts include `LICENSE`, `NOTICE`, and deployment-readiness docs.
+2. Confirm release-check covers the local demo, token-saver benchmark, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and docs sanity.
+3. Run public-surface scans for secrets, private paths, local state, and stale shipped/deferred claims.
+4. Confirm `SECURITY.md`, `README.md`, `CHANGELOG.md`, `docs/TRUTH_MATRIX.md`, and `docs/KNOWN_LIMITATIONS.md` match shipped behavior.
+5. Confirm OpenAPI mirrors shipped HTTP routes.
+6. Confirm `Cargo.toml`, `web/controlplane/package.json`, and release notes use the same version.
+7. Confirm release artifacts include `LICENSE`, `NOTICE`, and deployment-readiness docs.
 
 ## Tagging
 

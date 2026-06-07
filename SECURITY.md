@@ -27,6 +27,8 @@ Include:
 
 Quotarelay can store source snippets, repository paths, queries, memory notes, cache entries, and context history under `.quotarelay`. Treat that directory as project-local working data and do not commit it. The repository `.gitignore` excludes `.quotarelay`, `.env`, build outputs, dependency directories, and temporary local artifacts.
 
+The shipped demo, benchmark, install smoke, MCP preset smoke, public-site smoke, and release-check scripts are local validation paths. They do not upload repository contents, send prompts to model providers, or collect telemetry.
+
 ## Network Boundary
 
 The HTTP backend is intended for local operator use. It refuses non-loopback bind addresses and does not implement auth, TLS, CORS policy, user identity, or access control. Keep it bound to `127.0.0.1` or another loopback address.

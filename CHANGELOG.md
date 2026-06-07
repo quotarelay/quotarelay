@@ -6,6 +6,8 @@ This release candidate documents the current local MVP behavior. It is not a hos
 
 Public-readiness update: the local core is Apache-2.0, with public guidance for humans and AI agents plus adoption-first positioning that treats the local MVP as the complete product surface and sidelines hosted/commercial planning.
 
+Release-proof update: `scripts\release-check.ps1` now covers clean checks, Rust tests, control-plane tests/build, local demo proof, token-saver benchmark proof, install smoke, MCP preset smoke, public-site overclaim checks, public-surface scan, and docs sanity.
+
 Team-layer planning update: local team policy profiles now store guardrails, validation recipes, MCP presets, and explicit source-upload preference under `.quotarelay`, with MCP save/list tools and hosted control-plane security/privacy gates documented before public login work proceeds.
 
 Team workflow update: handoff packets now support local templates for bug fixes, feature slices, reviews, refactors, and releases, adding bounded workflow focus without hosted sync or source upload.
@@ -20,14 +22,14 @@ Productization update: Quotarelay now has an agent-tool-first install surface wi
 
 - Stdio MCP server with tools for repository sync/search, bounded context assembly, durable memory, cache inspection/clear, repository registration, workspace profiles, team policy profiles, context run history, and local state inspection.
 - Local CLI JSON workflows for `truth`, `register`, `sync`, `state`, `search`, `assemble`, and templated handoff packets.
-- Bounded retrieval modes: `exact_search`, `overview`, and `task_capsule`.
+- Bounded retrieval modes: `exact_search`, `overview`, `task_capsule`, and `diff_aware`.
 - Explicit packing limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, and 10 history runs.
 - Typed inclusion and omission reasons across engine, MCP, CLI, and context history boundaries.
 - Local repository index, memory, cache, context history, registered repositories, workspace profiles, and team policy profiles stored under `.quotarelay/`.
 - Optional `.quotarelay/ignore.json` support for exact paths and prefixes applied on explicit sync.
 - Thin HTTP routes for local control-plane use: `GET /truth`, `GET /repositories`, `GET /memory`, and `GET /context-runs`.
 - Control plane that renders backend truth without inventing readiness, live health, provider state, or savings metrics.
-- Local validation scripts for bootstrap, clean checks, release checks, demo smoke, and source line-count guardrails.
+- Local validation scripts for bootstrap, clean checks, release checks, demo smoke, token-saver benchmark proof, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and source line-count guardrails.
 - Local savings reports generated from context-run history metadata only.
 - Local onboarding packs generated from repository index metadata only.
 - Branded local MCP command `quotarelay-mcp` for installed stdio agent workflows.
@@ -41,7 +43,9 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
 ```
 
 Focused checks used by the current release-readiness track:

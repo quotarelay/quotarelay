@@ -23,6 +23,7 @@ Recently completed slices:
 | Contract regression tests | Shipped | MCP tools/list now locks public tool descriptions, closed input schemas, and required-field shapes. |
 | Error-message edge polish | Shipped | MCP stdio malformed tool calls now have regression coverage for explicit text responses. |
 | Example quality | Shipped | The local demo now shows sync, memory, exact search cache hit, handoff, truth count, and no provider calls. |
+| Release presentation | Shipped | Changelog, publication checklist, limitations, versioning, and security docs now mirror the polished proof path. |
 
 ## Completed Slice
 
@@ -457,9 +458,53 @@ Proof:
 - `scripts\demo-local.ps1` passed and reported `first_exact_cache_status: miss`, `repeated_exact_cache_status: hit`, `handoff_template: feature_slice`, `truth_tool_count: 35`, and `provider_calls: none`.
 - `scripts\release-check.ps1` passed after the example polish.
 
+## Completed Slice
+
+### T125: Release Presentation
+
+Status: done
+
+Goal: polish changelog, publication checklist, limitations, security wording, and release narrative after proof and first-run gaps are closed.
+
+Allowed files:
+
+- `CHANGELOG.md`
+- `docs/PUBLICATION_CHECKLIST.md`
+- `docs/KNOWN_LIMITATIONS.md`
+- `docs/VERSIONING.md`
+- `SECURITY.md`
+- `SUPPORT.md`
+- `CONTRIBUTING.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change shipped behavior, tests, scripts, product surfaces, or release automation.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+- Do not reopen private deployment, commercial packaging, hosted, desktop, or mobile work.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- Release-facing docs match the now-polished proof path and first-run story.
+- Known limitations and security/support wording remain explicit about local-only boundaries.
+- Full release-check passes after the release presentation polish.
+
+Proof:
+
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `git diff --check` passed with line-ending warnings only.
+- `scripts\release-check.ps1` passed after the release presentation polish.
+
 ## Active Slice
 
-No active slice. Next recommended slice is T125 Release presentation.
+No active slice. The planned polish extension T120-T125 is complete.
 
 ## Polish Plan Extension
 
