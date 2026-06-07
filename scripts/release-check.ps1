@@ -33,6 +33,10 @@ Invoke-ReleaseStep "local demo smoke" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 }
 
+Invoke-ReleaseStep "token-saver benchmark" {
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1
+}
+
 Invoke-ReleaseStep "local install smoke" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
 }

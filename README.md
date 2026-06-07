@@ -123,6 +123,8 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 - `cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio`
 - `cargo test -p mcp-server repository_registration_tools_work_over_stdio`
 - `cargo test -p context-engine registered_repository_state_reports_sync_and_recent_run_truth`
+
+`scripts\release-check.ps1` is the main public proof path. It runs the clean checks, local demo, token-saver benchmark, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and docs sanity checks.
 - `npm --prefix web/controlplane run build`
 
 ## Local CLI

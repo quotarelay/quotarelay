@@ -66,6 +66,22 @@ foreach ($needle in @(
     }
 }
 
+$publicText = "$indexHtml`n$assetText"
+foreach ($blocked in @(
+        "Start a paid trial",
+        "paid plan required",
+        "pricing tier",
+        "requires hosted login",
+        "exact provider billing savings",
+        "guaranteed savings",
+        "production hosted ready",
+        "SOC 2 compliant"
+    )) {
+    if ($publicText.Contains($blocked)) {
+        throw "built public site includes blocked overclaim or paid-gate language: $blocked"
+    }
+}
+
 [PSCustomObject]@{
     ok = $true
     routes = @("/", "/control-plane")

@@ -5,7 +5,7 @@ Use this before pushing public changes or cutting a public release.
 ## Required
 
 - `git status --short --branch` is clean.
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1` passes, including frontend tests, public-site smoke, and public-surface scan.
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1` passes, including frontend tests, token-saver benchmark proof, MCP preset smoke, public-site smoke, and public-surface scan.
 - `npm.cmd --prefix web/controlplane audit --audit-level=moderate` reports no moderate-or-higher vulnerabilities when registry access is available.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1` finds no secrets, private paths, `.quotarelay` state, `.env` files, temp planning files, local package archives, or generated dependency/build directories.
 - `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`, `AGENTS.md`, `README.md`, `CHANGELOG.md`, `LICENSE`, and `NOTICE` are current.

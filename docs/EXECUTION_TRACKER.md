@@ -17,6 +17,8 @@ Recently completed slices:
 | MCP-first productization | Shipped | `quotarelay-mcp` is the branded local MCP command; desktop and mobile app surfaces remain deferred. |
 | MCP client preset verification | Shipped | Source and installed stdio presets are smoke-tested against real MCP `initialize` responses. |
 | Control-plane truth polish | Shipped | The local control plane summarizes existing `/truth` tool, retrieval, cache, memory, budget, and CLI entrypoint fields without inventing readiness or provider state. |
+| Open-source MVP adoption proof | Shipped | Public docs and homepage present the Apache-2.0 local MCP tool as the full adoption path while keeping hosted/commercial work deferred. |
+| Adoption proof pack | Shipped | The release proof path now includes the token-saver benchmark and public-site overclaim checks. |
 
 ## Completed Slice
 
@@ -178,7 +180,7 @@ Proof:
 - Playwright visual verification passed against real loopback backend truth: the control plane rendered 6 truth-summary cards, 35 backend tools, no warning notes, and no summary-card overlaps.
 - `scripts\release-check.ps1` passed after the slice.
 
-## Active Slice
+## Completed Slice
 
 ### T119: Open-source MVP Adoption Proof
 
@@ -241,12 +243,64 @@ Proof:
 - `scripts\public-site-smoke.ps1` passed after updating the public metadata assertions to the adoption-first homepage copy.
 - `scripts\release-check.ps1` passed after the slice.
 
-## Next Candidate Slices
+## Completed Slice
+
+### T120: Adoption Proof Pack
+
+Status: done
+
+Goal: make the polished public proof path show the local product's value end to end, including token-saving benchmark evidence, install and MCP preset proof, public-site positioning checks, and release validation.
+
+Allowed files:
+
+- `README.md`
+- `docs/EXECUTION_TRACKER.md`
+- `docs/PUBLICATION_CHECKLIST.md`
+- `scripts/release-check.ps1`
+- `scripts/public-site-smoke.ps1`
+- focused public proof scripts only if a concrete regression gap remains
+
+Non-goals:
+
+- Do not change MCP, CLI, HTTP, OpenAPI, persisted-state, retrieval, memory, cache, repository, or control-plane contracts.
+- Do not add hosted login, billing, auth, provider routing, BYOK, cloud sync, telemetry, deployment automation, publishing, tagging, or package-manager release behavior.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, or compliance status.
+- Do not add broad docs rewrites beyond the proof path and public checklist.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `scripts\release-check.ps1` includes the local token-saver benchmark.
+- Public-site smoke fails on obvious paid-gate, exact-billing-savings, guaranteed-savings, production-hosted, or compliance overclaims.
+- README and publication checklist identify release-check as the main public proof path.
+- Full release-check passes after the slice.
+
+Proof:
+
+- `scripts\token-saver-benchmark.ps1` passed, reporting exact search, overview, handoff, and diff-aware local byte/approximate-token reduction plus cache-hit and stale-state assertions.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed with public route metadata and adoption-first positioning checks.
+- `scripts\check-line-counts.ps1` passed: `line-count guardrail passed (max 500 lines). Checked 94 source files.`
+- `scripts\release-check.ps1` passed after adding the benchmark to the release path.
+
+## Active Slice
+
+No active slice. Next recommended slice is T121 First-run polish.
+
+## Polish Plan Extension
 
 | Candidate | Boundary |
 |---|---|
-| Adoption proof pack | Add or tighten one-command public proof artifacts only if T119 finds a concrete gap. |
-| Private deployment decisions | Deferred planning only until open-source MVP adoption proof is complete and the user explicitly reopens deployment planning. |
+| T121 First-run polish | Make clone, build, run, MCP setup, proof output, and troubleshooting feel clean for a new user without adding new product surfaces. |
+| T122 Contract and regression tests | Tighten MCP schema, CLI output, HTTP truth, frontend assumptions, and loopback-boundary tests where audits find under-proved contracts. |
+| T123 Error-message and edge-case polish | Audit missing paths, unsynced repos, ignored files, corrupt local state, empty queries, stale cache, binary/generated files, and invalid MCP arguments; add focused tests only for real gaps. |
+| T124 Example quality | Polish one small local workflow that shows sync, memory, exact search, handoff, cache hit, token-saver proof, and no provider call. |
+| T125 Release presentation | Polish changelog, publication checklist, limitations, security wording, and product narrative after proof and first-run gaps are closed. |
+| Private deployment decisions | Deferred planning only until the polished open-source local adoption proof is strong and the user explicitly reopens deployment planning. |
 
 ## Closed Until Explicitly Opened
 
