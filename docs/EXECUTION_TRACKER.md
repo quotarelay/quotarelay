@@ -22,6 +22,7 @@ Recently completed slices:
 | First-run polish | Shipped | README, troubleshooting, MCP client setup, and preset docs now guide a fresh checkout through proof, install, and client setup cleanly. |
 | Contract regression tests | Shipped | MCP tools/list now locks public tool descriptions, closed input schemas, and required-field shapes. |
 | Error-message edge polish | Shipped | MCP stdio malformed tool calls now have regression coverage for explicit text responses. |
+| Example quality | Shipped | The local demo now shows sync, memory, exact search cache hit, handoff, truth count, and no provider calls. |
 
 ## Completed Slice
 
@@ -417,9 +418,48 @@ Proof:
 - `cargo test -p mcp-server` passed: 58 tests.
 - `scripts\release-check.ps1` passed after the edge-case test hardening.
 
+## Completed Slice
+
+### T124: Example Quality
+
+Status: done
+
+Goal: polish one small local workflow that shows sync, memory, exact search, handoff, cache hit, token-saver proof, and no provider call.
+
+Allowed files:
+
+- `scripts/demo-local.ps1`
+- `examples/demo-repo/README.md`
+- `README.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not add new product surfaces, installers, hosted behavior, provider calls, telemetry, auth, billing, deployment, publishing, desktop, or mobile behavior.
+- Do not change MCP, CLI, HTTP, OpenAPI, persisted-state, retrieval, memory, cache, repository, or control-plane contracts.
+- Do not duplicate the token-saver benchmark; the demo should stay small and local.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- The local demo summary proves sync, memory, exact search, repeated exact-search cache hit, handoff packet, cache inspection, backend truth count, and no provider call.
+- The fixture README explains why the tiny demo repo exists.
+- Full release-check passes after the example polish.
+
+Proof:
+
+- `scripts\demo-local.ps1` passed and reported `first_exact_cache_status: miss`, `repeated_exact_cache_status: hit`, `handoff_template: feature_slice`, `truth_tool_count: 35`, and `provider_calls: none`.
+- `scripts\release-check.ps1` passed after the example polish.
+
 ## Active Slice
 
-No active slice. Next recommended slice is T124 Example quality.
+No active slice. Next recommended slice is T125 Release presentation.
 
 ## Polish Plan Extension
 

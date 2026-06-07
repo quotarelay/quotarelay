@@ -82,7 +82,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 cargo run -p mcp-server -- --cli truth
 ```
 
-Successful first-run output should end with `bootstrap passed`, a demo JSON summary with `truth_tool_count`, and a truth JSON payload that lists the shipped MCP tools. The demo uses a temporary local fixture and does not contact providers.
+Successful first-run output should end with `bootstrap passed`, a demo JSON summary with `truth_tool_count`, `repeated_exact_cache_status`, `handoff_template`, and `provider_calls`, plus a truth JSON payload that lists the shipped MCP tools. The demo uses a temporary local fixture and does not contact providers.
 
 To prove the installed local MCP command and checked-in client presets:
 
