@@ -46,8 +46,8 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 - Quotarelay does not run background schedulers, background sync workers, automatic cache warming, or silent state repair.
 - Cache clearing and corrupt JSON recovery are explicit operator actions.
 - Release, publish, deploy, push, tag, and installer automation are outside the shipped local MVP.
-- Apache-2.0 permits third-party commercial use; Quotarelay monetization should come from hosted product, support, enterprise controls, integrations, policy, deployment, branding, and execution rather than source-code exclusivity.
-- Hosted login, team management, shared policy, shared memory, and enterprise audit surfaces are planned commercial layers, not shipped local MVP behavior.
+- Apache-2.0 permits third-party commercial use; current public positioning prioritizes adoption of the complete local MVP.
+- Hosted login, team management, shared policy, shared memory, and enterprise audit surfaces are deferred planning topics, not shipped local MVP behavior.
 
 ## Deferred platform work
 

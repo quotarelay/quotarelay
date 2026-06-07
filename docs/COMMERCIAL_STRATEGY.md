@@ -1,10 +1,12 @@
-# Commercial Strategy
+# Deferred Commercial Strategy
 
-Quotarelay uses an open-core strategy:
+This document is deferred planning. The current product focus is open-source local MVP adoption, not paid packaging.
+
+Quotarelay may later use an open-core strategy if adoption proves a need for hosted coordination:
 
 - the local developer core is Apache-2.0 and should remain genuinely useful,
-- paid products should add collaboration, governance, managed operations, reporting, and enterprise controls,
-- paid products must not require uploading repository contents by default.
+- later products should add collaboration, governance, managed operations, reporting, and enterprise controls,
+- later products must not require uploading repository contents by default.
 
 ## What Ships Free
 
@@ -27,9 +29,9 @@ The free local core includes:
 
 Do not remove or cripple these capabilities to force upgrades. Adoption and trust come from the local core being useful on real work.
 
-## What Teams Pay For
+## Deferred Team/Company Value
 
-Teams and companies usually need capabilities that solo local users do not:
+Teams and companies may later need capabilities that solo local users do not:
 
 - hosted team control plane,
 - organization login,
@@ -45,7 +47,7 @@ Teams and companies usually need capabilities that solo local users do not:
 - compliance documentation,
 - priority support and onboarding.
 
-## Public Login and Management Surface
+## Deferred Public Login And Management Surface
 
 The future hosted surface should manage coordination data, not source code by default.
 
@@ -68,9 +70,9 @@ Default privacy boundary:
 - sync metadata, hashes, policy, configuration, and aggregate metrics first,
 - make any source-content upload a separate enterprise decision and control.
 
-## Gating Model
+## Deferred Gating Model
 
-Recommended gates:
+Possible later gates:
 
 - Free: local-only core under Apache-2.0.
 - Team: hosted coordination, shared policies, shared memory, integrations, and aggregate metrics.
@@ -79,7 +81,7 @@ Recommended gates:
 
 Avoid gates that block local productivity. Gate team coordination and operational trust instead.
 
-## Savings Metrics
+## Savings Metrics Boundaries
 
 Free local metrics:
 
@@ -93,7 +95,7 @@ Free local metrics:
 - one-command demo and benchmark output.
 - bounded local savings reports from context-run history.
 
-Paid team metrics:
+Deferred team metrics:
 
 - aggregate context reduction by repo and team,
 - cache reuse trends,
@@ -109,8 +111,8 @@ Boundaries:
 - do not claim guaranteed billing savings,
 - do not collect raw source or context packets by default.
 
-## Why Apache-2.0 Still Fits
+## Why Apache-2.0 Is The Current Adoption Strategy
 
-Apache-2.0 lowers adoption friction for developers, AI-tooling ecosystems, and companies that need legal clarity before trying the project. Monetization should come from hosted/team/enterprise value, not from making the local core artificially weak.
+Apache-2.0 lowers adoption friction for developers, AI-tooling ecosystems, and companies that need legal clarity before trying the project. The local MVP should be complete enough to adopt without hosted accounts, provider keys, telemetry, or payment.
 
-The brand, hosted service, enterprise controls, managed deployment, integrations, and support remain Quotarelay commercial assets.
+Future brand, hosted service, enterprise controls, managed deployment, integrations, and support ideas remain sidelined until the open-source local tool has stronger adoption proof.

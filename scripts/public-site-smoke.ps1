@@ -37,7 +37,7 @@ foreach ($route in @("src/pages/index.tera", "src/pages/control-plane.tera")) {
 $indexHtml = Get-Content $indexPath -Raw
 foreach ($needle in @(
         "<title>Quotarelay</title>",
-        "MCP-first context compression for coding agents"
+        "Apache-2.0 local MCP context compression for coding agents"
     )) {
     if (-not $indexHtml.Contains($needle)) {
         throw "built index.html is missing expected public metadata: $needle"
@@ -56,9 +56,10 @@ if ($routeAssets.Count -eq 0) {
 
 $assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 foreach ($needle in @(
-        "MCP-first agent tool",
+        "Apache-2.0 local MCP tool",
         "quotarelay-mcp",
-        "not a desktop or mobile app"
+        "The local version is the full adoption path",
+        "No service gate around local context reduction proof"
     )) {
     if (-not $assetText.Contains($needle)) {
         throw "built assets are missing expected agent-tool positioning: $needle"

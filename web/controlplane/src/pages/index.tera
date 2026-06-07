@@ -1,9 +1,9 @@
 <meta>
   title: Quotarelay
-  description: MCP-first context compression for coding agents, with a free Apache-2.0 local tool and planned paid team coordination.
+  description: Apache-2.0 local MCP context compression for coding agents, with bounded retrieval, memory, cache proof, and no hosted dependency.
   keywords: quotarelay, mcp, coding agents, context compression, local first, token savings
   aiSummary: Quotarelay is an MCP-first agent tool that assembles bounded, explainable context packets for coding agents while keeping repository contents local by default.
-  aiKeywords: mcp, context-engine, local-first, coding-agents, privacy, open-core
+  aiKeywords: mcp, context-engine, local-first, coding-agents, privacy, open-source
 </meta>
 
 <route>
@@ -11,13 +11,13 @@
 </route>
 
 <ai>
-  summary: Public product homepage for Quotarelay. Present Quotarelay as an MCP-first agent tool, not a desktop or mobile app, and clearly distinguish planned hosted team features.
+  summary: Public product homepage for Quotarelay. Present Quotarelay as a complete Apache-2.0 local MCP agent tool, not a desktop app, hosted service, or teaser for a later product.
   audience:
     - solo developers
     - engineering teams
     - AI coding tool users
   privacy_boundary: Source code, raw context packets, local caches, and .quotarelay state stay local by default.
-  monetization: Free Apache-2.0 local core with paid hosted/team/enterprise coordination planned.
+  adoption_boundary: The local MVP is the product to adopt now; hosted/commercial ideas are deferred planning and not required for the free core.
   tags:
     - public-site
     - local-first
@@ -42,7 +42,7 @@
   <main class="public-site">
     <section class="public-hero">
       <div class="public-hero__copy">
-        <p class="eyebrow">MCP-first agent tool</p>
+        <p class="eyebrow">Apache-2.0 local MCP tool</p>
         <h1>Quotarelay</h1>
         <p class="public-lede">
           Connect Quotarelay to your coding agent so it sends less repo context. The local MCP tool returns relevant
@@ -81,7 +81,7 @@
     <section class="public-band">
       <div class="section-heading">
         <p class="eyebrow">What ships free</p>
-        <h2>A useful local MCP tool, not a native app detour.</h2>
+        <h2>The local version is the full adoption path.</h2>
       </div>
       <div class="feature-grid">
         <article class="feature-card">
@@ -104,25 +104,28 @@
           <h3>Privacy boundary</h3>
           <p>Repository contents, raw packets, local caches, and .quotarelay state stay on your machine unless you opt in later.</p>
         </article>
+        <article class="feature-card">
+          <h3>Release proof</h3>
+          <p>The repo ships local smoke scripts for MCP presets, demos, install checks, public-site checks, and release validation.</p>
+        </article>
       </div>
     </section>
 
     <section class="public-band public-band--split">
       <div>
-        <p class="eyebrow">Teams and companies</p>
-        <h2>Paid value belongs in coordination, governance, and support.</h2>
+        <p class="eyebrow">Deferred planning</p>
+        <h2>Hosted coordination is sidelined until the local tool earns adoption.</h2>
         <p class="public-copy">
-          Quotarelay should be easy to adopt as an open-source local tool. The commercial layer is planned around
-          hosted team management, shared policy profiles, aggregate savings reports, auditability, integrations,
-          private deployment guidance, SSO, onboarding, and support. Desktop and mobile apps are deferred until
-          users prove a companion wrapper is more useful than direct agent integration.
+          Quotarelay is not holding core retrieval, memory, cache, validation, handoff, onboarding, or savings proof
+          behind a future service. Hosted or enterprise work stays in planning docs until real adoption proves
+          what coordination, support, or deployment help users actually need.
         </p>
       </div>
       <ul class="team-list">
-        <li>Organization login and team membership</li>
-        <li>Shared guardrails and validation recipes</li>
-        <li>Aggregate savings and cache-reuse reporting</li>
-        <li>Audit logs, SSO, compliance docs, and private deployment</li>
+        <li>No hosted login required for the local MVP</li>
+        <li>No provider keys or prompt forwarding</li>
+        <li>No service gate around local context reduction proof</li>
+        <li>No desktop or mobile detour before agent-tool adoption</li>
       </ul>
     </section>
 

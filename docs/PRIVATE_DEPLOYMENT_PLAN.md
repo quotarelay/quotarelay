@@ -28,7 +28,7 @@ Quotarelay does not currently ship a production container, hosted API, deploymen
 | Local package zip | Good local operator artifact | License and notice files, local smoke, checksum/signing decision, and release checklist pass. |
 | Private static control-plane hosting | Limited | Clear warning that local backend remains loopback-only and unmanaged. |
 | MCP server container | Usually poor fit | Explicit volume policy, local path mapping, user identity, non-root runtime, and no accidental LAN exposure. |
-| Hosted team API container | Future paid surface | Auth, tenant isolation, audit, rate limits, retention, backups, monitoring, signing, and incident response. |
+| Hosted team API container | Future hosted surface | Auth, tenant isolation, audit, rate limits, retention, backups, monitoring, signing, and incident response. |
 
 ## Deployment Management Data
 
@@ -64,7 +64,7 @@ This metadata must not imply that Quotarelay has uploaded source code, raw promp
 ## Open Decisions
 
 - Whether private deployment means a static site, a hosted team service, a customer-managed service, or all three.
-- Whether the first paid surface should be hosted by Quotarelay or self-hosted by teams.
+- Whether any later hosted coordination surface should be hosted by Quotarelay or self-hosted by teams.
 - Which signing and provenance system to use.
 - Which database, backup, migration, and retention model applies to hosted/team state.
 - Which support tier owns incident response and rollback execution.

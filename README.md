@@ -221,7 +221,7 @@ GitHub Discussions are the opt-in feedback path for demo success reports and tea
 - `docs/HOSTED_THREAT_MODEL.md`: hosted auth, tenancy, audit, privacy, integration, and deployment security gate.
 - `docs/PRIVATE_DEPLOYMENT_PLAN.md`: planned private deployment shapes, artifact boundaries, and container readiness tests.
 - `docs/PUBLICATION_CHECKLIST.md`: public push/release checklist.
-- `docs/COMMERCIAL_STRATEGY.md`: open-core monetization path that keeps the local core free.
+- `docs/COMMERCIAL_STRATEGY.md`: deferred commercial planning that keeps the local core complete and adoption-first.
 
 ## License
 

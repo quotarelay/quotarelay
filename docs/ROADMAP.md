@@ -72,9 +72,9 @@ Success measure:
 - Savings are described as local byte/approximate-token reduction, not provider billing guarantees.
 - Cache hits and stale states are visible enough that operators can trust when local work was reused.
 
-## Phase 3: Team Layer
+## Deferred Team Layer
 
-Goal: let teams share the brain of the repo while each developer can keep code local.
+Goal, when reopened later: let teams share the brain of the repo while each developer can keep code local.
 
 Core outcomes:
 
@@ -91,9 +91,9 @@ Boundary:
 - Team sharing should prefer checked-in or explicit local configuration.
 - Do not upload source code or local state by default.
 
-## Phase 4: Enterprise Layer
+## Deferred Enterprise Layer
 
-Goal: monetize governance, scale, support, and auditability without weakening the free core.
+Goal, when reopened later: support governance, scale, support, and auditability without weakening the free core.
 
 Potential outcomes after decision slices approve them:
 
@@ -115,9 +115,9 @@ Still gated:
 
 ## Monetization Lock
 
-The free core must remain valuable for regular developers.
+The free local core is the product to adopt now. It must remain valuable for regular developers and must not become a trial stub.
 
-Paid value should come from:
+Any future hosted or support value is sidelined until adoption proves what users need. If reopened later, it should come from:
 
 - Collaboration.
 - Governance.
@@ -128,7 +128,7 @@ Paid value should come from:
 - Support.
 - Enterprise assurance.
 
-Do not make the free version a crippled demo. Community trust and solo-developer adoption are part of the business strategy.
+Do not make the free version a crippled demo. Community trust and solo-developer adoption are the current strategy.
 
 See `docs/COMMERCIAL_STRATEGY.md` for the open-core gating model, hosted management surface, and savings metrics boundaries.
 

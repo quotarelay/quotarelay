@@ -178,11 +178,75 @@ Proof:
 - Playwright visual verification passed against real loopback backend truth: the control plane rendered 6 truth-summary cards, 35 backend tools, no warning notes, and no summary-card overlaps.
 - `scripts\release-check.ps1` passed after the slice.
 
+## Active Slice
+
+### T119: Open-source MVP Adoption Proof
+
+Status: done
+
+Goal: make the public surface present Quotarelay as a complete, useful Apache-2.0 local MVP for adoption now, with hosted/commercial ideas clearly sidelined as deferred planning rather than the main product story.
+
+Allowed files:
+
+- `README.md`
+- `CHANGELOG.md`
+- `docs/EXECUTION_TRACKER.md`
+- `docs/TRUTH_MATRIX.md`
+- `docs/ROADMAP.md`
+- `docs/VISION.md`
+- `docs/DECISIONS.md`
+- `docs/GUARDRAILS.md`
+- `docs/KNOWN_LIMITATIONS.md`
+- `docs/COMMERCIAL_STRATEGY.md`
+- `docs/PLATFORM_SURFACES.md`
+- `docs/PRIVATE_DEPLOYMENT_PLAN.md`
+- `docs/PUBLICATION_CHECKLIST.md`
+- `scripts/public-site-smoke.ps1`
+- `web/controlplane/index.html`
+- `web/controlplane/src/pages/index.tera`
+
+Non-goals:
+
+- Do not add shipped behavior.
+- Do not change MCP, CLI, HTTP, OpenAPI, persisted-state, retrieval, memory, cache, repository, or control-plane contracts.
+- Public-site smoke text assertions may change only to mirror the adoption-first homepage copy.
+- Do not remove local team policy/profile features that already ship free.
+- Do not open hosted login, billing, auth, provider routing, BYOK, cloud sync, telemetry, deployment automation, publishing, or tagging.
+- Do not claim exact provider billing savings, production hosted readiness, or compliance posture.
+
+Validation:
+
+```powershell
+cargo fmt --all --check
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+npm.cmd --prefix web/controlplane run test -- --run
+npm.cmd --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+```
+
+Completion bar:
+
+- Homepage and public docs lead with the free local MCP product and adoption proof.
+- Hosted/commercial text is reframed as deferred future planning and does not read like a near-term gate.
+- Local shipped features remain complete and useful in the free Apache-2.0 core.
+- Proof commands pass or any local-machine blocker is recorded exactly.
+
+Proof:
+
+- `cargo fmt --all --check` passed.
+- `scripts\check-line-counts.ps1` passed: `line-count guardrail passed (max 500 lines). Checked 94 source files.`
+- `npm.cmd --prefix web/controlplane run test -- --run` passed: `2 passed (2)`, `12 passed (12)`.
+- `npm.cmd --prefix web/controlplane run build` passed with Vite.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\public-site-smoke.ps1` passed after updating the public metadata assertions to the adoption-first homepage copy.
+- `scripts\release-check.ps1` passed after the slice.
+
 ## Next Candidate Slices
 
 | Candidate | Boundary |
 |---|---|
-| Private deployment decisions | Planning only until threat model, signing, provenance, auth, storage, backup, rollout, and rollback decisions close. |
+| Adoption proof pack | Add or tighten one-command public proof artifacts only if T119 finds a concrete gap. |
+| Private deployment decisions | Deferred planning only until open-source MVP adoption proof is complete and the user explicitly reopens deployment planning. |
 
 ## Closed Until Explicitly Opened
 

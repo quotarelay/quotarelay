@@ -4,7 +4,7 @@
 
 This release candidate documents the current local MVP behavior. It is not a hosted service, deployment artifact, provider gateway, or billing-savings claim.
 
-Public-readiness update: the local core is Apache-2.0, with public guidance for humans and AI agents plus an open-core commercial strategy that keeps local functionality free while reserving hosted/team/enterprise coordination, governance, support, and deployment as paid product surfaces.
+Public-readiness update: the local core is Apache-2.0, with public guidance for humans and AI agents plus adoption-first positioning that treats the local MVP as the complete product surface and sidelines hosted/commercial planning.
 
 Team-layer planning update: local team policy profiles now store guardrails, validation recipes, MCP presets, and explicit source-upload preference under `.quotarelay`, with MCP save/list tools and hosted control-plane security/privacy gates documented before public login work proceeds.
 

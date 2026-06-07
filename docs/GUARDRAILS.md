@@ -10,7 +10,7 @@
 - Prefer local filesystem state and explicit contracts over convenience abstractions.
 - Do not publish, deploy, or run release automation from the agent.
 - Free solo-developer local usefulness is a product requirement, not a trial stub.
-- Team and enterprise monetization work must build on shared guardrails, decision memory, validation recipes, onboarding, auditability, support, and savings proof.
+- Team and enterprise monetization work is deferred; current work must strengthen local adoption, shared guardrails, decision memory, validation recipes, onboarding, and savings proof inside the free core.
 - Do not drift toward provider forwarding, hosted tenancy, telemetry, or cloud sync unless `docs/DECISIONS.md` and `docs/EXECUTION_TRACKER.md` explicitly open that work.
 - Do not add auth, operator identity, audit logs, BYOK key storage, provider capability truth, or multi-user behavior without an explicit decision slice.
 - Do not claim token savings from pricing or billing. Only claim local context reduction that the repo can estimate or prove.

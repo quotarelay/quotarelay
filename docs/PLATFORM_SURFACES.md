@@ -34,7 +34,7 @@ Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smo
 
 ## Deployment Management Expectations
 
-Typical platform management for later paid/team work should include:
+Typical platform management for later hosted/team planning could include:
 
 - environment list,
 - release version,

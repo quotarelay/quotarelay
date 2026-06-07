@@ -20,7 +20,7 @@ This matrix separates what is shipped, useful next work, and deferred platform d
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |
 | Public guidance | `AGENTS.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, versioning docs, deployment-readiness docs, `LICENSE`, and `NOTICE` define the public operating surface. |
-| Commercial posture | Apache-2.0 local core stays useful; paid value is planned around hosted/team/enterprise coordination, governance, integrations, support, and deployment. |
+| Open-source posture | Apache-2.0 local core is the complete adoption surface; hosted coordination remains deferred planning and must not gate local usefulness. |
 
 ## Next Useful Work
 
@@ -28,7 +28,7 @@ This matrix separates what is shipped, useful next work, and deferred platform d
 |---|---|
 | Public launch | Keep README, SECURITY, support, agent guidance, public homepage, release notes, and known limitations aligned with shipped local behavior. |
 | Proof suite | Keep one local proof path covering register, sync, memory, assemble, cache hit visibility, savings estimates, CLI, HTTP truth, and control-plane rendering. |
-| Hosted/team planning | Keep paid surfaces focused on coordination, shared policy, aggregate savings reporting, auditability, integrations, support, and deployment management. |
+| Adoption proof | Keep the public surface focused on clone, install, sync, assemble, memory, cache, handoff, onboarding, control-plane truth, and release validation. |
 | Deployment readiness | Close private deployment decisions, signing/provenance choices, rollout/rollback expectations, and container proof tests before shipping customer-managed deployment behavior. |
 
 ## Deferred Platform Decisions
@@ -40,7 +40,7 @@ This matrix separates what is shipped, useful next work, and deferred platform d
 | Provider routing | Closed; Quotarelay is not a provider gateway. |
 | BYOK | Decision only until storage rules are approved; no provider calls or forwarding. |
 | Cloud sync | Closed for MVP; local-first state remains the default. |
-| Enterprise packaging | Future work may add private deployment guidance, auditability, and support paths after local MVP release readiness. |
+| Enterprise packaging | Deferred; future work may add private deployment guidance, auditability, and support paths only after local open-source adoption proof is strong. |
 | Hosted deployment | Deferred until auth, TLS, identity, audit, state, rollout, rollback, and monitoring controls are designed and implemented. |
 | Hosted team control plane | Deferred until organization login, roles, policy storage, shared memory workflow, audit events, and privacy boundaries are implemented. |
 
