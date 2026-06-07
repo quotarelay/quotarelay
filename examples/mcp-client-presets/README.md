@@ -7,6 +7,8 @@ These presets are local templates for clients that support stdio MCP servers wit
 - `generic-stdio.json`: starts Quotarelay from a shell whose current working directory is the Quotarelay checkout.
 - `installed-stdio.json`: starts the installed `quotarelay-mcp` command after `scripts\install-smoke.ps1` or a local Cargo install.
 
+Use `generic-stdio.json` first when trying Quotarelay from source. Use `installed-stdio.json` only after the installed command works from the same environment your MCP client uses.
+
 The preset is intentionally small:
 
 ```json

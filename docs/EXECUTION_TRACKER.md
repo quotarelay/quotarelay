@@ -19,6 +19,7 @@ Recently completed slices:
 | Control-plane truth polish | Shipped | The local control plane summarizes existing `/truth` tool, retrieval, cache, memory, budget, and CLI entrypoint fields without inventing readiness or provider state. |
 | Open-source MVP adoption proof | Shipped | Public docs and homepage present the Apache-2.0 local MCP tool as the full adoption path while keeping hosted/commercial work deferred. |
 | Adoption proof pack | Shipped | The release proof path now includes the token-saver benchmark and public-site overclaim checks. |
+| First-run polish | Shipped | README, troubleshooting, MCP client setup, and preset docs now guide a fresh checkout through proof, install, and client setup cleanly. |
 
 ## Completed Slice
 
@@ -287,9 +288,54 @@ Proof:
 - `scripts\check-line-counts.ps1` passed: `line-count guardrail passed (max 500 lines). Checked 94 source files.`
 - `scripts\release-check.ps1` passed after adding the benchmark to the release path.
 
+## Completed Slice
+
+### T121: First-run Polish
+
+Status: done
+
+Goal: make clone, build, run, MCP setup, proof output, and troubleshooting feel clean for a new user without adding new product surfaces or changing shipped behavior.
+
+Allowed files:
+
+- `README.md`
+- `docs/EXECUTION_TRACKER.md`
+- `docs/TROUBLESHOOTING.md`
+- `docs/MCP_CLIENT_CONFIG.md`
+- `examples/mcp-client-presets/README.md`
+
+Non-goals:
+
+- Do not change MCP, CLI, HTTP, OpenAPI, persisted-state, retrieval, memory, cache, repository, or control-plane contracts.
+- Do not add install automation, publishing, marketplace, deployment, hosted, auth, provider routing, telemetry, billing, desktop, or mobile behavior.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, or compliance status.
+- Do not add broad marketing copy; keep first-run guidance command-oriented and honest.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- README gives a clean first-run path from bootstrap to local demo, installed command proof, MCP preset proof, and release proof.
+- Troubleshooting covers common fresh-machine blockers around Rust/Cargo, Node/npm, PATH, working directory, missing sync, and local state without hiding local-first boundaries.
+- MCP client docs and presets tell users exactly when to use source-run versus installed-command configuration.
+- Full release-check passes after the docs polish.
+
+Proof:
+
+- `scripts\check-line-counts.ps1` passed: `line-count guardrail passed (max 500 lines). Checked 94 source files.`
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `git diff --check` passed with line-ending warnings only.
+- `scripts\release-check.ps1` passed after the docs polish.
+
 ## Active Slice
 
-No active slice. Next recommended slice is T121 First-run polish.
+No active slice. Next recommended slice is T122 Contract and regression tests.
 
 ## Polish Plan Extension
 

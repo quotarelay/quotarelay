@@ -25,6 +25,8 @@ The same verified local command/args payload is checked in at `examples/mcp-clie
 
 This configuration starts the MCP server only. It does not start the HTTP control plane, install packages, publish artifacts, or contact model providers.
 
+Use this source-run configuration first when evaluating Quotarelay from a checkout. It is the most portable setup because the client only needs Cargo plus the checkout working directory.
+
 ## Installed Command
 
 For a source-first local install smoke, run:
@@ -45,6 +47,8 @@ For clients that launch an installed command:
 ```
 
 The installed-command preset is checked in at `examples/mcp-client-presets/installed-stdio.json`.
+
+Use this installed-command configuration only after `scripts\install-smoke.ps1` passes and the MCP client can resolve `quotarelay-mcp` from its own environment. If the client cannot see that command, use the source-run preset or configure the client PATH/cwd according to its own documentation.
 
 ## Windows Path Examples
 
@@ -99,7 +103,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
 For a fuller repo check:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
 ```
 
 ## Stdio Troubleshooting

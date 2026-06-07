@@ -82,11 +82,14 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 cargo run -p mcp-server -- --cli truth
 ```
 
-To prove the installed local MCP command:
+Successful first-run output should end with `bootstrap passed`, a demo JSON summary with `truth_tool_count`, and a truth JSON payload that lists the shipped MCP tools. The demo uses a temporary local fixture and does not contact providers.
+
+To prove the installed local MCP command and checked-in client presets:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
 target\install-smoke\bin\quotarelay-mcp.exe --cli truth
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1 -SkipInstall
 ```
 
 To run against one of your own repos:
@@ -109,9 +112,16 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 
 ## Local validation
 
+The main public proof path is:
+
+- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1`
+
+It runs clean checks, Rust tests, frontend tests/build, the local demo, token-saver benchmark, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and docs sanity checks.
+
+Useful focused checks:
+
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1`
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1`
@@ -123,8 +133,6 @@ Use a dedicated local `state_root` when you want to register multiple repositori
 - `cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio`
 - `cargo test -p mcp-server repository_registration_tools_work_over_stdio`
 - `cargo test -p context-engine registered_repository_state_reports_sync_and_recent_run_truth`
-
-`scripts\release-check.ps1` is the main public proof path. It runs the clean checks, local demo, token-saver benchmark, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and docs sanity checks.
 - `npm --prefix web/controlplane run build`
 
 ## Local CLI
