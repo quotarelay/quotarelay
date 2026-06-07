@@ -20,6 +20,7 @@ Recently completed slices:
 | Open-source MVP adoption proof | Shipped | Public docs and homepage present the Apache-2.0 local MCP tool as the full adoption path while keeping hosted/commercial work deferred. |
 | Adoption proof pack | Shipped | The release proof path now includes the token-saver benchmark and public-site overclaim checks. |
 | First-run polish | Shipped | README, troubleshooting, MCP client setup, and preset docs now guide a fresh checkout through proof, install, and client setup cleanly. |
+| Contract regression tests | Shipped | MCP tools/list now locks public tool descriptions, closed input schemas, and required-field shapes. |
 
 ## Completed Slice
 
@@ -333,9 +334,50 @@ Proof:
 - `git diff --check` passed with line-ending warnings only.
 - `scripts\release-check.ps1` passed after the docs polish.
 
+## Completed Slice
+
+### T122: Contract And Regression Tests
+
+Status: done
+
+Goal: tighten public MCP schema, CLI output, HTTP truth, frontend assumptions, and loopback-boundary regression tests where audits find under-proved contracts.
+
+Allowed files:
+
+- `apps/mcp-server/src/tests/`
+- `web/controlplane/src/*.test.ts`
+- `docs/EXECUTION_TRACKER.md`
+- small test fixtures only if a specific contract gap requires them
+
+Non-goals:
+
+- Do not change shipped MCP, CLI, HTTP, OpenAPI, persisted-state, retrieval, memory, cache, repository, or control-plane behavior.
+- Do not add hosted login, billing, auth, provider routing, BYOK, cloud sync, telemetry, deployment automation, publishing, tagging, or package-manager release behavior.
+- Do not broaden tests just for count; add coverage only for concrete public-contract gaps.
+
+Validation:
+
+```powershell
+cargo test -p mcp-server tools_list_schemas_are_closed_and_have_stable_required_fields
+cargo test -p mcp-server
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- MCP `tools/list` tests prove every public tool has a useful description, object schema, closed additional properties, and locked required-field shape.
+- Any additional contract gaps found during audit either receive focused tests or stay recorded as future candidates.
+- Full release-check passes after the test hardening.
+
+Proof:
+
+- `cargo test -p mcp-server tools_list_schemas_are_closed_and_have_stable_required_fields` passed.
+- `cargo test -p mcp-server` passed: 57 tests.
+- `scripts\release-check.ps1` passed after the test hardening.
+
 ## Active Slice
 
-No active slice. Next recommended slice is T122 Contract and regression tests.
+No active slice. Next recommended slice is T123 Error-message and edge-case polish.
 
 ## Polish Plan Extension
 
