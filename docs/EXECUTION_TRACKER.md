@@ -30,6 +30,7 @@ Recently completed slices:
 | Professional operator dashboard redesign | Shipped | Root UI now has a calm SaaS-style app header, backend status banner, KPI cards, usage panels, system-health boundaries, compact savings proof, and intentional empty states. |
 | Modern command center theme redesign | Shipped | Root UI now uses a command-center layout, semantic light/dark/system theme tokens, a persisted theme toggle, a four-metric rail, and calmer table/list detail sections. |
 | Focused workspace simplification | Shipped | Root UI now reduces first-load density to one local status panel, one operator snapshot table, and collapsed proof/setup disclosures while keeping light/dark/system themes. |
+| Dashboard action and proof chart polish | Shipped | GitHub and Quickstart now sit in a prominent action strip with icons, separate from backend/theme settings, and the local status panel includes a compact savings proof chart. |
 
 ## Completed Slice
 
@@ -805,9 +806,58 @@ Proof:
 - `scripts\release-check.ps1` passed after the focused workspace simplification.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
 
+## Completed Slice
+
+### T132: Dashboard Action and Proof Chart Polish
+
+Status: done
+
+Goal: separate product actions from settings, make GitHub and Quickstart more prominent with icons, and add restrained charting without returning to a dense card dashboard.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, repository settings, or product scope.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- GitHub and Quickstart are no longer grouped with backend status and theme settings.
+- Primary action buttons include icons and remain prominent in light and dark themes.
+- The status panel includes a compact savings proof chart for the benchmark reductions.
+- Smoke validation checks the action strip and chart copy.
+- Full release-check passes after the action/chart polish.
+
+Proof:
+
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and checks `Start here` plus `Savings proof chart`.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the action/chart polish.
+- Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
+
 ## Active Slice
 
-No active slice. Focused workspace simplification is complete.
+No active slice. Dashboard action and proof chart polish is complete.
 
 ## Polish Plan Extension
 

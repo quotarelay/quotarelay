@@ -121,6 +121,14 @@
     return benchmarkMetrics
   }
 
+  function chartRows() {
+    return benchmarkMetrics.map((metric) => ({
+      label: metric.name,
+      value: metric.reduction,
+      width: metric.reduction
+    }))
+  }
+
   function boundaryRows() {
     return [
       { label: 'Provider calls', value: 'none' },
@@ -219,7 +227,7 @@
         <p class="eyebrow">Local MCP dashboard</p>
         <h1>Quotarelay</h1>
       </div>
-      <nav class="topbar-actions" aria-label="Dashboard actions">
+      <div class="topbar-settings" aria-label="Dashboard settings">
         <span :class="`status-pill status-pill--${statusModel().tone}`">{{ statusModel().label }}</span>
         <div class="theme-toggle" aria-label="Theme mode">
           <button
@@ -232,10 +240,29 @@
             {{ option.label }}
           </button>
         </div>
-        <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
-        <a class="button button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">Quickstart</a>
-      </nav>
+      </div>
     </header>
+
+    <nav class="action-strip" aria-label="Primary actions">
+      <div>
+        <p class="eyebrow">Start here</p>
+        <strong>Prove the local workflow or inspect the source.</strong>
+      </div>
+      <div class="action-buttons">
+        <a class="action-button action-button--primary" href="https://github.com/quotarelay/quotarelay">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1.8 2.1 2.9 1.5.1-.7.4-1.2.7-1.5-2.6-.3-5.3-1.3-5.3-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.7.8 1.2 1.9 1.2 3.2 0 4.6-2.7 5.6-5.3 5.9.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A12 12 0 0 0 12 .5Z" />
+          </svg>
+          GitHub
+        </a>
+        <a class="action-button action-button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M8 5v14l11-7Z" />
+          </svg>
+          Quickstart
+        </a>
+      </div>
+    </nav>
 
     <section class="focus-panel" aria-labelledby="local-context-status">
       <div class="status-copy">
@@ -247,12 +274,21 @@
           <code>{{ statusModel().command }}</code>
         </div>
       </div>
-      <dl class="signal-list">
-        <div v-for="signal in signalRows()" :key="signal.label">
-          <dt>{{ signal.label }}</dt>
-          <dd>{{ signal.value }}</dd>
+      <aside class="insight-panel" aria-label="Local proof summary">
+        <dl class="signal-list">
+          <div v-for="signal in signalRows()" :key="signal.label">
+            <dt>{{ signal.label }}</dt>
+            <dd>{{ signal.value }}</dd>
+          </div>
+        </dl>
+        <div class="mini-chart" aria-label="Savings proof chart">
+          <article v-for="row in chartRows()" :key="row.label">
+            <span>{{ row.label }}</span>
+            <div><i :style="`width: ${row.width}`"></i></div>
+            <strong>{{ row.value }}</strong>
+          </article>
         </div>
-      </dl>
+      </aside>
     </section>
 
     <section class="workspace-panel" aria-labelledby="operator-snapshot">

@@ -57,8 +57,10 @@ if ($routeAssets.Count -eq 0) {
 $assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 foreach ($needle in @(
         "Local MCP dashboard",
+        "Start here",
         "Local context status",
         "Operator snapshot",
+        "Savings proof chart",
         "System",
         "Light",
         "Dark",
