@@ -1,6 +1,6 @@
 <meta>
   title: Quotarelay
-  description: Local MCP context dashboard for coding agents, with usage stats, bounded retrieval proof, cache status, memory, and no provider calls.
+  description: Local MCP context dashboard for coding agents, with system health, usage, savings proof, cache status, memory, and no provider calls.
   keywords: quotarelay, mcp, coding agents, context dashboard, local first, usage stats
 </meta>
 
@@ -14,44 +14,10 @@
   import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState } from '../truth'
 
   const benchmarkMetrics = [
-    { name: 'exact_search', reduction: '94.36%', rawBytes: '24,132', packetBytes: '1,361', packetTokens: '341' },
-    { name: 'overview', reduction: '94.05%', rawBytes: '24,132', packetBytes: '1,435', packetTokens: '359' },
-    { name: 'handoff_packet', reduction: '88.91%', rawBytes: '24,132', packetBytes: '2,676', packetTokens: '669' },
-    { name: 'diff_aware', reduction: '93.15%', rawBytes: '24,274', packetBytes: '1,663', packetTokens: '416' }
-  ]
-
-  const releaseProof = [
-    { label: 'Provider calls', value: 'none', detail: 'The local demo reports provider_calls: none.' },
-    { label: 'Repeat exact search', value: 'cache hit', detail: 'The demo proves miss first, hit second.' },
-    { label: 'Handoff template', value: 'feature_slice', detail: 'Handoff packets include validation commands and blockers.' },
-    { label: 'Install path', value: 'quotarelay-mcp', detail: 'The installed stdio command is smoke-tested.' }
-  ]
-
-  const workflowSteps = [
-    {
-      title: 'Run the local proof',
-      command: 'scripts\\demo-local.ps1',
-      detail: 'Checks sync, memory, exact search, cache, handoff, truth, and no provider calls.',
-      proof: 'provider_calls: none'
-    },
-    {
-      title: 'Connect an MCP client',
-      command: 'quotarelay-mcp',
-      detail: 'Use the installed stdio command after the install smoke passes.',
-      proof: 'verified presets'
-    },
-    {
-      title: 'Register and sync work',
-      command: '--cli register / --cli sync',
-      detail: 'Create a bounded local index for the repository your agent should understand.',
-      proof: '.quotarelay state'
-    },
-    {
-      title: 'Ask for bounded context',
-      command: '--cli assemble exact_search',
-      detail: 'Return snippets, memory notes, omissions, cache status, stale state, and estimates.',
-      proof: 'typed reasons'
-    }
+    { name: 'Exact search', mode: 'exact_search', reduction: '94.36%', rawBytes: '24,132', packetBytes: '1,361', packetTokens: '341' },
+    { name: 'Overview', mode: 'overview', reduction: '94.05%', rawBytes: '24,132', packetBytes: '1,435', packetTokens: '359' },
+    { name: 'Handoff packet', mode: 'handoff_packet', reduction: '88.91%', rawBytes: '24,132', packetBytes: '2,676', packetTokens: '669' },
+    { name: 'Diff aware', mode: 'diff_aware', reduction: '93.15%', rawBytes: '24,274', packetBytes: '1,663', packetTokens: '416' }
   ]
 
   const fetchStateRef = ref('Loading')
@@ -65,49 +31,102 @@
   const runHistoryRef = ref([])
   const runFetchStateRef = ref('Not configured')
 
-  function benchmark() {
-    return benchmarkMetrics
+  function summaryValue(label, fallback) {
+    return truthSummaryRef.value.find((item) => item.label === label)?.value ?? fallback
   }
 
-  function fetchState() {
-    return fetchStateRef.value
+  function summaryDetail(label, fallback) {
+    return truthSummaryRef.value.find((item) => item.label === label)?.detail ?? fallback
   }
 
-  function fetchError() {
-    return fetchErrorRef.value
+  function backendOnline() {
+    return fetchStateRef.value === 'Live'
   }
 
-  function proofStats() {
-    return releaseProof
+  function backendStatusLabel() {
+    if (fetchStateRef.value === 'Loading') {
+      return 'Checking'
+    }
+    return backendOnline() ? 'Backend online' : 'Backend offline'
   }
 
-  function steps() {
-    return workflowSteps
+  function backendStatusTone() {
+    if (fetchStateRef.value === 'Loading') {
+      return 'warn'
+    }
+    return backendOnline() ? 'ok' : 'warn'
+  }
+
+  function backendPillClass() {
+    return `status-pill status-pill--${backendStatusTone()}`
+  }
+
+  function statusBannerClass() {
+    return `status-banner status-banner--${backendStatusTone()}`
+  }
+
+  function kpiClass(item) {
+    return `kpi-card kpi-card--${item.tone}`
+  }
+
+  function compactStatClass(item) {
+    return `compact-stat compact-stat--${item.tone}`
+  }
+
+  function backendStatusDetail() {
+    if (backendOnline()) {
+      return 'Live local truth is connected.'
+    }
+    return 'Start the loopback backend to show live repository usage.'
+  }
+
+  function healthStats() {
+    return [
+      { label: 'Backend', value: backendOnline() ? 'Online' : 'Offline', detail: backendOnline() ? 'Local truth endpoint connected' : 'Run the local backend', tone: backendOnline() ? 'ok' : 'warn' },
+      { label: 'MCP tools', value: backendToolsRef.value.length > 0 ? String(backendToolsRef.value.length) : '35', detail: backendToolsRef.value.length > 0 ? 'reported by /truth' : 'release proof count', tone: 'ok' },
+      { label: 'Retrieval modes', value: summaryValue('Retrieval', '4 modes'), detail: summaryDetail('Retrieval', 'exact_search, overview, task_capsule, diff_aware'), tone: 'ok' },
+      { label: 'Cache', value: summaryValue('Cache', 'hit proven'), detail: summaryDetail('Cache', 'repeat exact search returns a cache hit'), tone: 'ok' },
+      { label: 'Provider calls', value: 'none', detail: 'local demo proof', tone: 'ok' }
+    ]
   }
 
   function usageStats() {
-    const tools = backendToolsRef.value.length
-    const summary = truthSummaryRef.value
-    const runs = runHistoryRef.value
-    const repos = repositoryStateRef.value
-    const memoryNotes = memoryStateRef.value.notes
-    const cacheSummary = summary.find((item) => item.label === 'Cache')
-    const retrievalSummary = summary.find((item) => item.label === 'Retrieval')
-    const latestRun = runs[0]
+    const latestRun = runHistoryRef.value[0]
     const latestReduction = latestRun?.budget?.estimated_reduction_ratio
     const reductionLabel = typeof latestReduction === 'number'
       ? `${Math.round(latestReduction * 100)}%`
       : '94.36%'
 
     return [
-      { label: 'MCP tools', value: tools > 0 ? String(tools) : '35', detail: tools > 0 ? 'live /truth' : 'release proof' },
-      { label: 'Retrieval modes', value: retrievalSummary?.value ?? '4 modes', detail: retrievalSummary?.detail ?? 'exact_search, overview, task_capsule, diff_aware' },
-      { label: 'Cache', value: cacheSummary?.value ?? 'hit proven', detail: cacheSummary?.detail ?? 'repeat exact search returns a cache hit' },
-      { label: 'Best reduction', value: reductionLabel, detail: latestRun ? 'latest local run' : 'token-saver benchmark' },
-      { label: 'Repositories', value: repos.length > 0 ? String(repos.length) : repositoryFetchStateRef.value, detail: repos.length > 0 ? 'registered locally' : 'add ?root=<repo_root>' },
-      { label: 'Recent runs', value: runs.length > 0 ? String(runs.length) : runFetchStateRef.value, detail: runs.length > 0 ? 'bounded context history' : 'add ?root=<repo_root>' },
-      { label: 'Memory notes', value: memoryNotes.length > 0 ? String(memoryNotes.length) : memoryFetchStateRef.value, detail: memoryNotes.length > 0 ? 'matched local memory' : 'add ?memory_query=<query>' }
+      { label: 'Repositories', value: repositoryStateRef.value.length > 0 ? String(repositoryStateRef.value.length) : '0', detail: repositoryStateRef.value.length > 0 ? 'registered locally' : repositoryFetchStateRef.value, tone: repositoryStateRef.value.length > 0 ? 'ok' : 'muted' },
+      { label: 'Recent runs', value: runHistoryRef.value.length > 0 ? String(runHistoryRef.value.length) : '0', detail: runHistoryRef.value.length > 0 ? 'context history loaded' : runFetchStateRef.value, tone: runHistoryRef.value.length > 0 ? 'ok' : 'muted' },
+      { label: 'Memory matches', value: memoryStateRef.value.notes.length > 0 ? String(memoryStateRef.value.notes.length) : '0', detail: memoryStateRef.value.notes.length > 0 ? 'bounded local notes' : memoryFetchStateRef.value, tone: memoryStateRef.value.notes.length > 0 ? 'ok' : 'muted' },
+      { label: 'Best reduction', value: reductionLabel, detail: latestRun ? 'latest local run' : 'benchmark baseline', tone: 'ok' }
     ]
+  }
+
+  function benchmarkStats() {
+    return benchmarkMetrics
+  }
+
+  function emptyStates() {
+    return {
+      repositories: {
+        title: 'No repository selected',
+        detail: 'Add a root query parameter to inspect registered local repository state.',
+        command: '?root=C:\\path\\to\\repo'
+      },
+      runs: {
+        title: 'No recent runs loaded',
+        detail: 'Assemble context for the selected root, then refresh the dashboard.',
+        command: '--cli assemble <repo_root> exact_search <query> 3'
+      },
+      memory: {
+        title: 'No memory query selected',
+        detail: 'Add a memory query with the same root to show bounded local notes.',
+        command: '&memory_query=decision'
+      }
+    }
   }
 
   function repositories() {
@@ -157,134 +176,181 @@
 </script>
 
 <template>
-  <main class="dashboard">
-    <section class="dashboard-hero">
-      <div class="dashboard-hero__copy">
-        <p class="dashboard-kicker">Local MCP context dashboard</p>
+  <main class="dashboard-shell">
+    <header class="app-header">
+      <div>
+        <p class="eyebrow">Local operator dashboard</p>
         <h1>Quotarelay</h1>
-        <p class="dashboard-lede">
-          One local page for shipped tool count, retrieval modes, cache proof, benchmark reduction,
-          repository state, memory matches, and recent context runs.
-        </p>
-        <div class="dashboard-actions">
-          <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
-          <a class="button button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">Quickstart</a>
-        </div>
+        <p>Monitor local context health, usage, cache behavior, memory matches, and benchmark savings.</p>
       </div>
-      <div class="dashboard-status">
-        <span>Backend truth</span>
-        <strong>{{ fetchState() }}</strong>
-        <p v-if="fetchError()">{{ fetchError() }}</p>
-        <p v-else>Live when the local loopback backend is running; release-proof stats are shown otherwise.</p>
+      <div class="header-actions">
+        <span :class="backendPillClass()">{{ backendStatusLabel() }}</span>
+        <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
+        <a class="button button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">Quickstart</a>
       </div>
+    </header>
+
+    <section :class="statusBannerClass()">
+      <strong>{{ backendStatusLabel() }}</strong>
+      <span v-if="fetchError()">{{ fetchError() }}</span>
+      <span v-else>{{ backendStatusDetail() }}</span>
+      <code>cargo run -p mcp-server -- --http 127.0.0.1:3030</code>
     </section>
 
-    <section class="stats-grid" aria-label="Usage stats">
-      <article class="stat-card" v-for="stat in usageStats()" :key="stat.label">
-        <span>{{ stat.label }}</span>
-        <strong>{{ stat.value }}</strong>
-        <p>{{ stat.detail }}</p>
+    <section class="kpi-grid" aria-label="System health">
+      <article :class="kpiClass(item)" v-for="item in healthStats()" :key="item.label">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+        <p>{{ item.detail }}</p>
       </article>
     </section>
 
-    <section class="dashboard-section dashboard-section--usage">
-      <div class="section-heading">
-        <p class="dashboard-kicker">Local usage</p>
-        <h2>Point the page at a repo to show live runs, memory, and index state.</h2>
-      </div>
-      <div class="usage-grid">
-        <article class="usage-panel">
-          <span>Repositories</span>
-          <div v-if="repositories().length > 0">
-            <h3>{{ repositories()[0].repository.name }}</h3>
-            <p>{{ repositories()[0].repository.root }}</p>
-            <div class="dashboard-chip-row">
-              <span class="dashboard-chip">status: {{ repositories()[0].sync.status }}</span>
-              <span class="dashboard-chip">indexed files: {{ repositories()[0].sync.indexed_files }}</span>
+    <div class="dashboard-layout">
+      <section class="dashboard-panel dashboard-panel--wide">
+        <div class="section-heading">
+          <p class="eyebrow">Usage</p>
+          <h2>Local activity</h2>
+          <p>Live repository state appears when the dashboard receives a root parameter.</p>
+        </div>
+        <div class="usage-metrics">
+          <article :class="compactStatClass(item)" v-for="item in usageStats()" :key="item.label">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+            <p>{{ item.detail }}</p>
+          </article>
+        </div>
+        <div class="usage-columns">
+          <article class="data-panel">
+            <span>Repositories</span>
+            <div v-if="repositories().length > 0">
+              <h3>{{ repositories()[0].repository.name }}</h3>
+              <p>{{ repositories()[0].repository.root }}</p>
+              <div class="dashboard-chip-row">
+                <span class="dashboard-chip">status: {{ repositories()[0].sync.status }}</span>
+                <span class="dashboard-chip">indexed files: {{ repositories()[0].sync.indexed_files }}</span>
+              </div>
             </div>
-          </div>
-          <p v-else>Add <code>?root=&lt;repo_root&gt;</code> to load registered repository stats from the local backend.</p>
-        </article>
-
-        <article class="usage-panel">
-          <span>Recent runs</span>
-          <div v-if="runs().length > 0">
-            <div class="run-row" v-for="run in runs()" :key="run.generated_at_epoch_ms">
-              <strong>{{ run.query }}</strong>
-              <span>{{ runReduction(run) }}</span>
-              <p>
-                {{ run.budget?.included_bytes ?? 0 }} of {{ run.budget?.raw_bytes_considered ?? 0 }} bytes;
-                cache {{ run.cache_status?.kind ?? 'not reported' }};
-                {{ run.stale?.is_stale ? 'stale' : 'fresh' }}
-              </p>
+            <div class="empty-state" v-else>
+              <strong>{{ emptyStates().repositories.title }}</strong>
+              <p>{{ emptyStates().repositories.detail }}</p>
+              <code>{{ emptyStates().repositories.command }}</code>
             </div>
-          </div>
-          <p v-else>Recent context runs appear after you assemble context for a configured root.</p>
-        </article>
+          </article>
 
-        <article class="usage-panel">
-          <span>Memory</span>
-          <div v-if="memoryNotes().length > 0">
-            <div class="memory-row" v-for="note in memoryNotes()" :key="note.id">
-              <strong>{{ note.title }}</strong>
-              <p>{{ note.content }}</p>
+          <article class="data-panel">
+            <span>Recent runs</span>
+            <div v-if="runs().length > 0">
+              <div class="run-row" v-for="run in runs()" :key="run.generated_at_epoch_ms">
+                <strong>{{ run.query }}</strong>
+                <em>{{ runReduction(run) }}</em>
+                <p>
+                  {{ run.budget?.included_bytes ?? 0 }} of {{ run.budget?.raw_bytes_considered ?? 0 }} bytes;
+                  cache {{ run.cache_status?.kind ?? 'not reported' }};
+                  {{ run.stale?.is_stale ? 'stale' : 'fresh' }}
+                </p>
+              </div>
             </div>
-          </div>
-          <p v-else>Add <code>&amp;memory_query=&lt;query&gt;</code> with a root to show bounded local memory matches.</p>
-        </article>
-      </div>
-    </section>
+            <div class="empty-state" v-else>
+              <strong>{{ emptyStates().runs.title }}</strong>
+              <p>{{ emptyStates().runs.detail }}</p>
+              <code>{{ emptyStates().runs.command }}</code>
+            </div>
+          </article>
 
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <p class="dashboard-kicker">Benchmark stats</p>
-        <h2>Context packets stay small in the checked-in token-saver proof.</h2>
-      </div>
-      <div class="benchmark-grid">
-        <article class="benchmark-card" v-for="metric in benchmark()" :key="metric.name">
-          <div>
-            <span>{{ metric.name }}</span>
+          <article class="data-panel">
+            <span>Memory matches</span>
+            <div v-if="memoryNotes().length > 0">
+              <div class="memory-row" v-for="note in memoryNotes()" :key="note.id">
+                <strong>{{ note.title }}</strong>
+                <p>{{ note.content }}</p>
+              </div>
+            </div>
+            <div class="empty-state" v-else>
+              <strong>{{ emptyStates().memory.title }}</strong>
+              <p>{{ emptyStates().memory.detail }}</p>
+              <code>{{ emptyStates().memory.command }}</code>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="dashboard-panel">
+        <div class="section-heading">
+          <p class="eyebrow">System health</p>
+          <h2>Boundaries</h2>
+          <p>Local-only operation stays explicit.</p>
+        </div>
+        <div class="health-list">
+          <article>
+            <span>Provider calls</span>
+            <strong>none</strong>
+          </article>
+          <article>
+            <span>State location</span>
+            <strong>.quotarelay</strong>
+          </article>
+          <article>
+            <span>HTTP bind</span>
+            <strong>loopback</strong>
+          </article>
+          <article>
+            <span>Billing claims</span>
+            <strong>none</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="dashboard-panel dashboard-panel--wide">
+        <div class="section-heading">
+          <p class="eyebrow">Savings proof</p>
+          <h2>Token-saver benchmark</h2>
+          <p>Local byte and approximate-token estimates from the checked-in benchmark fixture.</p>
+        </div>
+        <div class="savings-table">
+          <article class="savings-row" v-for="metric in benchmarkStats()" :key="metric.mode">
+            <div>
+              <strong>{{ metric.name }}</strong>
+              <span>{{ metric.mode }}</span>
+            </div>
+            <div class="savings-bar">
+              <span :style="`width: ${metric.reduction}`"></span>
+            </div>
             <strong>{{ metric.reduction }}</strong>
-          </div>
-          <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes.</p>
-          <p>{{ metric.packetTokens }} approximate packet tokens.</p>
-        </article>
-      </div>
-    </section>
+            <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes; {{ metric.packetTokens }} approximate packet tokens.</p>
+          </article>
+        </div>
+      </section>
 
-    <section class="dashboard-section dashboard-section--proof">
-      <div class="section-heading">
-        <p class="dashboard-kicker">Release proof</p>
-        <h2>The local product path is tested without provider calls or hosted state.</h2>
-      </div>
-      <div class="proof-stat-grid">
-        <article class="proof-card" v-for="item in proofStats()" :key="item.label">
-          <span>{{ item.label }}</span>
-          <strong>{{ item.value }}</strong>
-          <p>{{ item.detail }}</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-section">
-      <div class="section-heading">
-        <p class="dashboard-kicker">Workflow</p>
-        <h2>Four steps from checkout to useful local context.</h2>
-      </div>
-      <div class="workflow-list">
-        <article class="workflow-step" v-for="step in steps()" :key="step.title">
-          <div>
-            <strong>{{ step.title }}</strong>
-            <p><code>{{ step.command }}</code></p>
-            <p>{{ step.detail }}</p>
-          </div>
-          <span>{{ step.proof }}</span>
-        </article>
-      </div>
-    </section>
-
-    <section class="dashboard-footer">
-      <p>No hosted login, provider gateway, telemetry, cloud sync, auth, billing, or exact provider billing-savings claim ships in this release.</p>
-    </section>
+      <section class="dashboard-panel">
+        <div class="section-heading">
+          <p class="eyebrow">Setup</p>
+          <h2>Compact workflow</h2>
+          <p>Enough to start the local operator loop.</p>
+        </div>
+        <ol class="setup-list">
+          <li>
+            <span>1</span>
+            <div>
+              <strong>Run proof</strong>
+              <code>scripts\demo-local.ps1</code>
+            </div>
+          </li>
+          <li>
+            <span>2</span>
+            <div>
+              <strong>Install command</strong>
+              <code>quotarelay-mcp</code>
+            </div>
+          </li>
+          <li>
+            <span>3</span>
+            <div>
+              <strong>Sync repo</strong>
+              <code>--cli sync repo</code>
+            </div>
+          </li>
+        </ol>
+      </section>
+    </div>
   </main>
 </template>

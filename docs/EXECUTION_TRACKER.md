@@ -27,6 +27,7 @@ Recently completed slices:
 | README and repo traction polish | Shipped | README now leads with problem, value, proof metrics, quickstart, examples, and links detailed tool/GitHub About metadata docs. |
 | Public homepage product polish | Shipped | Homepage now mirrors current benchmark metrics, shows the first useful local workflow, and keeps public-site proof checks locked in smoke validation. |
 | One-page stats dashboard polish | Shipped | Public UI is now a single stats-first dashboard with benchmark proof, local usage panels, and a minimal control-plane redirect page. |
+| Professional operator dashboard redesign | Shipped | Root UI now has a calm SaaS-style app header, backend status banner, KPI cards, usage panels, system-health boundaries, compact savings proof, and intentional empty states. |
 
 ## Completed Slice
 
@@ -648,9 +649,60 @@ Proof:
 - `scripts\release-check.ps1` passed after the one-page dashboard polish.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
 
+## Completed Slice
+
+### T129: Professional Operator Dashboard Redesign
+
+Status: done
+
+Goal: turn the one-page UI into a professional calm SaaS-style local operator dashboard with system health, usage, and savings proof prioritized above setup/documentation content.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/pages/control-plane.tera`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, or repository settings.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+- Do not add paid-version, hosted, desktop, mobile, telemetry, provider-call, or deployment positioning.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- Above the fold reads as an operator dashboard with app header, status pill/banner, and KPI cards.
+- Backend offline state is small and actionable rather than a giant error card.
+- Empty states avoid escaped placeholders and read like intentional operator guidance.
+- Dashboard sections are System health, Usage, and Savings proof, with setup reduced to a compact panel.
+- Full release-check passes after the professional dashboard redesign.
+
+Proof:
+
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and checks the new dashboard copy.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the professional operator dashboard redesign.
+- Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
+
 ## Active Slice
 
-No active slice. One-page stats dashboard polish is complete.
+No active slice. Professional operator dashboard redesign is complete.
 
 ## Polish Plan Extension
 
