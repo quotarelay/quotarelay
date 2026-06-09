@@ -56,8 +56,9 @@ if ($routeAssets.Count -eq 0) {
 
 $assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 foreach ($needle in @(
-        "Local command center",
+        "Local MCP dashboard",
         "Local context status",
+        "Operator snapshot",
         "System",
         "Light",
         "Dark",
@@ -69,7 +70,8 @@ foreach ($needle in @(
         "Recent runs",
         "quotarelay-mcp",
         "94.36%",
-        "No repository selected"
+        "No repository selected",
+        "Boundaries and setup"
     )) {
     if (-not $assetText.Contains($needle)) {
         throw "built assets are missing expected agent-tool positioning: $needle"

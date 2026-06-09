@@ -8,17 +8,15 @@
 </route>
 
 <template>
-  <main class="command-shell">
-    <section class="command-bar command-bar--compact">
-      <div>
-        <p class="eyebrow">Dashboard moved</p>
-        <h1>Use the main Quotarelay dashboard.</h1>
-        <p>
-          Product stats, benchmark proof, repository usage, memory matches, and recent context runs now live on one page.
-        </p>
-        <div class="command-actions command-actions--left">
-          <a class="button button--primary" href="/">Open dashboard</a>
-        </div>
+  <main class="focus-shell">
+    <section class="compat-panel">
+      <p class="eyebrow">Dashboard moved</p>
+      <h1>Use the main Quotarelay dashboard.</h1>
+      <p>
+        Product stats, benchmark proof, repository usage, memory matches, and recent context runs now live on one page.
+      </p>
+      <div class="compat-actions">
+        <a class="button button--primary" href="/">Open dashboard</a>
       </div>
     </section>
   </main>

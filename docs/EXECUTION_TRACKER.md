@@ -29,6 +29,7 @@ Recently completed slices:
 | One-page stats dashboard polish | Shipped | Public UI is now a single stats-first dashboard with benchmark proof, local usage panels, and a minimal control-plane redirect page. |
 | Professional operator dashboard redesign | Shipped | Root UI now has a calm SaaS-style app header, backend status banner, KPI cards, usage panels, system-health boundaries, compact savings proof, and intentional empty states. |
 | Modern command center theme redesign | Shipped | Root UI now uses a command-center layout, semantic light/dark/system theme tokens, a persisted theme toggle, a four-metric rail, and calmer table/list detail sections. |
+| Focused workspace simplification | Shipped | Root UI now reduces first-load density to one local status panel, one operator snapshot table, and collapsed proof/setup disclosures while keeping light/dark/system themes. |
 
 ## Completed Slice
 
@@ -752,9 +753,61 @@ Proof:
 - `scripts\release-check.ps1` passed after the command-center theme redesign.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
 
+## Completed Slice
+
+### T131: Focused Workspace Simplification
+
+Status: done
+
+Goal: respond to the card-heavy dashboard critique by using dashboard hierarchy and progressive disclosure patterns: make one status panel primary, reduce visible metrics, move proof/setup/boundary detail into disclosures, and keep light/dark/system support.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/pages/control-plane.tera`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, or repository settings.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+- Do not add paid-version, hosted, desktop, mobile, telemetry, provider-call, or deployment positioning.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- First screen shows one local context status panel plus a compact signal list, not a cluster of cards.
+- Usage is a single operator snapshot table with short rows and subdued empty states.
+- Savings proof, boundaries, and setup are collapsed details instead of always-visible panels.
+- Light, Dark, and System theme behavior remains tokenized and persisted.
+- Full release-check passes after the focused workspace simplification.
+
+Proof:
+
+- UX research reviewed Carbon dashboard hierarchy/clutter guidance, Apple dark-mode surface guidance, Material empty-state and navigation guidance, and Fluent modern app-shell/dashboard guidance.
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and checks the simplified workspace copy.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the focused workspace simplification.
+- Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
+
 ## Active Slice
 
-No active slice. Modern command center theme redesign is complete.
+No active slice. Focused workspace simplification is complete.
 
 ## Polish Plan Extension
 

@@ -1,6 +1,6 @@
 <meta>
   title: Quotarelay
-  description: Local MCP context dashboard for coding agents, with command-center health, usage, savings proof, cache status, memory, and no provider calls.
+  description: Local MCP context dashboard for coding agents, with focused status, usage, savings proof, cache state, memory, and no provider calls.
   keywords: quotarelay, mcp, coding agents, context dashboard, local first, usage stats
 </meta>
 
@@ -37,75 +37,82 @@
     return truthSummaryRef.value.find((item) => item.label === label)?.value ?? fallback
   }
 
-  function summaryDetail(label, fallback) {
-    return truthSummaryRef.value.find((item) => item.label === label)?.detail ?? fallback
-  }
-
   function backendOnline() {
     return fetchStateRef.value === 'Live'
   }
 
-  function backendStatusLabel() {
+  function backendTone() {
     if (fetchStateRef.value === 'Loading') {
-      return 'Checking'
+      return 'pending'
+    }
+    return backendOnline() ? 'good' : 'warn'
+  }
+
+  function backendLabel() {
+    if (fetchStateRef.value === 'Loading') {
+      return 'Checking backend'
     }
     return backendOnline() ? 'Backend online' : 'Backend offline'
   }
 
-  function backendStatusTone() {
-    if (fetchStateRef.value === 'Loading') {
-      return 'warn'
-    }
-    return backendOnline() ? 'ok' : 'warn'
+  function latestReduction() {
+    const ratio = runHistoryRef.value[0]?.budget?.estimated_reduction_ratio
+    return typeof ratio === 'number' ? `${Math.round(ratio * 100)}%` : '94.36%'
   }
 
-  function heroStatus() {
-    const latestRun = runHistoryRef.value[0]
-    const latestReduction = latestRun?.budget?.estimated_reduction_ratio
+  function statusModel() {
     return {
-      label: backendStatusLabel(),
-      tone: backendStatusTone(),
+      tone: backendTone(),
+      label: backendLabel(),
       detail: backendOnline()
         ? 'Live local truth is connected.'
-        : 'Start the loopback backend to show live repository usage.',
-      command: 'cargo run -p mcp-server -- --http 127.0.0.1:3030',
-      providerCalls: 'none',
-      cache: summaryValue('Cache', 'hit proven'),
-      reduction: typeof latestReduction === 'number' ? `${Math.round(latestReduction * 100)}%` : '94.36%'
+        : 'Start the loopback backend when you want live repository usage.',
+      error: fetchErrorRef.value,
+      command: 'cargo run -p mcp-server -- --http 127.0.0.1:3030'
     }
   }
 
-  function metricRail() {
+  function signalRows() {
     return [
-      { label: 'MCP tools', value: backendToolsRef.value.length > 0 ? String(backendToolsRef.value.length) : '35', detail: backendToolsRef.value.length > 0 ? 'live /truth' : 'release proof' },
-      { label: 'Retrieval', value: summaryValue('Retrieval', '4 modes'), detail: summaryDetail('Retrieval', 'exact, overview, task, diff') },
-      { label: 'Recent runs', value: runHistoryRef.value.length > 0 ? String(runHistoryRef.value.length) : '0', detail: runHistoryRef.value.length > 0 ? 'loaded locally' : runFetchStateRef.value },
-      { label: 'Memory matches', value: memoryStateRef.value.notes.length > 0 ? String(memoryStateRef.value.notes.length) : '0', detail: memoryStateRef.value.notes.length > 0 ? 'bounded notes' : memoryFetchStateRef.value }
+      { label: 'Provider calls', value: 'none' },
+      { label: 'Best reduction', value: latestReduction() },
+      { label: 'Cache', value: summaryValue('Cache', 'hit proven') },
+      { label: 'MCP tools', value: backendToolsRef.value.length > 0 ? String(backendToolsRef.value.length) : '35' }
     ]
   }
 
-  function usageRows() {
+  function activityRows() {
     const repo = repositoryStateRef.value[0]
     const run = runHistoryRef.value[0]
     const note = memoryStateRef.value.notes[0]
     return [
       {
+        label: 'Backend',
+        value: backendLabel(),
+        detail: backendOnline() ? 'Loopback truth is live.' : 'Local HTTP is not connected.',
+        action: backendOnline() ? 'Ready' : 'Start backend',
+        tone: backendTone()
+      },
+      {
         label: 'Repository',
         value: repo?.repository?.name ?? 'No repository selected',
-        detail: repo ? `${repo.sync?.indexed_files ?? 0} indexed files` : 'Add a root query parameter.',
-        meta: repo?.sync?.status ?? '?root=C:\\path\\to\\repo'
+        detail: repo ? `${repo.sync?.indexed_files ?? 0} indexed files` : 'Add a root query parameter to inspect a local repository.',
+        action: repo ? (repo.sync?.status ?? 'Loaded') : 'Add root',
+        tone: repo ? 'good' : 'neutral'
       },
       {
-        label: 'Recent run',
+        label: 'Recent runs',
         value: run?.query ?? 'No recent runs loaded',
-        detail: run ? `${run.budget?.included_bytes ?? 0} of ${run.budget?.raw_bytes_considered ?? 0} bytes included` : 'Assemble context for the selected root.',
-        meta: run ? `cache ${run.cache_status?.kind ?? 'not reported'}` : '--cli assemble repo exact_search query 3'
+        detail: run ? `${run.budget?.included_bytes ?? 0} of ${run.budget?.raw_bytes_considered ?? 0} bytes included` : 'Assemble context for the selected root, then refresh.',
+        action: run ? `Cache ${run.cache_status?.kind ?? 'unknown'}` : runFetchStateRef.value,
+        tone: run ? 'good' : 'neutral'
       },
       {
-        label: 'Memory',
+        label: 'Memory matches',
         value: note?.title ?? 'No memory query selected',
-        detail: note?.content ?? 'Add a memory query with the same root.',
-        meta: note?.profile ?? '&memory_query=decision'
+        detail: note?.content ?? 'Add a memory query with the same root to show bounded notes.',
+        action: note?.profile ?? memoryFetchStateRef.value,
+        tone: note ? 'good' : 'neutral'
       }
     ]
   }
@@ -123,20 +130,20 @@
     ]
   }
 
+  function setupRows() {
+    return [
+      { label: 'Run proof', value: 'scripts\\demo-local.ps1' },
+      { label: 'MCP command', value: 'quotarelay-mcp' },
+      { label: 'Sync repo', value: '--cli sync repo' }
+    ]
+  }
+
   function themeOptions() {
     return [
       { value: 'system', label: 'System' },
       { value: 'light', label: 'Light' },
       { value: 'dark', label: 'Dark' }
     ]
-  }
-
-  function activeTheme() {
-    return themeModeRef.value
-  }
-
-  function fetchError() {
-    return fetchErrorRef.value
   }
 
   function themeButtonClass(mode) {
@@ -206,14 +213,14 @@
 </script>
 
 <template>
-  <main class="command-shell">
-    <header class="command-bar">
-      <div>
-        <p class="eyebrow">Local command center</p>
+  <main class="focus-shell">
+    <header class="topbar">
+      <div class="brand-lockup">
+        <p class="eyebrow">Local MCP dashboard</p>
         <h1>Quotarelay</h1>
       </div>
-      <div class="command-actions">
-        <span :class="`status-pill status-pill--${heroStatus().tone}`">{{ heroStatus().label }}</span>
+      <nav class="topbar-actions" aria-label="Dashboard actions">
+        <span :class="`status-pill status-pill--${statusModel().tone}`">{{ statusModel().label }}</span>
         <div class="theme-toggle" aria-label="Theme mode">
           <button
             v-for="option in themeOptions()"
@@ -227,108 +234,86 @@
         </div>
         <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
         <a class="button button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">Quickstart</a>
-      </div>
+      </nav>
     </header>
 
-    <section class="status-strip" v-if="!backendOnline()">
-      <strong>Backend offline</strong>
-      <span v-if="fetchError()">{{ fetchError() }}</span>
-      <span v-else>{{ heroStatus().detail }}</span>
-      <code>{{ heroStatus().command }}</code>
-    </section>
-
-    <section class="hero-summary">
-      <div class="hero-summary__main">
+    <section class="focus-panel" aria-labelledby="local-context-status">
+      <div class="status-copy">
         <p class="eyebrow">Local context status</p>
-        <h2>{{ heroStatus().label }}</h2>
-        <p>{{ heroStatus().detail }}</p>
+        <h2 id="local-context-status">{{ statusModel().label }}</h2>
+        <p>{{ statusModel().error || statusModel().detail }}</p>
+        <div class="command-line" v-if="!backendOnline()">
+          <span>Start backend</span>
+          <code>{{ statusModel().command }}</code>
+        </div>
       </div>
-      <div class="summary-grid">
-        <article>
-          <span>Provider calls</span>
-          <strong>{{ heroStatus().providerCalls }}</strong>
-        </article>
-        <article>
-          <span>Cache</span>
-          <strong>{{ heroStatus().cache }}</strong>
-        </article>
-        <article>
-          <span>Best reduction</span>
-          <strong>{{ heroStatus().reduction }}</strong>
-        </article>
-      </div>
+      <dl class="signal-list">
+        <div v-for="signal in signalRows()" :key="signal.label">
+          <dt>{{ signal.label }}</dt>
+          <dd>{{ signal.value }}</dd>
+        </div>
+      </dl>
     </section>
 
-    <section class="metric-rail" aria-label="Dashboard metrics">
-      <article v-for="metric in metricRail()" :key="metric.label">
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
-        <p>{{ metric.detail }}</p>
-      </article>
-    </section>
-
-    <div class="content-grid">
-      <section class="surface-panel">
-        <div class="section-heading">
+    <section class="workspace-panel" aria-labelledby="operator-snapshot">
+      <div class="workspace-heading">
+        <div>
           <p class="eyebrow">Usage</p>
-          <h2>Local activity</h2>
+          <h2 id="operator-snapshot">Operator snapshot</h2>
         </div>
-        <div class="data-list">
-          <article class="data-row" v-for="row in usageRows()" :key="row.label">
-            <span>{{ row.label }}</span>
-            <div>
-              <strong>{{ row.value }}</strong>
-              <p>{{ row.detail }}</p>
-            </div>
-            <code>{{ row.meta }}</code>
-          </article>
-        </div>
-      </section>
+        <p>One glance at local health, selected repository state, recent runs, and memory matches.</p>
+      </div>
+      <div class="snapshot-table">
+        <article class="snapshot-row" v-for="row in activityRows()" :key="row.label">
+          <span :class="`state-dot state-dot--${row.tone}`"></span>
+          <span class="row-label">{{ row.label }}</span>
+          <div>
+            <strong>{{ row.value }}</strong>
+            <p>{{ row.detail }}</p>
+          </div>
+          <span class="row-action">{{ row.action }}</span>
+        </article>
+      </div>
+    </section>
 
-      <section class="surface-panel">
-        <div class="section-heading">
-          <p class="eyebrow">Savings proof</p>
-          <h2>Benchmark comparison</h2>
-        </div>
-        <div class="savings-list">
-          <article class="savings-row" v-for="metric in savingsRows()" :key="metric.mode">
+    <section class="disclosure-stack" aria-label="Supporting details">
+      <details class="detail-drawer">
+        <summary>
+          <span>Savings proof</span>
+          <strong>{{ latestReduction() }} best benchmark reduction</strong>
+        </summary>
+        <div class="proof-table">
+          <article class="proof-row" v-for="metric in savingsRows()" :key="metric.mode">
             <div>
               <strong>{{ metric.name }}</strong>
               <span>{{ metric.mode }}</span>
             </div>
-            <div class="savings-bar">
-              <span :style="`width: ${metric.reduction}`"></span>
-            </div>
-            <strong>{{ metric.reduction }}</strong>
-            <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes.</p>
+            <span>{{ metric.reduction }}</span>
+            <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes; {{ metric.packetTokens }} approximate packet tokens.</p>
           </article>
         </div>
-      </section>
+      </details>
 
-      <section class="surface-panel surface-panel--compact">
-        <div class="section-heading">
-          <p class="eyebrow">Boundaries</p>
-          <h2>System health</h2>
+      <details class="detail-drawer">
+        <summary>
+          <span>Boundaries and setup</span>
+          <strong>Provider calls: none</strong>
+        </summary>
+        <div class="support-grid">
+          <div class="support-list">
+            <article v-for="row in boundaryRows()" :key="row.label">
+              <span>{{ row.label }}</span>
+              <strong>{{ row.value }}</strong>
+            </article>
+          </div>
+          <div class="support-list">
+            <article v-for="row in setupRows()" :key="row.label">
+              <span>{{ row.label }}</span>
+              <code>{{ row.value }}</code>
+            </article>
+          </div>
         </div>
-        <div class="boundary-list">
-          <article v-for="row in boundaryRows()" :key="row.label">
-            <span>{{ row.label }}</span>
-            <strong>{{ row.value }}</strong>
-          </article>
-        </div>
-      </section>
-
-      <section class="surface-panel surface-panel--compact">
-        <div class="section-heading">
-          <p class="eyebrow">Setup</p>
-          <h2>Start loop</h2>
-        </div>
-        <ol class="setup-strip">
-          <li><span>1</span><code>scripts\demo-local.ps1</code></li>
-          <li><span>2</span><code>quotarelay-mcp</code></li>
-          <li><span>3</span><code>--cli sync repo</code></li>
-        </ol>
-      </section>
-    </div>
+      </details>
+    </section>
   </main>
 </template>
