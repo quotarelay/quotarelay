@@ -1,80 +1,52 @@
 # Quotarelay
 
-Quotarelay is an MCP-first context engine for local agent workflows. The core product is the local `quotarelay-mcp` agent tool, not a desktop or mobile app. The shipped workspace has three Rust crates and one Terajs control-plane scaffold:
+Quotarelay is a local-first MCP context engine for coding agents. It helps agents ask for smaller, fresher, better-explained repo context instead of repeatedly pulling broad source dumps into a chat.
+
+It runs locally, stores state under `.quotarelay/`, and does not call model providers.
 
 Current local MVP version: `0.1.0`.
 
-- `apps/mcp-server`: stdio MCP server plus a thin HTTP `/truth` endpoint. Installed workflows expose the branded `quotarelay-mcp` command.
-- `crates/repo-index`: local repository indexing, inventory, and search.
-- `crates/context-engine`: bounded context assembly, durable memory, repository registration, and derived repository state truth.
-- `web/controlplane`: a Terajs page that reads the live backend `/truth` payload and renders the current backend contract.
+## Why It Exists
 
-## Shipped behavior
+AI coding agents are useful, but large repos make context messy:
 
-Today the backend exposes these MCP tools:
+- agents reread the same files over and over,
+- handoffs lose decisions and validation steps,
+- stale file state is easy to miss,
+- broad context dumps waste tokens,
+- teams need guardrails without sending source to a hosted service.
 
-- `bootstrap_status`
-- `sync_repo`
-- `repo_inventory`
-- `repo_map`
-- `cache_inspect`
-- `cache_clear`
-- `register_repository`
-- `list_repositories`
-- `repository_state`
-- `repository_detail`
-- `repository_update_metadata`
-- `remove_repository`
-- `workspace_profile_save`
-- `workspace_profile_list`
-- `team_policy_profile_save`
-- `team_policy_profile_list`
-- `search_code`
-- `memory_write`
-- `memory_read`
-- `memory_update`
-- `memory_delete`
-- `memory_export`
-- `memory_import`
-- `memory_search`
-- `context_run_detail`
-- `context_run_history`
-- `context_feedback_write`
-- `context_feedback_list`
-- `validation_recommend`
-- `savings_report`
-- `onboarding_pack`
-- `multi_repo_assemble_context`
-- `assemble_context`
-- `handoff_packet`
+Quotarelay gives agents a local MCP tool for bounded repo search, durable memory, cache visibility, handoff packets, validation recommendations, and honest context-size proof.
 
-The retrieval contract is explicit and bounded:
+## What Ships
 
-- Modes: `exact_search`, `overview`, `task_capsule`, `diff_aware`
-- Local-change mode: `diff_aware` assembles bounded context around changed/new files and optional related indexed matches
-- Hard limits: 5 context items, 160 snippet bytes, 640 document bytes, 320 memory-note bytes, 10 history runs
-- Explainability: typed inclusion and omission reasons are preserved across engine and MCP boundaries
-- Budget estimate: context packs include local raw bytes considered, included-byte counts, approximate tokens, and a derived reduction ratio
-- Stale status: context packs report whether indexed files appear changed, missing, or new since the last explicit sync
-- Cache status: context packs report local cache hit, miss, or not-applicable state; cache clear reports cleared or empty state
-- Clarification: underspecified exact/task requests return 1-3 focused questions instead of broad context dumps
-- Durable memory: stored locally under `.quotarelay/`
-- Memory profiles: notes can be marked as `normal`, `decision`, or `guardrail`; decision and guardrail matches are prioritized in bounded context and handoff packets
-- Registered repository state: stored locally and exposed with sync status, indexed counts, bounded repo maps, and recent run metadata
-- Team policy profiles: stored locally with guardrails, validation recipes, MCP client presets, and explicit source-upload preference
-- Validation recommendations: exact local commands with reasons for touched or queried paths; commands are returned, not run
-- Savings reports: aggregate local context-run history into bounded byte/token/cache metadata without source upload or provider billing claims
-- Onboarding packs: bounded repo-shape metadata, validation commands, handoff template names, and privacy notes without source snippets or upload
-- Context feedback: local bounded records for useful/not-useful context packs; feedback is inspectable and does not change ranking
-- Repo index ignore config: optional `.quotarelay/ignore.json` with `paths` for exact relative paths and `prefixes` for relative directory/file prefixes; changes apply on the next explicit sync
+- Local stdio MCP server with the installed `quotarelay-mcp` command.
+- Local CLI for `truth`, `sync`, `search`, `assemble`, `handoff`, `state`, and related workflows.
+- Bounded retrieval modes: `exact_search`, `overview`, `task_capsule`, and `diff_aware`.
+- Durable local memory with normal, decision, and guardrail profiles.
+- Local cache inspection/clear plus cache-hit visibility in context packets.
+- Handoff packets with `general`, `bug_fix`, `feature_slice`, `review`, `refactor`, and `release` templates.
+- Local savings reports, onboarding packs, team policy profiles, and MCP client presets.
+- Thin local HTTP truth routes for the control plane, bound to loopback only.
 
-The control plane does not invent readiness, savings, or live health state. It renders the current backend truth contract from `/truth`.
+No hosted login, provider gateway, telemetry, cloud sync, auth, billing, or exact provider billing-savings claim ships in this release.
 
-Desktop, mobile, Electron, tray, and app-store surfaces are not part of the launch product. They remain deferred unless users prove a companion wrapper is needed for one-click MCP setup or local service management.
+## Proof Snapshot
+
+These numbers come from `scripts\token-saver-benchmark.ps1`, which builds a temporary local fixture, syncs it, writes decision memory, assembles context packets, checks cache behavior, and reports local byte plus approximate-token estimates. They are not provider tokenizer output or billing guarantees.
+
+| Packet | Raw bytes | Packet bytes | Approx raw tokens | Approx packet tokens | Local reduction |
+|---|---:|---:|---:|---:|---:|
+| `exact_search` | 24,132 | 1,361 | 6,033 | 341 | 94.36% |
+| `overview` | 24,132 | 1,435 | 6,033 | 359 | 94.05% |
+| `handoff_packet` | 24,132 | 2,676 | 6,033 | 669 | 88.91% |
+| `diff_aware` | 24,274 | 1,663 | 6,069 | 416 | 93.15% |
+
+The local demo also proves the first exact search is a cache miss, the repeated exact search is a cache hit, a handoff packet is generated, backend truth exposes 35 tools, and `provider_calls` is `none`.
 
 ## Quickstart
 
-From a fresh checkout on this machine:
+From a fresh checkout:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
@@ -82,9 +54,15 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 cargo run -p mcp-server -- --cli truth
 ```
 
-Successful first-run output should end with `bootstrap passed`, a demo JSON summary with `truth_tool_count`, `repeated_exact_cache_status`, `handoff_template`, and `provider_calls`, plus a truth JSON payload that lists the shipped MCP tools. The demo uses a temporary local fixture and does not contact providers.
+Expected proof signals:
 
-To prove the installed local MCP command and checked-in client presets:
+- `bootstrap passed`
+- `repeated_exact_cache_status: "hit"`
+- `handoff_template: "feature_slice"`
+- `truth_tool_count: 35`
+- `provider_calls: "none"`
+
+Prove the installed local MCP command and checked-in client presets:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
@@ -92,151 +70,97 @@ target\install-smoke\bin\quotarelay-mcp.exe --cli truth
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1 -SkipInstall
 ```
 
-To run against one of your own repos:
+## Use It On A Repo
 
 ```powershell
 cargo run -p mcp-server -- --cli register <state_root> <repo_root>
 cargo run -p mcp-server -- --cli sync <repo_root>
-cargo run -p mcp-server -- --cli map <repo_root>
-cargo run -p mcp-server -- --cli validate crates/context-engine/src/lib.rs README.md
-cargo run -p mcp-server -- --cli feedback-write <repo_root> <generated_at_epoch_ms> useful "kept the packet focused"
-cargo run -p mcp-server -- --cli feedback-list <repo_root> 5
-cargo run -p mcp-server -- --cli team-policy-save <state_root> backend "keep source local" "cargo test -p mcp-server" "examples/mcp-client-presets/generic-stdio.json"
-cargo run -p mcp-server -- --cli team-policy-list <state_root> 5
 cargo run -p mcp-server -- --cli search <repo_root> <query> 5
 cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
+cargo run -p mcp-server -- --cli handoff-template <repo_root> "Continue the feature" feature_slice exact_search <query> 3
 cargo run -p mcp-server -- --cli state <repo_root>
 ```
 
-Use a dedicated local `state_root` when you want to register multiple repositories as a workspace. Quotarelay writes local state under `.quotarelay` inside the roots you pass to tools.
+Use a separate local `state_root` when registering multiple repos as a workspace. Quotarelay writes local state under `.quotarelay` inside the roots you pass to tools.
 
-## Local validation
+## MCP Client Setup
+
+Use the source-run preset first:
+
+```json
+{
+  "command": "cargo",
+  "args": ["run", "-p", "mcp-server"]
+}
+```
+
+Use the installed-command preset only after `scripts\install-smoke.ps1` passes and your MCP client can resolve `quotarelay-mcp`:
+
+```json
+{
+  "command": "quotarelay-mcp",
+  "args": []
+}
+```
+
+See `docs/MCP_CLIENT_CONFIG.md` and `examples/mcp-client-presets/` for working-directory guidance and troubleshooting.
+
+## Validation
 
 The main public proof path is:
 
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1`
-
-It runs clean checks, Rust tests, frontend tests/build, the local demo, token-saver benchmark, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and docs sanity checks.
-
-Useful focused checks:
-
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1`
-- `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1`
-- `cargo test -p mcp-server backend_truth_endpoint_exposes_current_contract`
-- `cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio`
-- `cargo test -p mcp-server repository_registration_tools_work_over_stdio`
-- `cargo test -p context-engine registered_repository_state_reports_sync_and_recent_run_truth`
-- `npm --prefix web/controlplane run build`
-
-## Local CLI
-
-The MCP server binary also exposes a non-interactive local CLI for operator workflows. CLI responses are newline-terminated JSON objects with `ok`, `command`, and either `result` or `error` plus `error_category`.
-
-When installed through the local install smoke, the branded command is `quotarelay-mcp`. The source checkout command remains `cargo run -p mcp-server --`.
-
-- `cargo run -p mcp-server -- --cli truth`
-- `cargo run -p mcp-server -- --cli register <state_root> <repo_root>`
-- `cargo run -p mcp-server -- --cli sync <repo_root>`
-- `cargo run -p mcp-server -- --cli state <repo_root>`
-- `cargo run -p mcp-server -- --cli map <repo_root>`
-- `cargo run -p mcp-server -- --cli validate <path> [path...]`
-- `cargo run -p mcp-server -- --cli feedback-write <repo_root> <generated_at_epoch_ms> useful|not_useful <reason>`
-- `cargo run -p mcp-server -- --cli feedback-list <repo_root> [limit]`
-- `cargo run -p mcp-server -- --cli savings-report <repo_root> [limit]`
-- `cargo run -p mcp-server -- --cli team-policy-save <state_root> <name> <guardrails_semicolon_list> <validation_recipes_semicolon_list> <mcp_presets_semicolon_list> [true|false]`
-- `cargo run -p mcp-server -- --cli team-policy-list <state_root> [limit]`
-- `cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]`
-- `cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]`
-- `cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]`
-- `cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]`
-- `cargo run -p mcp-server -- --cli assemble <repo_root> diff_aware [query] [limit]`
-- `cargo run -p mcp-server -- --cli handoff <repo_root> <active_task> exact_search <query> [limit]`
-- `cargo run -p mcp-server -- --cli handoff-template <repo_root> <active_task> bug_fix|feature_slice|review|refactor|release exact_search <query> [limit]`
-- `quotarelay-mcp --cli truth`
-
-## MCP client setup
-
-See `docs/MCP_CLIENT_CONFIG.md` and `examples/mcp-client-presets/` for the local stdio command, generic client JSON shape, Windows path examples, state-root guidance, and startup troubleshooting.
-
-Use `examples/mcp-client-presets/generic-stdio.json` when launching from source, or `examples/mcp-client-presets/installed-stdio.json` after proving the installed `quotarelay-mcp` command.
-
-## Troubleshooting
-
-See `docs/TROUBLESHOOTING.md` for corrupt local JSON recovery, cache inspect/clear guidance, missing index/repository checks, Windows path notes, and deferred platform boundaries.
-
-## Changelog
-
-See `CHANGELOG.md` for local MVP release notes, validation commands, known limitations, and deferred platform boundaries.
-
-## Control plane
-
-See `docs/CONTROL_PLANE_LOCAL.md` for local backend HTTP and frontend commands. The Terajs frontend serves the public product homepage at `/` and the local operator control plane at `/control-plane`.
-
-## Token-saver benchmark
-
-Run the one-command local demo with:
-
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-demo.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
 ```
 
-The demo creates a temporary fixture and reports broad raw repo size versus Quotarelay packet size, cache miss then cache hit, stale status after a local file change, and the exact context and handoff packets. It does not call providers or claim billing savings.
+It runs clean checks, Rust tests, control-plane tests/build, local demo proof, token-saver benchmark proof, install smoke, MCP preset smoke, public-site smoke, public-surface scan, and docs sanity.
 
-Run the local acceptance benchmark with:
+Focused checks:
 
 ```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmark.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+cargo test -p mcp-server
+npm --prefix web/controlplane run build
 ```
 
-The benchmark creates a temporary fixture, syncs it locally, records decision memory, assembles exact/overview/handoff/diff-aware packets, checks exact-search cache entries across repeated assembly, and reports raw bytes versus packet bytes with approximate tokens. It does not call providers or claim billing savings.
+## Project Layout
 
-## Local package smoke
+| Path | Purpose |
+|---|---|
+| `apps/mcp-server` | stdio MCP server, local CLI, and loopback HTTP truth backend |
+| `crates/repo-index` | local repository sync, inventory, map, document lookup, and search |
+| `crates/context-engine` | bounded retrieval, memory, cache, handoff, repository state, reports |
+| `web/controlplane` | Terajs public homepage and local control-plane truth view |
+| `examples/demo-repo` | tiny local fixture used by `scripts\demo-local.ps1` |
+| `examples/mcp-client-presets` | source-run and installed-command stdio presets |
 
-Run `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1` to build a local-only zip artifact under `target\local-package\`. The script smoke-runs the packaged backend binary with `--cli truth`; it does not publish, sign, install globally, deploy, or contact external services.
+## Docs
 
-After extracting the zip, run the packaged backend locally with:
-
-```powershell
-.\bin\quotarelay-mcp.exe --cli truth
-.\bin\quotarelay-mcp.exe --http 127.0.0.1:3030
-```
-
-## Local state privacy
-
-See `docs/LOCAL_STATE_PRIVACY.md` for what `.quotarelay` stores locally, what the local MVP does not send, what not to commit, and current limitations.
-
-## Security
-
-See `SECURITY.md` for supported security boundaries, vulnerability reporting guidance, local data handling, and the loopback-only HTTP policy.
-
-## Community feedback
-
-GitHub Discussions are the opt-in feedback path for demo success reports and team interest. Do not paste private source, `.quotarelay` state, secrets, raw context packets, or internal URLs into public discussions.
-
-## Public repo guidance
-
-- `AGENTS.md`: instructions for AI agents and bots working in this repo.
-- `CONTRIBUTING.md`: contribution workflow and validation expectations.
-- `SUPPORT.md`: support boundaries and issue guidance.
-- `docs/VERSIONING.md`: versioning and release checklist.
-- `docs/DEPLOYMENT_READINESS.md`: what is local-only today and what is required before hosted deployment.
-- `docs/PLATFORM_SURFACES.md`: current DOM/local surfaces, planned deployment management, and deferred Android/iOS preview boundaries.
-- `docs/HOSTED_THREAT_MODEL.md`: hosted auth, tenancy, audit, privacy, integration, and deployment security gate.
-- `docs/PRIVATE_DEPLOYMENT_PLAN.md`: planned private deployment shapes, artifact boundaries, and container readiness tests.
+- `docs/MCP_TOOL_REFERENCE.md`: shipped MCP tools, retrieval contract, and CLI examples.
+- `docs/MCP_CLIENT_CONFIG.md`: stdio client setup, presets, Windows path examples, and startup troubleshooting.
+- `docs/TROUBLESHOOTING.md`: corrupt local JSON recovery, missing sync/index checks, cache guidance, and path notes.
+- `docs/TRUTH_MATRIX.md`: shipped behavior, useful next work, deferred decisions, and explicit non-goals.
+- `docs/LOCAL_STATE_PRIVACY.md`: what `.quotarelay` stores locally and what not to commit.
+- `docs/KNOWN_LIMITATIONS.md`: local-only boundaries, indexing limits, provider/network non-goals, and control-plane limits.
 - `docs/PUBLICATION_CHECKLIST.md`: public push/release checklist.
-- `docs/COMMERCIAL_STRATEGY.md`: deferred commercial planning that keeps the local core complete and adoption-first.
+- `docs/GITHUB_ABOUT.md`: suggested GitHub About description and topics.
+
+## Boundaries
+
+Quotarelay is local-first:
+
+- no provider calls or provider keys,
+- no telemetry or remote feedback collection,
+- no hosted tenancy or cloud sync,
+- no auth or access control on local HTTP routes,
+- no exact provider billing savings claim,
+- no background sync, cache warming, or silent local-state repair.
+
+See `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`, and `AGENTS.md` for public operating guidance.
 
 ## License
 
 Quotarelay is licensed under Apache-2.0. See `LICENSE` and `NOTICE`.
-
-## Known limitations
-
-See `docs/KNOWN_LIMITATIONS.md` for local-only boundaries, indexing limits, provider/network non-goals, control-plane limits, and deferred platform work.

@@ -24,6 +24,7 @@ Recently completed slices:
 | Error-message edge polish | Shipped | MCP stdio malformed tool calls now have regression coverage for explicit text responses. |
 | Example quality | Shipped | The local demo now shows sync, memory, exact search cache hit, handoff, truth count, and no provider calls. |
 | Release presentation | Shipped | Changelog, publication checklist, limitations, versioning, and security docs now mirror the polished proof path. |
+| README and repo traction polish | Shipped | README now leads with problem, value, proof metrics, quickstart, examples, and links detailed tool/GitHub About metadata docs. |
 
 ## Completed Slice
 
@@ -502,9 +503,51 @@ Proof:
 - `git diff --check` passed with line-ending warnings only.
 - `scripts\release-check.ps1` passed after the release presentation polish.
 
+## Completed Slice
+
+### T126: README And Repo Traction Polish
+
+Status: done
+
+Goal: make the repository front door easier to understand in the first minute by shortening the README, adding honest local proof metrics, moving long reference material into docs, and preserving local-first boundaries.
+
+Allowed files:
+
+- `README.md`
+- `docs/MCP_TOOL_REFERENCE.md`
+- `docs/GITHUB_ABOUT.md`
+- `docs/PUBLICATION_CHECKLIST.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change shipped behavior, tests, scripts, product surfaces, proof commands, release automation, or GitHub repository settings.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+- Do not add marketing claims that are not backed by local scripts or shipped docs.
+
+Validation:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- README leads with problem, value, proof metrics, quickstart, and examples instead of a long tool inventory.
+- Detailed MCP tool and CLI reference lives in docs.
+- GitHub About copy/topics are captured in docs for repository settings.
+- Full release-check passes after the documentation polish.
+
+Proof:
+
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `git diff --check` passed with line-ending warnings only.
+- `scripts\release-check.ps1` passed after the README and repo traction polish.
+
 ## Active Slice
 
-No active slice. The planned polish extension T120-T125 is complete.
+No active slice. README and repo traction polish is complete.
 
 ## Polish Plan Extension
 

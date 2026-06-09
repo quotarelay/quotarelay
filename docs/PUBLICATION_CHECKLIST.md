@@ -11,6 +11,7 @@ Use this before pushing public changes or cutting a public release.
 - `powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1` finds no secrets, private paths, `.quotarelay` state, `.env` files, temp planning files, local package archives, or generated dependency/build directories.
 - `SECURITY.md`, `SUPPORT.md`, `CONTRIBUTING.md`, `AGENTS.md`, `README.md`, `CHANGELOG.md`, `LICENSE`, and `NOTICE` are current.
 - `docs/TRUTH_MATRIX.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/DEPLOYMENT_READINESS.md`, and `docs/COMMERCIAL_STRATEGY.md` present the free local MVP as the adoption surface and keep hosted/commercial plans deferred.
+- GitHub About description, website, and topics match `docs/GITHUB_ABOUT.md`.
 - Public docs and homepage do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, or paid access gates around the local core.
 
 ## Monetization Note
