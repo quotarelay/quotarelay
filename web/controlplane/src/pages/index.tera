@@ -72,8 +72,8 @@
       tone: backendTone(),
       label: backendLabel(),
       detail: backendOnline()
-        ? 'Live local truth is connected.'
-        : 'Start the loopback backend when you want live repository usage.',
+        ? 'Local truth connected.'
+        : 'Local HTTP offline.',
       error: fetchErrorRef.value,
       command: 'cargo run -p mcp-server -- --http 127.0.0.1:3030'
     }
@@ -177,14 +177,6 @@
 
   function savingsRows() {
     return benchmarkMetrics
-  }
-
-  function chartRows() {
-    return benchmarkMetrics.map((metric) => ({
-      label: metric.name,
-      value: metric.reduction,
-      width: metric.reduction
-    }))
   }
 
   function boundaryRows() {
@@ -316,21 +308,6 @@
       <div class="status-bar" :class="`status-bar--${statusModel().tone}`">{{ healthStatusText() }}</div>
 
       <div class="hero-grid">
-        <div class="health-summary">
-          <p class="eyebrow">System health</p>
-          <h2 id="local-context-status">{{ statusModel().label }}</h2>
-          <p>{{ statusModel().error || statusModel().detail }}</p>
-          <dl class="signal-list">
-            <div v-for="signal in signalRows()" :key="signal.label">
-              <dt>{{ signal.label }}</dt>
-              <dd>{{ signal.value }}</dd>
-            </div>
-          </dl>
-          <div class="command-line" v-if="!backendOnline()">
-            <span>Start backend</span>
-            <code>{{ statusModel().command }}</code>
-          </div>
-        </div>
         <div class="visual-grid">
           <section class="chart-block" aria-label="MCP tool usage distribution">
             <div class="pie-chart" :style="pieStyle()"></div>
@@ -353,6 +330,21 @@
               <polyline :points="providerSparklinePoints()" />
             </svg>
           </section>
+        </div>
+        <div class="health-summary">
+          <p class="eyebrow">System health</p>
+          <h2 id="local-context-status">{{ statusModel().label }}</h2>
+          <p>{{ statusModel().error || statusModel().detail }}</p>
+          <dl class="signal-list">
+            <div v-for="signal in signalRows()" :key="signal.label">
+              <dt>{{ signal.label }}</dt>
+              <dd>{{ signal.value }}</dd>
+            </div>
+          </dl>
+          <div class="command-line" v-if="!backendOnline()">
+            <span>Start backend</span>
+            <code>{{ statusModel().command }}</code>
+          </div>
         </div>
       </div>
 

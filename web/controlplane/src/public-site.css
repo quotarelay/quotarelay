@@ -174,7 +174,7 @@ body:has(.focus-shell),
 }
 .hero-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.9fr);
+  grid-template-columns: minmax(360px, 0.95fr) minmax(0, 1fr);
   gap: 28px;
 }
 .health-summary h2 {
@@ -240,16 +240,14 @@ code {
 .chart-block {
   align-items: center;
   gap: 18px;
-  border: 1px solid var(--dash-border);
-  border-radius: 8px;
-  background: var(--dash-soft);
-  padding: 16px;
+  border-bottom: 1px solid var(--dash-border);
+  padding: 6px 0 18px;
 }
 .pie-chart {
-  width: 132px;
-  height: 132px;
+  width: 180px;
+  height: 180px;
   border-radius: 50%;
-  box-shadow: inset 0 0 0 18px color-mix(in srgb, var(--dash-surface) 82%, transparent);
+  box-shadow: inset 0 0 0 24px color-mix(in srgb, var(--dash-surface) 82%, transparent);
   flex: 0 0 auto;
 }
 .chart-legend {
@@ -270,6 +268,8 @@ code {
 }
 .chart-block--spark {
   justify-content: space-between;
+  border-bottom: 0;
+  padding-bottom: 0;
 }
 .chart-block--spark svg {
   width: 160px;
@@ -286,8 +286,7 @@ code {
   gap: 8px;
 }
 .detail-drawer {
-  border: 1px solid var(--dash-border);
-  border-radius: 8px;
+  border-top: 1px solid var(--dash-border);
   overflow: hidden;
 }
 .detail-drawer summary {
