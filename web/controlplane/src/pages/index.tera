@@ -1,212 +1,275 @@
 <meta>
   title: Quotarelay
-  description: Apache-2.0 local MCP context compression for coding agents, with bounded retrieval, memory, cache proof, and no hosted dependency.
-  keywords: quotarelay, mcp, coding agents, context compression, local first, token savings
-  aiSummary: Quotarelay is an MCP-first agent tool that assembles bounded, explainable context packets for coding agents while keeping repository contents local by default.
-  aiKeywords: mcp, context-engine, local-first, coding-agents, privacy, open-source
+  description: Local MCP context dashboard for coding agents, with usage stats, bounded retrieval proof, cache status, memory, and no provider calls.
+  keywords: quotarelay, mcp, coding agents, context dashboard, local first, usage stats
 </meta>
 
 <route>
   path: /
 </route>
 
-<ai>
-  summary: Public product homepage for Quotarelay. Present Quotarelay as a complete Apache-2.0 local MCP agent tool, not a desktop app, hosted service, or teaser for a later product.
-  audience:
-    - solo developers
-    - engineering teams
-    - AI coding tool users
-  privacy_boundary: Source code, raw context packets, local caches, and .quotarelay state stay local by default.
-  adoption_boundary: The local MVP is the product to adopt now; hosted/commercial ideas are deferred planning and not required for the free core.
-  tags:
-    - public-site
-    - local-first
-    - mcp
-    - context-compression
-    - privacy
-</ai>
-
 <script>
-  import { deploymentSurfaces, surfaceStatusLabel } from '../deploymentSurfaces'
+  import { ref } from '@terajs/reactivity'
+  import { onMounted } from '@terajs/runtime'
+  import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState } from '../truth'
 
-  const localProofMetrics = [
-    {
-      name: 'exact_search',
-      reduction: '94.36%',
-      rawBytes: '24,132',
-      packetBytes: '1,361',
-      packetTokens: '341'
-    },
-    {
-      name: 'overview',
-      reduction: '94.05%',
-      rawBytes: '24,132',
-      packetBytes: '1,435',
-      packetTokens: '359'
-    },
-    {
-      name: 'handoff_packet',
-      reduction: '88.91%',
-      rawBytes: '24,132',
-      packetBytes: '2,676',
-      packetTokens: '669'
-    },
-    {
-      name: 'diff_aware',
-      reduction: '93.15%',
-      rawBytes: '24,274',
-      packetBytes: '1,663',
-      packetTokens: '416'
-    }
+  const benchmarkMetrics = [
+    { name: 'exact_search', reduction: '94.36%', rawBytes: '24,132', packetBytes: '1,361', packetTokens: '341' },
+    { name: 'overview', reduction: '94.05%', rawBytes: '24,132', packetBytes: '1,435', packetTokens: '359' },
+    { name: 'handoff_packet', reduction: '88.91%', rawBytes: '24,132', packetBytes: '2,676', packetTokens: '669' },
+    { name: 'diff_aware', reduction: '93.15%', rawBytes: '24,274', packetBytes: '1,663', packetTokens: '416' }
+  ]
+
+  const releaseProof = [
+    { label: 'Provider calls', value: 'none', detail: 'The local demo reports provider_calls: none.' },
+    { label: 'Repeat exact search', value: 'cache hit', detail: 'The demo proves miss first, hit second.' },
+    { label: 'Handoff template', value: 'feature_slice', detail: 'Handoff packets include validation commands and blockers.' },
+    { label: 'Install path', value: 'quotarelay-mcp', detail: 'The installed stdio command is smoke-tested.' }
   ]
 
   const workflowSteps = [
     {
-      title: 'Prove the repo locally',
+      title: 'Run the local proof',
       command: 'scripts\\demo-local.ps1',
-      detail: 'Runs a tiny local repo through sync, memory, exact search, cache, handoff, and backend truth.',
+      detail: 'Checks sync, memory, exact search, cache, handoff, truth, and no provider calls.',
       proof: 'provider_calls: none'
     },
     {
       title: 'Connect an MCP client',
       command: 'quotarelay-mcp',
-      detail: 'Use the installed stdio command after the install smoke passes, or run from source during development.',
+      detail: 'Use the installed stdio command after the install smoke passes.',
       proof: 'verified presets'
     },
     {
       title: 'Register and sync work',
       command: '--cli register / --cli sync',
-      detail: 'Create a bounded local index under .quotarelay for the repository you want the agent to understand.',
-      proof: 'local state only'
+      detail: 'Create a bounded local index for the repository your agent should understand.',
+      proof: '.quotarelay state'
     },
     {
       title: 'Ask for bounded context',
       command: '--cli assemble exact_search',
-      detail: 'Return relevant snippets, memory notes, omissions, cache status, stale state, and local budget estimates.',
+      detail: 'Return snippets, memory notes, omissions, cache status, stale state, and estimates.',
       proof: 'typed reasons'
     }
   ]
 
-  function surfaces() {
-    return deploymentSurfaces
+  const fetchStateRef = ref('Loading')
+  const fetchErrorRef = ref('')
+  const backendToolsRef = ref([])
+  const truthSummaryRef = ref([])
+  const repositoryStateRef = ref([])
+  const repositoryFetchStateRef = ref('Not configured')
+  const memoryStateRef = ref({ notes: [], omitted_count: 0 })
+  const memoryFetchStateRef = ref('Not configured')
+  const runHistoryRef = ref([])
+  const runFetchStateRef = ref('Not configured')
+
+  function benchmark() {
+    return benchmarkMetrics
   }
 
-  function proofMetrics() {
-    return localProofMetrics
+  function fetchState() {
+    return fetchStateRef.value
   }
 
-  function statusLabel(status) {
-    return surfaceStatusLabel(status)
+  function fetchError() {
+    return fetchErrorRef.value
+  }
+
+  function proofStats() {
+    return releaseProof
   }
 
   function steps() {
     return workflowSteps
   }
+
+  function usageStats() {
+    const tools = backendToolsRef.value.length
+    const summary = truthSummaryRef.value
+    const runs = runHistoryRef.value
+    const repos = repositoryStateRef.value
+    const memoryNotes = memoryStateRef.value.notes
+    const cacheSummary = summary.find((item) => item.label === 'Cache')
+    const retrievalSummary = summary.find((item) => item.label === 'Retrieval')
+    const latestRun = runs[0]
+    const latestReduction = latestRun?.budget?.estimated_reduction_ratio
+    const reductionLabel = typeof latestReduction === 'number'
+      ? `${Math.round(latestReduction * 100)}%`
+      : '94.36%'
+
+    return [
+      { label: 'MCP tools', value: tools > 0 ? String(tools) : '35', detail: tools > 0 ? 'live /truth' : 'release proof' },
+      { label: 'Retrieval modes', value: retrievalSummary?.value ?? '4 modes', detail: retrievalSummary?.detail ?? 'exact_search, overview, task_capsule, diff_aware' },
+      { label: 'Cache', value: cacheSummary?.value ?? 'hit proven', detail: cacheSummary?.detail ?? 'repeat exact search returns a cache hit' },
+      { label: 'Best reduction', value: reductionLabel, detail: latestRun ? 'latest local run' : 'token-saver benchmark' },
+      { label: 'Repositories', value: repos.length > 0 ? String(repos.length) : repositoryFetchStateRef.value, detail: repos.length > 0 ? 'registered locally' : 'add ?root=<repo_root>' },
+      { label: 'Recent runs', value: runs.length > 0 ? String(runs.length) : runFetchStateRef.value, detail: runs.length > 0 ? 'bounded context history' : 'add ?root=<repo_root>' },
+      { label: 'Memory notes', value: memoryNotes.length > 0 ? String(memoryNotes.length) : memoryFetchStateRef.value, detail: memoryNotes.length > 0 ? 'matched local memory' : 'add ?memory_query=<query>' }
+    ]
+  }
+
+  function repositories() {
+    return repositoryStateRef.value
+  }
+
+  function memoryNotes() {
+    return memoryStateRef.value.notes
+  }
+
+  function runs() {
+    return runHistoryRef.value
+  }
+
+  function runReduction(run) {
+    const ratio = run?.budget?.estimated_reduction_ratio
+    return typeof ratio === 'number' ? `${Math.round(ratio * 100)}%` : 'not reported'
+  }
+
+  async function loadDashboard() {
+    const truth = await loadBackendTruth(fetch, '/truth')
+    fetchStateRef.value = truth.fetchState
+    fetchErrorRef.value = truth.fetchError
+    backendToolsRef.value = truth.backendTools
+    truthSummaryRef.value = truth.truthSummary
+
+    const params = new URLSearchParams(window.location.search)
+    const root = params.get('root') ?? ''
+    const memoryQuery = params.get('memory_query') ?? ''
+
+    const repositoryState = await loadRepositoryState(fetch, root)
+    repositoryStateRef.value = repositoryState.repositories
+    repositoryFetchStateRef.value = repositoryState.fetchState
+
+    const memoryState = await loadMemoryState(fetch, root, memoryQuery)
+    memoryStateRef.value = memoryState.memory
+    memoryFetchStateRef.value = memoryState.fetchState
+
+    const runState = await loadContextRunState(fetch, root)
+    runHistoryRef.value = runState.runs
+    runFetchStateRef.value = runState.fetchState
+  }
+
+  onMounted(() => {
+    void loadDashboard()
+  })
 </script>
 
 <template>
-  <main class="public-site">
-    <section class="public-hero">
-      <div class="public-hero__copy">
-        <p class="eyebrow">Apache-2.0 local MCP tool</p>
+  <main class="dashboard">
+    <section class="dashboard-hero">
+      <div class="dashboard-hero__copy">
+        <p class="dashboard-kicker">Local MCP context dashboard</p>
         <h1>Quotarelay</h1>
-        <p class="public-lede">
-          Connect Quotarelay to your coding agent so it sends less repo context. The local MCP tool returns relevant
-          code, durable decisions, validation commands, cache state, stale-state warnings, and omission reasons without
-          uploading your repository by default.
+        <p class="dashboard-lede">
+          One local page for shipped tool count, retrieval modes, cache proof, benchmark reduction,
+          repository state, memory matches, and recent context runs.
         </p>
-        <div class="public-actions">
+        <div class="dashboard-actions">
           <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
-          <a class="button button--secondary" href="/control-plane">Local control plane</a>
+          <a class="button button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">Quickstart</a>
         </div>
       </div>
-      <div class="signal-board" aria-label="Quotarelay packet proof summary">
-        <div class="signal-board__header">
-          <span>Context packet</span>
-          <strong>bounded</strong>
-        </div>
-        <div class="signal-row">
-          <span>Raw bytes considered</span>
-          <strong>24,132</strong>
-        </div>
-        <div class="signal-row">
-          <span>Packet bytes</span>
-          <strong>1,361</strong>
-        </div>
-        <div class="signal-row">
-          <span>Local reduction</span>
-          <strong>94.36%</strong>
-        </div>
-        <div class="signal-row signal-row--accent">
-          <span>Repeat retrieval</span>
-          <strong>cache hit</strong>
-        </div>
+      <div class="dashboard-status">
+        <span>Backend truth</span>
+        <strong>{{ fetchState() }}</strong>
+        <p v-if="fetchError()">{{ fetchError() }}</p>
+        <p v-else>Live when the local loopback backend is running; release-proof stats are shown otherwise.</p>
       </div>
     </section>
 
-    <section class="public-band public-band--proof">
+    <section class="stats-grid" aria-label="Usage stats">
+      <article class="stat-card" v-for="stat in usageStats()" :key="stat.label">
+        <span>{{ stat.label }}</span>
+        <strong>{{ stat.value }}</strong>
+        <p>{{ stat.detail }}</p>
+      </article>
+    </section>
+
+    <section class="dashboard-section dashboard-section--usage">
       <div class="section-heading">
-        <p class="eyebrow">Proof, not vibes</p>
-        <h2>Current benchmark packets are small, bounded, and locally explainable.</h2>
+        <p class="dashboard-kicker">Local usage</p>
+        <h2>Point the page at a repo to show live runs, memory, and index state.</h2>
       </div>
-      <p class="proof-note">
-        These figures come from the checked-in token-saver benchmark. They compare raw local fixture bytes with
-        Quotarelay context packets and approximate token estimates; they are not provider tokenizer output or billing claims.
-      </p>
-      <div class="metric-grid">
-        <article class="metric-card" v-for="metric in proofMetrics()" :key="metric.name">
-          <h3>{{ metric.name }}</h3>
-          <span class="metric-card__value">{{ metric.reduction }}</span>
-          <p>local reduction from raw fixture bytes to the bounded context packet.</p>
-          <div class="metric-card__row">
-            <span>{{ metric.rawBytes }} raw bytes</span>
-            <strong>{{ metric.packetBytes }} packet bytes</strong>
+      <div class="usage-grid">
+        <article class="usage-panel">
+          <span>Repositories</span>
+          <div v-if="repositories().length > 0">
+            <h3>{{ repositories()[0].repository.name }}</h3>
+            <p>{{ repositories()[0].repository.root }}</p>
+            <div class="dashboard-chip-row">
+              <span class="dashboard-chip">status: {{ repositories()[0].sync.status }}</span>
+              <span class="dashboard-chip">indexed files: {{ repositories()[0].sync.indexed_files }}</span>
+            </div>
           </div>
-          <div class="metric-card__row">
-            <span>approx packet tokens</span>
-            <strong>{{ metric.packetTokens }}</strong>
+          <p v-else>Add <code>?root=&lt;repo_root&gt;</code> to load registered repository stats from the local backend.</p>
+        </article>
+
+        <article class="usage-panel">
+          <span>Recent runs</span>
+          <div v-if="runs().length > 0">
+            <div class="run-row" v-for="run in runs()" :key="run.generated_at_epoch_ms">
+              <strong>{{ run.query }}</strong>
+              <span>{{ runReduction(run) }}</span>
+              <p>
+                {{ run.budget?.included_bytes ?? 0 }} of {{ run.budget?.raw_bytes_considered ?? 0 }} bytes;
+                cache {{ run.cache_status?.kind ?? 'not reported' }};
+                {{ run.stale?.is_stale ? 'stale' : 'fresh' }}
+              </p>
+            </div>
           </div>
+          <p v-else>Recent context runs appear after you assemble context for a configured root.</p>
+        </article>
+
+        <article class="usage-panel">
+          <span>Memory</span>
+          <div v-if="memoryNotes().length > 0">
+            <div class="memory-row" v-for="note in memoryNotes()" :key="note.id">
+              <strong>{{ note.title }}</strong>
+              <p>{{ note.content }}</p>
+            </div>
+          </div>
+          <p v-else>Add <code>&amp;memory_query=&lt;query&gt;</code> with a root to show bounded local memory matches.</p>
         </article>
       </div>
     </section>
 
-    <section class="public-band">
+    <section class="dashboard-section">
       <div class="section-heading">
-        <p class="eyebrow">What ships free</p>
-        <h2>The local version is the full adoption path.</h2>
+        <p class="dashboard-kicker">Benchmark stats</p>
+        <h2>Context packets stay small in the checked-in token-saver proof.</h2>
       </div>
-      <div class="feature-grid">
-        <article class="feature-card">
-          <h3>Agent connection</h3>
-          <p>Run from source with Cargo or install the local `quotarelay-mcp` command for stdio MCP clients.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Bounded retrieval</h3>
-          <p>Exact, overview, task, and diff-aware modes return limited context with typed inclusion and omission reasons.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Memory and handoff</h3>
-          <p>Local decision and guardrail memory can travel with handoff packets, validation suggestions, and blockers.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Savings proof</h3>
-          <p>Local demos report raw bytes, packet bytes, approximate tokens, reduction ratio, cache state, and stale state.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Privacy boundary</h3>
-          <p>Repository contents, raw packets, local caches, and .quotarelay state stay on your machine unless you opt in later.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Release proof</h3>
-          <p>The repo ships local smoke scripts for MCP presets, demos, install checks, public-site checks, and release validation.</p>
+      <div class="benchmark-grid">
+        <article class="benchmark-card" v-for="metric in benchmark()" :key="metric.name">
+          <div>
+            <span>{{ metric.name }}</span>
+            <strong>{{ metric.reduction }}</strong>
+          </div>
+          <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes.</p>
+          <p>{{ metric.packetTokens }} approximate packet tokens.</p>
         </article>
       </div>
     </section>
 
-    <section class="public-band public-band--workflow">
+    <section class="dashboard-section dashboard-section--proof">
       <div class="section-heading">
-        <p class="eyebrow">First useful workflow</p>
-        <h2>Clone, prove, connect, then ask for context your agent can trust.</h2>
+        <p class="dashboard-kicker">Release proof</p>
+        <h2>The local product path is tested without provider calls or hosted state.</h2>
+      </div>
+      <div class="proof-stat-grid">
+        <article class="proof-card" v-for="item in proofStats()" :key="item.label">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+          <p>{{ item.detail }}</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="dashboard-section">
+      <div class="section-heading">
+        <p class="dashboard-kicker">Workflow</p>
+        <h2>Four steps from checkout to useful local context.</h2>
       </div>
       <div class="workflow-list">
         <article class="workflow-step" v-for="step in steps()" :key="step.title">
@@ -215,45 +278,13 @@
             <p><code>{{ step.command }}</code></p>
             <p>{{ step.detail }}</p>
           </div>
-          <span class="workflow-step__proof">{{ step.proof }}</span>
+          <span>{{ step.proof }}</span>
         </article>
       </div>
     </section>
 
-    <section class="public-band public-band--split">
-      <div>
-        <p class="eyebrow">Deferred planning</p>
-        <h2>Hosted coordination is sidelined until the local tool earns adoption.</h2>
-        <p class="public-copy">
-          Quotarelay is not holding core retrieval, memory, cache, validation, handoff, onboarding, or savings proof
-          behind a future service. Hosted or enterprise work stays in planning docs until real adoption proves
-          what coordination, support, or deployment help users actually need.
-        </p>
-      </div>
-      <ul class="team-list">
-        <li>No hosted login required for the local MVP</li>
-        <li>No provider keys or prompt forwarding</li>
-        <li>No service gate around local context reduction proof</li>
-        <li>No desktop or mobile detour before agent-tool adoption</li>
-      </ul>
-    </section>
-
-    <section class="public-band">
-      <div class="section-heading">
-        <p class="eyebrow">Platform surfaces</p>
-        <h2>One workspace, separate targets.</h2>
-      </div>
-      <div class="surface-grid">
-        <article class="surface-card" v-for="surface in surfaces()" :key="surface.id">
-          <div class="surface-card__header">
-            <span class="surface-status">{{ statusLabel(surface.status) }}</span>
-            <strong>{{ surface.target }}</strong>
-          </div>
-          <h3>{{ surface.title }}</h3>
-          <p>{{ surface.localPreview }}</p>
-          <p class="surface-boundary">{{ surface.deploymentBoundary }}</p>
-        </article>
-      </div>
+    <section class="dashboard-footer">
+      <p>No hosted login, provider gateway, telemetry, cloud sync, auth, billing, or exact provider billing-savings claim ships in this release.</p>
     </section>
   </main>
 </template>

@@ -26,6 +26,7 @@ Recently completed slices:
 | Release presentation | Shipped | Changelog, publication checklist, limitations, versioning, and security docs now mirror the polished proof path. |
 | README and repo traction polish | Shipped | README now leads with problem, value, proof metrics, quickstart, examples, and links detailed tool/GitHub About metadata docs. |
 | Public homepage product polish | Shipped | Homepage now mirrors current benchmark metrics, shows the first useful local workflow, and keeps public-site proof checks locked in smoke validation. |
+| One-page stats dashboard polish | Shipped | Public UI is now a single stats-first dashboard with benchmark proof, local usage panels, and a minimal control-plane redirect page. |
 
 ## Completed Slice
 
@@ -596,9 +597,60 @@ Proof:
 - `scripts\release-check.ps1` passed after the homepage polish.
 - In-app browser visual QA was attempted, but the local Browser connection failed in this Windows sandbox with a setup refresh error; the local preview server responded with HTTP 200 before it was stopped.
 
+## Completed Slice
+
+### T128: One-page Stats Dashboard Polish
+
+Status: done
+
+Goal: replace the chatter-heavy public/control-plane split with one cleaner stats-first dashboard that shows shipped proof, local usage state when configured, benchmark reductions, and a short workflow.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/pages/control-plane.tera`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, or repository settings.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+- Do not add paid-version, hosted, desktop, mobile, telemetry, provider-call, or deployment positioning.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `/` is a single stats-first dashboard, not a long marketing/planning page.
+- Visible AI/planning-style page chatter is removed from the product UI.
+- `/control-plane` no longer presents a second internal-agent dashboard as the main experience.
+- Public-site smoke checks the new dashboard stats copy.
+- Full release-check passes after the dashboard polish.
+
+Proof:
+
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and checks the stats-dashboard copy.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the one-page dashboard polish.
+- Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
+
 ## Active Slice
 
-No active slice. Public homepage product polish is complete.
+No active slice. One-page stats dashboard polish is complete.
 
 ## Polish Plan Extension
 
