@@ -56,14 +56,17 @@ if ($routeAssets.Count -eq 0) {
 
 $assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
 foreach ($needle in @(
-        "Local operator dashboard",
-        "System health",
-        "MCP tools",
+        "Local command center",
+        "Local context status",
+        "System",
+        "Light",
+        "Dark",
         "Backend offline",
         "Provider calls",
         "Usage",
-        "Recent runs",
         "Savings proof",
+        "MCP tools",
+        "Recent runs",
         "quotarelay-mcp",
         "94.36%",
         "No repository selected"
