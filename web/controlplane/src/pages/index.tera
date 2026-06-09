@@ -32,6 +32,13 @@
     { name: 'Handoff packet', mode: 'handoff_packet', reduction: '88.91%', rawBytes: '24,132', packetBytes: '2,676', packetTokens: '669' },
     { name: 'Diff aware', mode: 'diff_aware', reduction: '93.15%', rawBytes: '24,274', packetBytes: '1,663', packetTokens: '416' }
   ]
+  const fallbackToolGroups = [
+    { label: 'Context', count: 13 },
+    { label: 'Repository', count: 8 },
+    { label: 'Memory', count: 7 },
+    { label: 'Cache', count: 4 },
+    { label: 'Other', count: 3 }
+  ]
 
   function summaryValue(label, fallback) {
     return truthSummaryRef.value.find((item) => item.label === label)?.value ?? fallback
@@ -79,6 +86,57 @@
       { label: 'Cache', value: summaryValue('Cache', 'hit proven') },
       { label: 'MCP tools', value: backendToolsRef.value.length > 0 ? String(backendToolsRef.value.length) : '35' }
     ]
+  }
+
+  function healthStatusText() {
+    return `Backend: ${backendLabel()} | Repo: ${repositoryFetchStateRef.value} | Context: ${runFetchStateRef.value} | Memory: ${memoryFetchStateRef.value}`
+  }
+
+  function toolGroupFor(name) {
+    if (name.includes('context') || name.includes('handoff') || name.includes('onboarding') || name.includes('savings')) {
+      return 'Context'
+    }
+    if (name.includes('repo') || name.includes('workspace') || name.includes('policy')) {
+      return 'Repository'
+    }
+    if (name.includes('memory')) {
+      return 'Memory'
+    }
+    if (name.includes('cache')) {
+      return 'Cache'
+    }
+    return 'Other'
+  }
+
+  function toolUsageRows() {
+    if (backendToolsRef.value.length === 0) {
+      return fallbackToolGroups
+    }
+    const groups = new Map()
+    backendToolsRef.value.forEach((tool) => {
+      const group = toolGroupFor(String(tool?.name ?? '').toLowerCase())
+      groups.set(group, (groups.get(group) ?? 0) + 1)
+    })
+    return ['Context', 'Repository', 'Memory', 'Cache', 'Other']
+      .map((label) => ({ label, count: groups.get(label) ?? 0 }))
+      .filter((row) => row.count > 0)
+  }
+
+  function pieStyle() {
+    const colors = ['#2563eb', '#047857', '#7c3aed', '#b45309', '#64748b']
+    const rows = toolUsageRows()
+    const total = rows.reduce((sum, row) => sum + row.count, 0) || 1
+    let cursor = 0
+    const stops = rows.map((row, index) => {
+      const start = cursor
+      cursor += (row.count / total) * 100
+      return `${colors[index % colors.length]} ${start}% ${cursor}%`
+    })
+    return `background: conic-gradient(${stops.join(', ')})`
+  }
+
+  function providerSparklinePoints() {
+    return '0,34 18,34 36,34 54,34 72,34 90,34 108,34 126,34'
   }
 
   function activityRows() {
@@ -222,120 +280,134 @@
 
 <template>
   <main class="focus-shell">
-    <header class="topbar">
-      <div class="brand-lockup">
-        <p class="eyebrow">Local MCP dashboard</p>
-        <h1>Quotarelay</h1>
-      </div>
-      <div class="topbar-settings" aria-label="Dashboard settings">
-        <span :class="`status-pill status-pill--${statusModel().tone}`">{{ statusModel().label }}</span>
-        <div class="theme-toggle" aria-label="Theme mode">
-          <button
-            v-for="option in themeOptions()"
-            :key="option.value"
-            type="button"
-            :class="themeButtonClass(option.value)"
-            @click="setTheme(option.value)"
-          >
-            {{ option.label }}
-          </button>
-        </div>
-      </div>
-    </header>
-
-    <nav class="action-strip" aria-label="Primary actions">
-      <div>
-        <p class="eyebrow">Start here</p>
-        <strong>Prove the local workflow or inspect the source.</strong>
-      </div>
-      <div class="action-buttons">
-        <a class="action-button action-button--primary" href="https://github.com/quotarelay/quotarelay">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1.8 2.1 2.9 1.5.1-.7.4-1.2.7-1.5-2.6-.3-5.3-1.3-5.3-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.7.8 1.2 1.9 1.2 3.2 0 4.6-2.7 5.6-5.3 5.9.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A12 12 0 0 0 12 .5Z" />
-          </svg>
-          GitHub
-        </a>
-        <a class="action-button action-button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">
-          <svg viewBox="0 0 24 24" aria-hidden="true">
-            <path d="M8 5v14l11-7Z" />
-          </svg>
-          Quickstart
-        </a>
-      </div>
-    </nav>
-
-    <section class="focus-panel" aria-labelledby="local-context-status">
-      <div class="status-copy">
-        <p class="eyebrow">Local context status</p>
-        <h2 id="local-context-status">{{ statusModel().label }}</h2>
-        <p>{{ statusModel().error || statusModel().detail }}</p>
-        <div class="command-line" v-if="!backendOnline()">
-          <span>Start backend</span>
-          <code>{{ statusModel().command }}</code>
-        </div>
-      </div>
-      <aside class="insight-panel" aria-label="Local proof summary">
-        <dl class="signal-list">
-          <div v-for="signal in signalRows()" :key="signal.label">
-            <dt>{{ signal.label }}</dt>
-            <dd>{{ signal.value }}</dd>
-          </div>
-        </dl>
-        <div class="mini-chart" aria-label="Savings proof chart">
-          <article v-for="row in chartRows()" :key="row.label">
-            <span>{{ row.label }}</span>
-            <div><i :style="`width: ${row.width}`"></i></div>
-            <strong>{{ row.value }}</strong>
-          </article>
-        </div>
-      </aside>
-    </section>
-
-    <section class="workspace-panel" aria-labelledby="operator-snapshot">
-      <div class="workspace-heading">
+    <section class="unified-panel" aria-labelledby="local-context-status">
+      <header class="panel-header">
         <div>
-          <p class="eyebrow">Usage</p>
-          <h2 id="operator-snapshot">Operator snapshot</h2>
+          <p class="eyebrow">Local MCP dashboard</p>
+          <h1>Quotarelay</h1>
         </div>
-        <p>One glance at local health, selected repository state, recent runs, and memory matches.</p>
-      </div>
-      <div class="snapshot-table">
-        <article class="snapshot-row" v-for="row in activityRows()" :key="row.label">
-          <span :class="`state-dot state-dot--${row.tone}`"></span>
-          <span class="row-label">{{ row.label }}</span>
-          <div>
-            <strong>{{ row.value }}</strong>
-            <p>{{ row.detail }}</p>
+        <div class="panel-actions">
+          <a class="action-button action-button--primary" href="https://github.com/quotarelay/quotarelay">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1.8 2.1 2.9 1.5.1-.7.4-1.2.7-1.5-2.6-.3-5.3-1.3-5.3-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.7.8 1.2 1.9 1.2 3.2 0 4.6-2.7 5.6-5.3 5.9.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A12 12 0 0 0 12 .5Z" />
+            </svg>
+            GitHub
+          </a>
+          <a class="action-button action-button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5v14l11-7Z" />
+            </svg>
+            Quickstart
+          </a>
+          <div class="theme-toggle" aria-label="Theme mode">
+            <button
+              v-for="option in themeOptions()"
+              :key="option.value"
+              type="button"
+              :class="themeButtonClass(option.value)"
+              @click="setTheme(option.value)"
+            >
+              {{ option.label }}
+            </button>
           </div>
-          <span class="row-action">{{ row.action }}</span>
-        </article>
-      </div>
-    </section>
-
-    <section class="disclosure-stack" aria-label="Supporting details">
-      <details class="detail-drawer">
-        <summary>
-          <span>Savings proof</span>
-          <strong>{{ latestReduction() }} best benchmark reduction</strong>
-        </summary>
-        <div class="proof-table">
-          <article class="proof-row" v-for="metric in savingsRows()" :key="metric.mode">
-            <div>
-              <strong>{{ metric.name }}</strong>
-              <span>{{ metric.mode }}</span>
-            </div>
-            <span>{{ metric.reduction }}</span>
-            <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes; {{ metric.packetTokens }} approximate packet tokens.</p>
-          </article>
         </div>
-      </details>
+      </header>
 
-      <details class="detail-drawer">
+      <div class="status-bar" :class="`status-bar--${statusModel().tone}`">{{ healthStatusText() }}</div>
+
+      <div class="hero-grid">
+        <div class="health-summary">
+          <p class="eyebrow">System health</p>
+          <h2 id="local-context-status">{{ statusModel().label }}</h2>
+          <p>{{ statusModel().error || statusModel().detail }}</p>
+          <dl class="signal-list">
+            <div v-for="signal in signalRows()" :key="signal.label">
+              <dt>{{ signal.label }}</dt>
+              <dd>{{ signal.value }}</dd>
+            </div>
+          </dl>
+          <div class="command-line" v-if="!backendOnline()">
+            <span>Start backend</span>
+            <code>{{ statusModel().command }}</code>
+          </div>
+        </div>
+        <div class="visual-grid">
+          <section class="chart-block" aria-label="MCP tool usage distribution">
+            <div class="pie-chart" :style="pieStyle()"></div>
+            <div>
+              <h3>MCP tool usage</h3>
+              <ul class="chart-legend">
+                <li v-for="row in toolUsageRows()" :key="row.label">
+                  <span>{{ row.label }}</span><strong>{{ row.count }}</strong>
+                </li>
+              </ul>
+            </div>
+          </section>
+          <section class="chart-block chart-block--spark" aria-label="Provider calls over time">
+            <div>
+              <h3>Provider calls</h3>
+              <strong>0</strong>
+              <p>local only</p>
+            </div>
+            <svg viewBox="0 0 126 40" aria-hidden="true">
+              <polyline :points="providerSparklinePoints()" />
+            </svg>
+          </section>
+        </div>
+      </div>
+
+      <div class="disclosure-stack" aria-label="Supporting details">
+        <details class="detail-drawer">
+          <summary>
+            <span>Recent runs</span>
+            <strong>{{ runFetchStateRef.value }}</strong>
+          </summary>
+          <div class="snapshot-table">
+            <article class="snapshot-row" v-for="row in activityRows()" :key="row.label">
+              <span :class="`state-dot state-dot--${row.tone}`"></span>
+              <span class="row-label">{{ row.label }}</span>
+              <div>
+                <strong>{{ row.value }}</strong>
+                <p>{{ row.detail }}</p>
+              </div>
+              <span class="row-action">{{ row.action }}</span>
+            </article>
+          </div>
+        </details>
+        <details class="detail-drawer">
         <summary>
-          <span>Boundaries and setup</span>
+          <span>Memory matches</span>
+          <strong>{{ memoryFetchStateRef.value }}</strong>
+        </summary>
+          <div class="support-list">
+            <article>
+              <span>Memory</span>
+              <strong>{{ memoryStateRef.value.notes.length }} notes</strong>
+            </article>
+          </div>
+        </details>
+        <details class="detail-drawer">
+          <summary>
+            <span>Cache</span>
+            <strong>{{ summaryValue('Cache', 'hit proven') }}</strong>
+          </summary>
+          <div class="proof-table">
+            <article class="proof-row" v-for="metric in savingsRows()" :key="metric.mode">
+              <div>
+                <strong>{{ metric.name }}</strong>
+                <span>{{ metric.mode }}</span>
+              </div>
+              <span>{{ metric.reduction }}</span>
+              <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes.</p>
+            </article>
+          </div>
+        </details>
+        <details class="detail-drawer">
+        <summary>
+          <span>Boundaries</span>
           <strong>Provider calls: none</strong>
         </summary>
-        <div class="support-grid">
+          <div class="support-grid">
           <div class="support-list">
             <article v-for="row in boundaryRows()" :key="row.label">
               <span>{{ row.label }}</span>
@@ -350,6 +422,7 @@
           </div>
         </div>
       </details>
+      </div>
     </section>
   </main>
 </template>

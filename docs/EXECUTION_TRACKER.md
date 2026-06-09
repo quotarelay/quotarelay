@@ -31,6 +31,7 @@ Recently completed slices:
 | Modern command center theme redesign | Shipped | Root UI now uses a command-center layout, semantic light/dark/system theme tokens, a persisted theme toggle, a four-metric rail, and calmer table/list detail sections. |
 | Focused workspace simplification | Shipped | Root UI now reduces first-load density to one local status panel, one operator snapshot table, and collapsed proof/setup disclosures while keeping light/dark/system themes. |
 | Dashboard action and proof chart polish | Shipped | GitHub and Quickstart now sit in a prominent action strip with icons, separate from backend/theme settings, and the local status panel includes a compact savings proof chart. |
+| Unified health panel dashboard | Shipped | Root UI now uses one unified panel with a compact Backend/Repo/Context/Memory status bar, MCP tool usage pie chart, provider-call sparkline, and collapsed secondary sections. |
 
 ## Completed Slice
 
@@ -855,9 +856,59 @@ Proof:
 - `scripts\release-check.ps1` passed after the action/chart polish.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
 
+## Completed Slice
+
+### T133: Unified Health Panel Dashboard
+
+Status: done
+
+Goal: replace the remaining multi-section dashboard feel with a single unified panel that communicates health at a glance through one compact status bar, a tool usage pie chart, a provider-call sparkline, and collapsed secondary sections.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, repository settings, or product scope.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- Root UI is one unified dashboard panel rather than separate card clusters.
+- Compact status bar reads `Backend: ... | Repo: ... | Context: ... | Memory: ...`.
+- MCP tool distribution is visualized as a pie chart using live `/truth` tool names with release-proof fallback groups.
+- Provider calls are visualized as a zero-call sparkline consistent with the local-only product boundary.
+- Recent runs, memory matches, cache, and boundaries are collapsed by default.
+- Full release-check passes after the unified health panel redesign.
+
+Proof:
+
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and checks compact status tokens plus chart labels.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the unified health panel redesign.
+- Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
+
 ## Active Slice
 
-No active slice. Dashboard action and proof chart polish is complete.
+No active slice. Unified health panel dashboard is complete.
 
 ## Polish Plan Extension
 
