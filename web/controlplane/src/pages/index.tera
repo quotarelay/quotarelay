@@ -29,12 +29,78 @@
 <script>
   import { deploymentSurfaces, surfaceStatusLabel } from '../deploymentSurfaces'
 
+  const localProofMetrics = [
+    {
+      name: 'exact_search',
+      reduction: '94.36%',
+      rawBytes: '24,132',
+      packetBytes: '1,361',
+      packetTokens: '341'
+    },
+    {
+      name: 'overview',
+      reduction: '94.05%',
+      rawBytes: '24,132',
+      packetBytes: '1,435',
+      packetTokens: '359'
+    },
+    {
+      name: 'handoff_packet',
+      reduction: '88.91%',
+      rawBytes: '24,132',
+      packetBytes: '2,676',
+      packetTokens: '669'
+    },
+    {
+      name: 'diff_aware',
+      reduction: '93.15%',
+      rawBytes: '24,274',
+      packetBytes: '1,663',
+      packetTokens: '416'
+    }
+  ]
+
+  const workflowSteps = [
+    {
+      title: 'Prove the repo locally',
+      command: 'scripts\\demo-local.ps1',
+      detail: 'Runs a tiny local repo through sync, memory, exact search, cache, handoff, and backend truth.',
+      proof: 'provider_calls: none'
+    },
+    {
+      title: 'Connect an MCP client',
+      command: 'quotarelay-mcp',
+      detail: 'Use the installed stdio command after the install smoke passes, or run from source during development.',
+      proof: 'verified presets'
+    },
+    {
+      title: 'Register and sync work',
+      command: '--cli register / --cli sync',
+      detail: 'Create a bounded local index under .quotarelay for the repository you want the agent to understand.',
+      proof: 'local state only'
+    },
+    {
+      title: 'Ask for bounded context',
+      command: '--cli assemble exact_search',
+      detail: 'Return relevant snippets, memory notes, omissions, cache status, stale state, and local budget estimates.',
+      proof: 'typed reasons'
+    }
+  ]
+
   function surfaces() {
     return deploymentSurfaces
   }
 
+  function proofMetrics() {
+    return localProofMetrics
+  }
+
   function statusLabel(status) {
     return surfaceStatusLabel(status)
+  }
+
+  function steps() {
+    return workflowSteps
   }
 </script>
 
@@ -61,7 +127,7 @@
         </div>
         <div class="signal-row">
           <span>Raw bytes considered</span>
-          <strong>24,106</strong>
+          <strong>24,132</strong>
         </div>
         <div class="signal-row">
           <span>Packet bytes</span>
@@ -69,12 +135,38 @@
         </div>
         <div class="signal-row">
           <span>Local reduction</span>
-          <strong>94.35%</strong>
+          <strong>94.36%</strong>
         </div>
         <div class="signal-row signal-row--accent">
           <span>Repeat retrieval</span>
           <strong>cache hit</strong>
         </div>
+      </div>
+    </section>
+
+    <section class="public-band public-band--proof">
+      <div class="section-heading">
+        <p class="eyebrow">Proof, not vibes</p>
+        <h2>Current benchmark packets are small, bounded, and locally explainable.</h2>
+      </div>
+      <p class="proof-note">
+        These figures come from the checked-in token-saver benchmark. They compare raw local fixture bytes with
+        Quotarelay context packets and approximate token estimates; they are not provider tokenizer output or billing claims.
+      </p>
+      <div class="metric-grid">
+        <article class="metric-card" v-for="metric in proofMetrics()" :key="metric.name">
+          <h3>{{ metric.name }}</h3>
+          <span class="metric-card__value">{{ metric.reduction }}</span>
+          <p>local reduction from raw fixture bytes to the bounded context packet.</p>
+          <div class="metric-card__row">
+            <span>{{ metric.rawBytes }} raw bytes</span>
+            <strong>{{ metric.packetBytes }} packet bytes</strong>
+          </div>
+          <div class="metric-card__row">
+            <span>approx packet tokens</span>
+            <strong>{{ metric.packetTokens }}</strong>
+          </div>
+        </article>
       </div>
     </section>
 
@@ -107,6 +199,23 @@
         <article class="feature-card">
           <h3>Release proof</h3>
           <p>The repo ships local smoke scripts for MCP presets, demos, install checks, public-site checks, and release validation.</p>
+        </article>
+      </div>
+    </section>
+
+    <section class="public-band public-band--workflow">
+      <div class="section-heading">
+        <p class="eyebrow">First useful workflow</p>
+        <h2>Clone, prove, connect, then ask for context your agent can trust.</h2>
+      </div>
+      <div class="workflow-list">
+        <article class="workflow-step" v-for="step in steps()" :key="step.title">
+          <div>
+            <strong>{{ step.title }}</strong>
+            <p><code>{{ step.command }}</code></p>
+            <p>{{ step.detail }}</p>
+          </div>
+          <span class="workflow-step__proof">{{ step.proof }}</span>
         </article>
       </div>
     </section>

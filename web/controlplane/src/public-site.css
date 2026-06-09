@@ -1,0 +1,287 @@
+.public-site {
+  color: #17211d;
+  background: #f5f7f8;
+}
+
+.public-hero,
+.public-band {
+  border: 1px solid rgba(23, 33, 29, 0.12);
+  background: #ffffff;
+}
+
+.public-hero {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(280px, 0.9fr);
+  gap: 28px;
+  align-items: center;
+  min-height: 72vh;
+  padding: 36px;
+}
+
+.public-hero__copy h1 {
+  margin: 14px 0 0;
+  color: #14211c;
+  font-size: 4.2rem;
+  line-height: 0.98;
+}
+
+.public-lede,
+.public-copy {
+  color: #4f5d55;
+  font-size: 1.05rem;
+  line-height: 1.75;
+}
+
+.public-lede {
+  max-width: 46rem;
+  margin: 18px 0 0;
+}
+
+.public-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 26px;
+}
+
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border: 1px solid transparent;
+  padding: 0 18px;
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.button--primary {
+  background: #17211d;
+  color: #f7f8f3;
+}
+
+.button--secondary {
+  border-color: rgba(23, 33, 29, 0.22);
+  color: #17211d;
+  background: #ffffff;
+}
+
+.signal-board {
+  border: 1px solid rgba(23, 33, 29, 0.16);
+  background: #17211d;
+  color: #f7f8f3;
+  padding: 22px;
+  box-shadow: 0 22px 44px rgba(23, 33, 29, 0.18);
+}
+
+.signal-board__header,
+.signal-row,
+.metric-card__row,
+.workflow-step {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.signal-board__header {
+  padding-bottom: 18px;
+  border-bottom: 1px solid rgba(247, 248, 243, 0.16);
+  color: #bff26b;
+}
+
+.signal-row {
+  padding: 15px 0;
+  border-bottom: 1px solid rgba(247, 248, 243, 0.1);
+}
+
+.signal-row span {
+  color: rgba(247, 248, 243, 0.72);
+}
+
+.signal-row--accent strong {
+  color: #7ee0c3;
+}
+
+.public-band {
+  margin-top: 18px;
+  padding: 30px;
+}
+
+.public-band--proof {
+  background: #eef7f5;
+}
+
+.public-band--workflow {
+  background: #f7f4ea;
+}
+
+.section-heading {
+  max-width: 48rem;
+}
+
+.section-heading h2,
+.public-band h2 {
+  margin: 10px 0 0;
+  color: #17211d;
+  font-size: 2rem;
+  line-height: 1.12;
+}
+
+.proof-note {
+  max-width: 54rem;
+  margin: 14px 0 0;
+  color: #536159;
+  line-height: 1.7;
+}
+
+.feature-grid,
+.metric-grid,
+.surface-grid {
+  display: grid;
+  gap: 14px;
+  margin-top: 24px;
+}
+
+.feature-grid {
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+}
+
+.metric-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+.surface-grid {
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+}
+
+.feature-card,
+.metric-card,
+.surface-card {
+  border: 1px solid rgba(23, 33, 29, 0.12);
+  background: #ffffff;
+  padding: 18px;
+}
+
+.feature-card h3,
+.metric-card h3,
+.surface-card h3 {
+  margin: 0 0 8px;
+  color: #17211d;
+}
+
+.feature-card p,
+.team-list,
+.metric-card p,
+.surface-card p {
+  margin: 0;
+  color: #536159;
+  line-height: 1.65;
+}
+
+.metric-card__value {
+  display: block;
+  margin: 14px 0 10px;
+  color: #0a7d63;
+  font-size: 2.1rem;
+  font-weight: 800;
+}
+
+.metric-card__row {
+  border-top: 1px solid rgba(23, 33, 29, 0.1);
+  padding-top: 10px;
+  color: #536159;
+  font-size: 0.9rem;
+}
+
+.workflow-list {
+  display: grid;
+  gap: 12px;
+  margin-top: 24px;
+}
+
+.workflow-step {
+  align-items: start;
+  border: 1px solid rgba(23, 33, 29, 0.12);
+  background: #ffffff;
+  padding: 16px;
+}
+
+.workflow-step strong {
+  display: block;
+  color: #17211d;
+}
+
+.workflow-step p {
+  margin: 5px 0 0;
+  color: #536159;
+  line-height: 1.55;
+}
+
+.workflow-step code {
+  color: #284e78;
+  font-family: "IBM Plex Mono", "Cascadia Code", monospace;
+  overflow-wrap: anywhere;
+}
+
+.workflow-step__proof {
+  min-width: 150px;
+  color: #0a7d63;
+  font-weight: 700;
+  text-align: right;
+}
+
+.public-band--split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 0.8fr);
+  gap: 28px;
+}
+
+.team-list {
+  display: grid;
+  gap: 12px;
+  padding-left: 20px;
+}
+
+.surface-card__header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  color: #536159;
+  font-size: 0.86rem;
+}
+
+.surface-status {
+  color: #0a7d63;
+  font-weight: 700;
+}
+
+.surface-card h3 {
+  margin-top: 14px;
+}
+
+.surface-card .surface-boundary {
+  margin-top: 12px;
+  color: #6c4f2a;
+}
+
+@media (max-width: 720px) {
+  .public-hero,
+  .public-band--split,
+  .workflow-step {
+    grid-template-columns: 1fr;
+  }
+
+  .public-hero {
+    min-height: auto;
+    padding: 24px;
+  }
+
+  .public-hero__copy h1 {
+    font-size: 3rem;
+  }
+
+  .workflow-step__proof {
+    min-width: 0;
+    text-align: left;
+  }
+}

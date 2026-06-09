@@ -25,6 +25,7 @@ Recently completed slices:
 | Example quality | Shipped | The local demo now shows sync, memory, exact search cache hit, handoff, truth count, and no provider calls. |
 | Release presentation | Shipped | Changelog, publication checklist, limitations, versioning, and security docs now mirror the polished proof path. |
 | README and repo traction polish | Shipped | README now leads with problem, value, proof metrics, quickstart, examples, and links detailed tool/GitHub About metadata docs. |
+| Public homepage product polish | Shipped | Homepage now mirrors current benchmark metrics, shows the first useful local workflow, and keeps public-site proof checks locked in smoke validation. |
 
 ## Completed Slice
 
@@ -545,9 +546,59 @@ Proof:
 - `git diff --check` passed with line-ending warnings only.
 - `scripts\release-check.ps1` passed after the README and repo traction polish.
 
+## Completed Slice
+
+### T127: Public Homepage Product Polish
+
+Status: done
+
+Goal: make the public homepage feel more concrete and adoption-ready by aligning visible proof metrics with the current benchmark and showing a first useful local workflow without widening shipped scope.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/styles.css`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, or repository settings.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+- Do not add paid-version, hosted, desktop, mobile, telemetry, provider-call, or deployment positioning.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- Homepage proof metrics match the current token-saver benchmark snapshot.
+- First useful local workflow is visible without implying hosted, paid, provider, or deployment behavior.
+- Public homepage CSS stays under the line-count guardrail after splitting public-site styles.
+- Full release-check passes after the homepage polish.
+
+Proof:
+
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and now checks the proof/workflow copy.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the homepage polish.
+- In-app browser visual QA was attempted, but the local Browser connection failed in this Windows sandbox with a setup refresh error; the local preview server responded with HTTP 200 before it was stopped.
+
 ## Active Slice
 
-No active slice. README and repo traction polish is complete.
+No active slice. Public homepage product polish is complete.
 
 ## Polish Plan Extension
 

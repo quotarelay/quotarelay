@@ -58,6 +58,10 @@ $assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -j
 foreach ($needle in @(
         "Apache-2.0 local MCP tool",
         "quotarelay-mcp",
+        "Proof, not vibes",
+        "94.36%",
+        "provider_calls: none",
+        "First useful workflow",
         "The local version is the full adoption path",
         "No service gate around local context reduction proof"
     )) {
