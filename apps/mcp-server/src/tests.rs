@@ -1,6 +1,7 @@
 mod cache;
 mod cache_capsules;
 mod cli;
+mod cli_usage;
 mod common;
 mod context;
 mod context_clarification;

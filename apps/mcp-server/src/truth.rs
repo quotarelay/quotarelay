@@ -154,6 +154,10 @@ fn cli_truth() -> CliTruth {
                 command: "cargo run -p mcp-server -- --cli truth",
             },
             CliCommandTruth {
+                label: "Console usage",
+                command: "cargo run -p mcp-server -- --cli usage [repo-root] [memory-query]",
+            },
+            CliCommandTruth {
                 label: "Register repository",
                 command: "cargo run -p mcp-server -- --cli register <state-root> <repo-root>",
             },

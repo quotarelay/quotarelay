@@ -12,6 +12,7 @@ use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
 
 use crate::backend_truth_payload;
+use crate::cli_usage::run_cli_usage;
 
 pub fn run_cli<I, S, W>(args: I, mut stdout: W) -> io::Result<()>
 where
@@ -44,6 +45,7 @@ where
         "handoff" => run_cli_handoff(&mut args_iter),
         "handoff-template" => run_cli_handoff_template(&mut args_iter),
         "truth" => Ok(json!({"truth": backend_truth_payload()})),
+        "usage" => run_cli_usage(&mut args_iter),
         _ => {
             return write_cli_error(
                 &mut stdout,

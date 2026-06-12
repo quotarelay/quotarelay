@@ -35,6 +35,8 @@ Recently completed slices:
 | Minimal operator console refinement | Shipped | The dashboard now treats the pie chart as the primary visual, removes inner boxed chart/detail treatments, and shortens health copy inside a single console surface. |
 | Mobile-first SVG operator console | Shipped | The dashboard now uses mobile-first flow, an inline SVG MCP usage pie chart, a provider-call sparkline, and collapsed single-line secondary headers without expanded helper text. |
 | Smarter local dashboard startup | Shipped | The control-plane dev command now starts the loopback HTTP backend when needed before launching the dashboard. |
+| Product-grade dashboard run modes | Shipped | The normal dashboard command now builds and serves production assets, with separate headless and UI-dev modes. |
+| Console usage snapshot | Shipped | The CLI now exposes a compact dashboard-style `usage` snapshot with status, tool usage, provider calls, and local counts. |
 
 ## Completed Slice
 
@@ -1007,6 +1009,116 @@ Proof:
 
 ## Completed Slice
 
+### T138: Console Usage Snapshot
+
+Status: done
+
+Goal: give command-line users a compact operator snapshot similar to the dashboard, not just a help menu.
+
+Allowed files:
+
+- `apps/mcp-server/src/cli.rs`
+- `apps/mcp-server/src/cli_usage.rs`
+- `apps/mcp-server/src/lib.rs`
+- `apps/mcp-server/src/truth.rs`
+- `apps/mcp-server/src/tests.rs`
+- `apps/mcp-server/src/tests/cli_usage.rs`
+- `README.md`
+- `docs/CONTROL_PLANE_LOCAL.md`
+- `scripts/local-package.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not add provider telemetry, remote analytics, hosted state, auth, billing, cloud sync, or non-loopback HTTP behavior.
+- Do not turn the CLI output into an unstructured terminal UI that breaks scripts.
+
+Validation:
+
+```powershell
+cargo fmt --all --check
+cargo test -p mcp-server local_cli_usage_returns_console_snapshot
+cargo test -p mcp-server
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `--cli usage` returns status, MCP tool usage distribution, provider-call state/sparkline, system health, usage counts, and collapsed section summaries.
+- `--cli usage [repo-root] [memory-query]` can include local run and memory counts when local state is present.
+- Backend truth lists the console usage command.
+- README and local control-plane docs expose the console snapshot path.
+- Full release-check passes after the console usage snapshot.
+
+Proof:
+
+- `cargo fmt --all --check` passed.
+- `cargo test -p mcp-server local_cli_usage_returns_console_snapshot` passed.
+- `cargo test -p mcp-server` passed with 59 tests.
+- `cargo run -p mcp-server -- --cli usage` returned status, tool usage, provider-call sparkline, system health, collapsed rows, and usage counts.
+- `scripts\check-line-counts.ps1` passed with 98 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the console usage snapshot.
+
+## Completed Slice
+
+### T137: Product-Grade Dashboard Run Modes
+
+Status: done
+
+Goal: make the dashboard easy to run as a built local product, keep headless backend operation explicit, and reserve the dev server for UI customization work.
+
+Allowed files:
+
+- `web/controlplane/dev-with-backend.mjs`
+- `web/controlplane/package.json`
+- `docs/CONTROL_PLANE_LOCAL.md`
+- `docs/PLATFORM_SURFACES.md`
+- `scripts/local-package.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not add browser-started local processes.
+- Do not expose HTTP endpoints outside loopback.
+- Do not add hosted state, telemetry, auth, provider calls, deployment automation, plugin customization, or background services.
+
+Validation:
+
+```powershell
+node --check web\controlplane\dev-with-backend.mjs
+npm --prefix web/controlplane run start -- --help
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `npm --prefix web/controlplane run start` builds the dashboard and serves the production assets through local preview.
+- `npm --prefix web/controlplane run headless` starts the loopback HTTP backend without UI.
+- `npm --prefix web/controlplane run dev` remains available for UI contributors.
+- Local control-plane docs describe the normal, headless, dev, and source-customization paths.
+- Full release-check passes after the run-mode polish.
+
+Proof:
+
+- `node --check web\controlplane\dev-with-backend.mjs` passed.
+- `npm --prefix web/controlplane run start -- --help` passed and documents `--headless` plus `--dev`.
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed.
+- `scripts\check-line-counts.ps1` passed with 98 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the product-grade dashboard run modes.
+
+## Completed Slice
+
 ### T136: Smarter Local Dashboard Startup
 
 Status: done
@@ -1057,7 +1169,7 @@ Proof:
 
 ## Active Slice
 
-No active slice. Smarter local dashboard startup is complete.
+No active slice. Console usage snapshot and product-grade dashboard run modes are complete.
 
 ## Polish Plan Extension
 

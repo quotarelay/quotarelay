@@ -11,6 +11,12 @@ const frontendHost = "127.0.0.1";
 const frontendPort = 4174;
 const backendAddr = `${backendHost}:${backendPort}`;
 const truthUrl = `http://${backendAddr}/truth`;
+const args = process.argv.slice(2);
+const mode = args.includes("--headless")
+  ? "headless"
+  : args.includes("--dev")
+    ? "dev"
+    : "serve";
 const backendBin = join(
   repoRoot,
   "target",
@@ -80,6 +86,15 @@ async function buildBackend() {
   }
 }
 
+async function buildFrontend() {
+  if (!existsSync(viteBin)) {
+    throw new Error("Vite is not installed. Run npm --prefix web/controlplane ci.");
+  }
+
+  console.log("Building dashboard");
+  await runCommand(viteBin, ["build"], controlPlaneRoot);
+}
+
 function startBackend() {
   backendProcess = spawn(backendBin, ["--http", backendAddr], {
     cwd: repoRoot,
@@ -107,7 +122,11 @@ function startFrontend() {
     return;
   }
 
-  frontendProcess = spawn(viteBin, ["--host", frontendHost, "--port", `${frontendPort}`], {
+  const viteArgs =
+    mode === "dev"
+      ? ["--host", frontendHost, "--port", `${frontendPort}`]
+      : ["preview", "--host", frontendHost, "--port", `${frontendPort}`];
+  frontendProcess = spawn(viteBin, viteArgs, {
     cwd: controlPlaneRoot,
     env: process.env,
     stdio: "inherit",
@@ -145,6 +164,18 @@ process.on("SIGINT", () => stopChildren(0));
 process.on("SIGTERM", () => stopChildren(0));
 
 async function main() {
+  if (args.includes("--help")) {
+    console.log("Usage: node dev-with-backend.mjs [--headless|--dev]");
+    console.log("Default: build and serve the dashboard from production assets.");
+    console.log("--headless: start only the loopback HTTP backend.");
+    console.log("--dev: start backend plus the frontend dev server.");
+    return;
+  }
+
+  if (mode === "serve") {
+    await buildFrontend();
+  }
+
   if (await canReadTruth()) {
     console.log(`Backend already available at ${truthUrl}`);
   } else {
@@ -155,6 +186,11 @@ async function main() {
       console.error("Backend did not become ready within 120 seconds.");
       stopChildren(1);
     }
+  }
+
+  if (mode === "headless") {
+    console.log(`Headless backend ready at ${truthUrl}`);
+    return;
   }
 
   console.log(`Starting dashboard at http://${frontendHost}:${frontendPort}/`);

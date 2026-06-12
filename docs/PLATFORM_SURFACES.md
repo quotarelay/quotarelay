@@ -6,7 +6,7 @@ This document separates Quotarelay surfaces so public site, local MCP tooling, h
 
 | Surface | Status | Local preview | Boundary |
 |---|---|---|---|
-| Public site | Available | `npm --prefix web/controlplane run dev`, then `/` | Static Terajs DOM site; no backend state required. |
+| Public site | Available | `npm --prefix web/controlplane run start`, then `/` | Static Terajs DOM site served from built assets; backend state remains local. |
 | Local control plane | Available | `/control-plane?root=<repo_root>&memory_query=<query>` | Reads local loopback backend truth; do not expose the backend publicly. |
 | Local MCP engine | Available | `cargo run -p mcp-server -- --cli truth` or installed `quotarelay-mcp --cli truth` | Agent-facing stdio MCP tool; no native desktop/mobile app or hosted tenancy. |
 

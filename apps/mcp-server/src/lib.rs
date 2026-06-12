@@ -2,6 +2,7 @@ use std::io;
 
 mod args;
 mod cli;
+mod cli_usage;
 mod extra_tools;
 mod feedback_args;
 mod http;

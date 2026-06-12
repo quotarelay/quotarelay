@@ -52,6 +52,7 @@ From a fresh checkout:
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 cargo run -p mcp-server -- --cli truth
+cargo run -p mcp-server -- --cli usage
 ```
 
 Expected proof signals:
@@ -61,6 +62,7 @@ Expected proof signals:
 - `handoff_template: "feature_slice"`
 - `truth_tool_count: 35`
 - `provider_calls: "none"`
+- `usage` returns a compact console snapshot with status, MCP tool usage, provider calls, and collapsed usage sections
 
 Prove the installed local MCP command and checked-in client presets:
 
@@ -75,6 +77,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
 ```powershell
 cargo run -p mcp-server -- --cli register <state_root> <repo_root>
 cargo run -p mcp-server -- --cli sync <repo_root>
+cargo run -p mcp-server -- --cli usage <repo_root> <memory_query>
 cargo run -p mcp-server -- --cli search <repo_root> <query> 5
 cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
 cargo run -p mcp-server -- --cli handoff-template <repo_root> "Continue the feature" feature_slice exact_search <query> 3
