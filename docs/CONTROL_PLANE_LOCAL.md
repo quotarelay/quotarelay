@@ -2,6 +2,16 @@
 
 The control plane is a local frontend for the shipped backend truth surface. It renders backend truth and tool-backed results only; it does not invent health, readiness, savings, auth, or provider state.
 
+## One-Command Local Preview
+
+Run the dashboard dev loop from the repository root:
+
+```powershell
+npm --prefix web/controlplane run dev
+```
+
+This command checks `127.0.0.1:3030/truth`, starts the loopback backend if it is not already running, then starts the dashboard at `127.0.0.1:4174`. Stopping the command also stops the backend it started.
+
 ## Backend HTTP Truth Surface
 
 Run the backend HTTP server from the repository root:
@@ -33,10 +43,10 @@ Build the control plane:
 npm --prefix web/controlplane run build
 ```
 
-Run the local dev server:
+Run only the local dev server when the backend is already managed separately:
 
 ```powershell
-npm --prefix web/controlplane run dev
+npm --prefix web/controlplane run dev:frontend
 ```
 
 The dev server binds to `127.0.0.1:4174` and proxies the shipped backend JSON routes to `127.0.0.1:3030` for local preview only.

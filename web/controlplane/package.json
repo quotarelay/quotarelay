@@ -5,7 +5,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node dev-with-backend.mjs",
+    "dev:frontend": "vite",
     "build": "vite build",
     "test": "vitest run",
     "preview": "vite preview"

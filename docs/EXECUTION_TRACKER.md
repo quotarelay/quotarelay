@@ -34,6 +34,7 @@ Recently completed slices:
 | Unified health panel dashboard | Shipped | Root UI now uses one unified panel with a compact Backend/Repo/Context/Memory status bar, MCP tool usage pie chart, provider-call sparkline, and collapsed secondary sections. |
 | Minimal operator console refinement | Shipped | The dashboard now treats the pie chart as the primary visual, removes inner boxed chart/detail treatments, and shortens health copy inside a single console surface. |
 | Mobile-first SVG operator console | Shipped | The dashboard now uses mobile-first flow, an inline SVG MCP usage pie chart, a provider-call sparkline, and collapsed single-line secondary headers without expanded helper text. |
+| Smarter local dashboard startup | Shipped | The control-plane dev command now starts the loopback HTTP backend when needed before launching the dashboard. |
 
 ## Completed Slice
 
@@ -1004,9 +1005,59 @@ Proof:
 - `scripts\release-check.ps1` passed after the mobile-first SVG console redesign.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with a permission error.
 
+## Completed Slice
+
+### T136: Smarter Local Dashboard Startup
+
+Status: done
+
+Goal: make the local dashboard dev command start the loopback HTTP backend when it is missing, while keeping the browser read-only and preserving local-only boundaries.
+
+Allowed files:
+
+- `web/controlplane/dev-with-backend.mjs`
+- `web/controlplane/package.json`
+- `docs/CONTROL_PLANE_LOCAL.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not let the browser start local processes.
+- Do not expose HTTP endpoints outside loopback.
+- Do not add hosted state, telemetry, auth, provider calls, deployment automation, or background services.
+
+Validation:
+
+```powershell
+node --check web\controlplane\dev-with-backend.mjs
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `npm --prefix web/controlplane run dev` checks `/truth`, starts `mcp-server --http 127.0.0.1:3030` if needed, then starts Vite on loopback.
+- `npm --prefix web/controlplane run dev:frontend` remains available for frontend-only preview.
+- Local control-plane docs explain the one-command preview path and the separate backend/frontend options.
+- Full release-check passes after the dev-startup polish.
+
+Proof:
+
+- `node --check web\controlplane\dev-with-backend.mjs` passed.
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed.
+- `scripts\check-line-counts.ps1` passed with 96 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the smarter local dashboard startup change.
+
 ## Active Slice
 
-No active slice. Mobile-first SVG operator console is complete.
+No active slice. Smarter local dashboard startup is complete.
 
 ## Polish Plan Extension
 
