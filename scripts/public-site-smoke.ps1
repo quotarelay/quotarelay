@@ -62,10 +62,10 @@ foreach ($needle in @(
         "Context:",
         "Memory:",
         "MCP tool usage",
+        "MCP tool usage pie chart",
         "Provider calls",
         "Recent runs",
         "Memory matches",
-        "System health",
         "System",
         "Light",
         "Dark",
@@ -73,10 +73,6 @@ foreach ($needle in @(
         "Provider calls",
         "Cache",
         "Repository",
-        "MCP tools",
-        "quotarelay-mcp",
-        "94.36%",
-        "No repository selected",
         "Boundaries"
     )) {
     if (-not $assetText.Contains($needle)) {

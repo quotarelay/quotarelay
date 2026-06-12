@@ -26,12 +26,6 @@
   const runHistoryRef = ref([])
   const runFetchStateRef = ref('Not configured')
 
-  const benchmarkMetrics = [
-    { name: 'Exact search', mode: 'exact_search', reduction: '94.36%', rawBytes: '24,132', packetBytes: '1,361', packetTokens: '341' },
-    { name: 'Overview', mode: 'overview', reduction: '94.05%', rawBytes: '24,132', packetBytes: '1,435', packetTokens: '359' },
-    { name: 'Handoff packet', mode: 'handoff_packet', reduction: '88.91%', rawBytes: '24,132', packetBytes: '2,676', packetTokens: '669' },
-    { name: 'Diff aware', mode: 'diff_aware', reduction: '93.15%', rawBytes: '24,274', packetBytes: '1,663', packetTokens: '416' }
-  ]
   const fallbackToolGroups = [
     { label: 'Context', count: 13 },
     { label: 'Repository', count: 8 },
@@ -62,30 +56,13 @@
     return backendOnline() ? 'Backend online' : 'Backend offline'
   }
 
-  function latestReduction() {
-    const ratio = runHistoryRef.value[0]?.budget?.estimated_reduction_ratio
-    return typeof ratio === 'number' ? `${Math.round(ratio * 100)}%` : '94.36%'
-  }
-
   function statusModel() {
     return {
       tone: backendTone(),
       label: backendLabel(),
-      detail: backendOnline()
-        ? 'Local truth connected.'
-        : 'Local HTTP offline.',
       error: fetchErrorRef.value,
       command: 'cargo run -p mcp-server -- --http 127.0.0.1:3030'
     }
-  }
-
-  function signalRows() {
-    return [
-      { label: 'Provider calls', value: 'none' },
-      { label: 'Best reduction', value: latestReduction() },
-      { label: 'Cache', value: summaryValue('Cache', 'hit proven') },
-      { label: 'MCP tools', value: backendToolsRef.value.length > 0 ? String(backendToolsRef.value.length) : '35' }
-    ]
   }
 
   function healthStatusText() {
@@ -122,86 +99,26 @@
       .filter((row) => row.count > 0)
   }
 
-  function pieStyle() {
+  function pieSegments() {
     const colors = ['#2563eb', '#047857', '#7c3aed', '#b45309', '#64748b']
     const rows = toolUsageRows()
     const total = rows.reduce((sum, row) => sum + row.count, 0) || 1
     let cursor = 0
-    const stops = rows.map((row, index) => {
-      const start = cursor
-      cursor += (row.count / total) * 100
-      return `${colors[index % colors.length]} ${start}% ${cursor}%`
+    return rows.map((row, index) => {
+      const percent = (row.count / total) * 100
+      const segment = {
+        ...row,
+        color: colors[index % colors.length],
+        dashArray: `${percent} ${100 - percent}`,
+        dashOffset: String(-cursor)
+      }
+      cursor += percent
+      return segment
     })
-    return `background: conic-gradient(${stops.join(', ')})`
   }
 
   function providerSparklinePoints() {
     return '0,34 18,34 36,34 54,34 72,34 90,34 108,34 126,34'
-  }
-
-  function activityRows() {
-    const repo = repositoryStateRef.value[0]
-    const run = runHistoryRef.value[0]
-    const note = memoryStateRef.value.notes[0]
-    return [
-      {
-        label: 'Backend',
-        value: backendLabel(),
-        detail: backendOnline() ? 'Loopback truth is live.' : 'Local HTTP is not connected.',
-        action: backendOnline() ? 'Ready' : 'Start backend',
-        tone: backendTone()
-      },
-      {
-        label: 'Repository',
-        value: repo?.repository?.name ?? 'No repository selected',
-        detail: repo ? `${repo.sync?.indexed_files ?? 0} indexed files` : 'Add a root query parameter to inspect a local repository.',
-        action: repo ? (repo.sync?.status ?? 'Loaded') : 'Add root',
-        tone: repo ? 'good' : 'neutral'
-      },
-      {
-        label: 'Recent runs',
-        value: run?.query ?? 'No recent runs loaded',
-        detail: run ? `${run.budget?.included_bytes ?? 0} of ${run.budget?.raw_bytes_considered ?? 0} bytes included` : 'Assemble context for the selected root, then refresh.',
-        action: run ? `Cache ${run.cache_status?.kind ?? 'unknown'}` : runFetchStateRef.value,
-        tone: run ? 'good' : 'neutral'
-      },
-      {
-        label: 'Memory matches',
-        value: note?.title ?? 'No memory query selected',
-        detail: note?.content ?? 'Add a memory query with the same root to show bounded notes.',
-        action: note?.profile ?? memoryFetchStateRef.value,
-        tone: note ? 'good' : 'neutral'
-      }
-    ]
-  }
-
-  function savingsRows() {
-    return benchmarkMetrics
-  }
-
-  function boundaryRows() {
-    return [
-      { label: 'Provider calls', value: 'none' },
-      { label: 'State location', value: '.quotarelay' },
-      { label: 'HTTP bind', value: 'loopback' },
-      { label: 'Billing claims', value: 'none' }
-    ]
-  }
-
-  function setupRows() {
-    return [
-      { label: 'Run proof', value: 'scripts\\demo-local.ps1' },
-      { label: 'MCP command', value: 'quotarelay-mcp' },
-      { label: 'Sync repo', value: '--cli sync repo' }
-    ]
-  }
-
-  function themeOptions() {
-    return [
-      { value: 'system', label: 'System' },
-      { value: 'light', label: 'Light' },
-      { value: 'dark', label: 'Dark' }
-    ]
   }
 
   function themeButtonClass(mode) {
@@ -293,24 +210,54 @@
           </a>
           <div class="theme-toggle" aria-label="Theme mode">
             <button
-              v-for="option in themeOptions()"
-              :key="option.value"
               type="button"
-              :class="themeButtonClass(option.value)"
-              @click="setTheme(option.value)"
+              :class="themeButtonClass('system')"
+              @click="setTheme('system')"
             >
-              {{ option.label }}
+              System
+            </button>
+            <button
+              type="button"
+              :class="themeButtonClass('light')"
+              @click="setTheme('light')"
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              :class="themeButtonClass('dark')"
+              @click="setTheme('dark')"
+            >
+              Dark
             </button>
           </div>
         </div>
       </header>
 
       <div class="status-bar" :class="`status-bar--${statusModel().tone}`">{{ healthStatusText() }}</div>
+      <div class="command-line" v-if="!backendOnline()">
+        <span>Start backend</span>
+        <code>{{ statusModel().command }}</code>
+      </div>
 
       <div class="hero-grid">
         <div class="visual-grid">
-          <section class="chart-block" aria-label="MCP tool usage distribution">
-            <div class="pie-chart" :style="pieStyle()"></div>
+          <section class="chart-block chart-block--primary" aria-label="MCP tool usage distribution">
+            <svg class="pie-chart" viewBox="0 0 40 40" role="img" aria-label="MCP tool usage pie chart">
+              <circle class="pie-ring" cx="20" cy="20" r="15.9155" />
+              <circle
+                v-for="segment in pieSegments()"
+                :key="segment.label"
+                class="pie-segment"
+                cx="20"
+                cy="20"
+                r="15.9155"
+                :stroke="segment.color"
+                :stroke-dasharray="segment.dashArray"
+                :stroke-dashoffset="segment.dashOffset"
+              />
+              <circle class="pie-core" cx="20" cy="20" r="8.6" />
+            </svg>
             <div>
               <h3>MCP tool usage</h3>
               <ul class="chart-legend">
@@ -331,21 +278,6 @@
             </svg>
           </section>
         </div>
-        <div class="health-summary">
-          <p class="eyebrow">System health</p>
-          <h2 id="local-context-status">{{ statusModel().label }}</h2>
-          <p>{{ statusModel().error || statusModel().detail }}</p>
-          <dl class="signal-list">
-            <div v-for="signal in signalRows()" :key="signal.label">
-              <dt>{{ signal.label }}</dt>
-              <dd>{{ signal.value }}</dd>
-            </div>
-          </dl>
-          <div class="command-line" v-if="!backendOnline()">
-            <span>Start backend</span>
-            <code>{{ statusModel().command }}</code>
-          </div>
-        </div>
       </div>
 
       <div class="disclosure-stack" aria-label="Supporting details">
@@ -354,66 +286,25 @@
             <span>Recent runs</span>
             <strong>{{ runFetchStateRef.value }}</strong>
           </summary>
-          <div class="snapshot-table">
-            <article class="snapshot-row" v-for="row in activityRows()" :key="row.label">
-              <span :class="`state-dot state-dot--${row.tone}`"></span>
-              <span class="row-label">{{ row.label }}</span>
-              <div>
-                <strong>{{ row.value }}</strong>
-                <p>{{ row.detail }}</p>
-              </div>
-              <span class="row-action">{{ row.action }}</span>
-            </article>
-          </div>
         </details>
         <details class="detail-drawer">
-        <summary>
-          <span>Memory matches</span>
-          <strong>{{ memoryFetchStateRef.value }}</strong>
-        </summary>
-          <div class="support-list">
-            <article>
-              <span>Memory</span>
-              <strong>{{ memoryStateRef.value.notes.length }} notes</strong>
-            </article>
-          </div>
+          <summary>
+            <span>Memory matches</span>
+            <strong>{{ memoryFetchStateRef.value }}</strong>
+          </summary>
         </details>
         <details class="detail-drawer">
           <summary>
             <span>Cache</span>
             <strong>{{ summaryValue('Cache', 'hit proven') }}</strong>
           </summary>
-          <div class="proof-table">
-            <article class="proof-row" v-for="metric in savingsRows()" :key="metric.mode">
-              <div>
-                <strong>{{ metric.name }}</strong>
-                <span>{{ metric.mode }}</span>
-              </div>
-              <span>{{ metric.reduction }}</span>
-              <p>{{ metric.packetBytes }} packet bytes from {{ metric.rawBytes }} raw bytes.</p>
-            </article>
-          </div>
         </details>
         <details class="detail-drawer">
-        <summary>
-          <span>Boundaries</span>
-          <strong>Provider calls: none</strong>
-        </summary>
-          <div class="support-grid">
-          <div class="support-list">
-            <article v-for="row in boundaryRows()" :key="row.label">
-              <span>{{ row.label }}</span>
-              <strong>{{ row.value }}</strong>
-            </article>
-          </div>
-          <div class="support-list">
-            <article v-for="row in setupRows()" :key="row.label">
-              <span>{{ row.label }}</span>
-              <code>{{ row.value }}</code>
-            </article>
-          </div>
-        </div>
-      </details>
+          <summary>
+            <span>Boundaries</span>
+            <strong>Provider calls: none</strong>
+          </summary>
+        </details>
       </div>
     </section>
   </main>

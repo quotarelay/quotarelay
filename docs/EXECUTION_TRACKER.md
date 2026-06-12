@@ -33,6 +33,7 @@ Recently completed slices:
 | Dashboard action and proof chart polish | Shipped | GitHub and Quickstart now sit in a prominent action strip with icons, separate from backend/theme settings, and the local status panel includes a compact savings proof chart. |
 | Unified health panel dashboard | Shipped | Root UI now uses one unified panel with a compact Backend/Repo/Context/Memory status bar, MCP tool usage pie chart, provider-call sparkline, and collapsed secondary sections. |
 | Minimal operator console refinement | Shipped | The dashboard now treats the pie chart as the primary visual, removes inner boxed chart/detail treatments, and shortens health copy inside a single console surface. |
+| Mobile-first SVG operator console | Shipped | The dashboard now uses mobile-first flow, an inline SVG MCP usage pie chart, a provider-call sparkline, and collapsed single-line secondary headers without expanded helper text. |
 
 ## Completed Slice
 
@@ -954,9 +955,58 @@ Proof:
 - `scripts\release-check.ps1` passed after the minimal operator console refinement.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with the setup refresh error.
 
+## Completed Slice
+
+### T135: Mobile-First SVG Operator Console
+
+Status: done
+
+Goal: implement the strict mobile-first operator console plan with one status line, a reliable inline SVG pie chart, provider-call sparkline, and collapsed single-line secondary sections.
+
+Allowed files:
+
+- `web/controlplane/src/pages/index.tera`
+- `web/controlplane/src/public-site.css`
+- `scripts/public-site-smoke.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend behavior, MCP/CLI/HTTP contracts, proof scripts, release automation, repository settings, or product scope.
+- Do not claim exact provider billing savings, guaranteed savings, hosted production readiness, compliance status, auth, cloud sync, deployment support, or provider integrations.
+
+Validation:
+
+```powershell
+npm --prefix web/controlplane run test
+npm --prefix web/controlplane run build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- Mobile-first vertical flow shows header utilities, status line, SVG pie, sparkline, and collapsed headers.
+- MCP usage pie is rendered as inline SVG slices rather than CSS conic background.
+- No expanded recent-run, memory, cache, or boundary helper text appears by default.
+- Smoke validation no longer requires removed setup/detail copy.
+- Full release-check passes after the mobile-first SVG console redesign.
+
+Proof:
+
+- `npm --prefix web/controlplane run test` passed with 12 tests.
+- `npm --prefix web/controlplane run build` passed.
+- `scripts\public-site-smoke.ps1 -SkipBuild` passed and checks compact status tokens plus chart labels.
+- `scripts\check-line-counts.ps1` passed with 95 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the mobile-first SVG console redesign.
+- Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with a permission error.
+
 ## Active Slice
 
-No active slice. Minimal operator console refinement is complete.
+No active slice. Mobile-first SVG operator console is complete.
 
 ## Polish Plan Extension
 
