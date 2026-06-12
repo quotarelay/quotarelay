@@ -6,8 +6,8 @@ Quotarelay is local-first. Most issues are caused by missing explicit setup step
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
-cargo run -p mcp-server -- --cli truth
-cargo run -p mcp-server -- --cli state <repo_root>
+npm run truth
+npm run state -- <repo_root>
 ```
 
 Use `state` to inspect bounded local presence and counts. It does not dump file contents, memory contents, or cache payloads.
@@ -35,7 +35,7 @@ If frontend commands fail after a clean checkout, run `npm --prefix web/controlp
 Most source-run commands expect the Quotarelay checkout as the current directory. From elsewhere, either change into the checkout first or configure the MCP client `cwd` field.
 
 ```powershell
-cargo run -p mcp-server -- --cli truth
+npm run truth
 ```
 
 If a client cannot start the source-run preset, confirm the same command works in a normal terminal from the checkout.

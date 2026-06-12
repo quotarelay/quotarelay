@@ -57,21 +57,27 @@ Retrieval is explicit and bounded:
 
 ## CLI Examples
 
-The source checkout command is `cargo run -p mcp-server --`. After local install smoke, the branded command is `quotarelay-mcp`.
+From the checkout, use the root aliases first. The lower-level source command is `cargo run -p mcp-server --`. After local install smoke, the branded command is `quotarelay-mcp`.
 
 ```powershell
-cargo run -p mcp-server -- --cli truth
-cargo run -p mcp-server -- --cli register <state_root> <repo_root>
-cargo run -p mcp-server -- --cli sync <repo_root>
-cargo run -p mcp-server -- --cli state <repo_root>
+npm run truth
+npm run usage -- [repo_root] [memory_query]
+npm run register -- <state_root> <repo_root>
+npm run sync -- <repo_root>
+npm run state -- <repo_root>
+npm run search -- <repo_root> <query> [limit]
+npm run context -- <repo_root> exact_search <query> [limit]
+npm run context -- <repo_root> overview [limit]
+npm run context -- <repo_root> task_capsule <query> [limit]
+npm run context -- <repo_root> diff_aware [query] [limit]
+npm run handoff -- <repo_root> <active_task> bug_fix|feature_slice|review|refactor|release exact_search <query> [limit]
+```
+
+The underlying CLI remains available for less common commands:
+
+```powershell
 cargo run -p mcp-server -- --cli map <repo_root>
-cargo run -p mcp-server -- --cli search <repo_root> <query> [limit]
-cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> [limit]
-cargo run -p mcp-server -- --cli assemble <repo_root> overview [limit]
-cargo run -p mcp-server -- --cli assemble <repo_root> task_capsule <query> [limit]
-cargo run -p mcp-server -- --cli assemble <repo_root> diff_aware [query] [limit]
 cargo run -p mcp-server -- --cli handoff <repo_root> <active_task> exact_search <query> [limit]
-cargo run -p mcp-server -- --cli handoff-template <repo_root> <active_task> bug_fix|feature_slice|review|refactor|release exact_search <query> [limit]
 cargo run -p mcp-server -- --cli savings-report <repo_root> [limit]
 cargo run -p mcp-server -- --cli validate <path> [path...]
 quotarelay-mcp --cli truth

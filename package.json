@@ -1,0 +1,24 @@
+{
+  "name": "quotarelay",
+  "version": "0.1.0",
+  "license": "Apache-2.0",
+  "private": true,
+  "scripts": {
+    "start": "node web/controlplane/dev-with-backend.mjs",
+    "dashboard": "node web/controlplane/dev-with-backend.mjs",
+    "headless": "node web/controlplane/dev-with-backend.mjs --headless",
+    "usage": "cargo run -p mcp-server -- --cli usage",
+    "truth": "cargo run -p mcp-server -- --cli truth",
+    "register": "cargo run -p mcp-server -- --cli register",
+    "sync": "cargo run -p mcp-server -- --cli sync",
+    "search": "cargo run -p mcp-server -- --cli search",
+    "context": "cargo run -p mcp-server -- --cli assemble",
+    "handoff": "cargo run -p mcp-server -- --cli handoff-template",
+    "state": "cargo run -p mcp-server -- --cli state",
+    "dev": "node web/controlplane/dev-with-backend.mjs --dev",
+    "dev:frontend": "npm --prefix web/controlplane run dev:frontend",
+    "ui:build": "npm --prefix web/controlplane run build",
+    "ui:test": "npm --prefix web/controlplane run test",
+    "release-check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\release-check.ps1"
+  }
+}

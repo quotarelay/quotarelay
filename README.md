@@ -51,8 +51,8 @@ From a fresh checkout:
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
-cargo run -p mcp-server -- --cli truth
-cargo run -p mcp-server -- --cli usage
+npm run truth
+npm run usage
 ```
 
 Expected proof signals:
@@ -75,13 +75,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
 ## Use It On A Repo
 
 ```powershell
-cargo run -p mcp-server -- --cli register <state_root> <repo_root>
-cargo run -p mcp-server -- --cli sync <repo_root>
-cargo run -p mcp-server -- --cli usage <repo_root> <memory_query>
-cargo run -p mcp-server -- --cli search <repo_root> <query> 5
-cargo run -p mcp-server -- --cli assemble <repo_root> exact_search <query> 3
-cargo run -p mcp-server -- --cli handoff-template <repo_root> "Continue the feature" feature_slice exact_search <query> 3
-cargo run -p mcp-server -- --cli state <repo_root>
+npm run register -- <state_root> <repo_root>
+npm run sync -- <repo_root>
+npm run usage -- <repo_root> <memory_query>
+npm run search -- <repo_root> <query> 5
+npm run context -- <repo_root> exact_search <query> 3
+npm run handoff -- <repo_root> "Continue the feature" feature_slice exact_search <query> 3
+npm run state -- <repo_root>
 ```
 
 Use a separate local `state_root` when registering multiple repos as a workspace. Quotarelay writes local state under `.quotarelay` inside the roots you pass to tools.
@@ -126,7 +126,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\token-saver-benchmar
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
 cargo test -p mcp-server
-npm --prefix web/controlplane run build
+npm run ui:build
 ```
 
 ## Project Layout

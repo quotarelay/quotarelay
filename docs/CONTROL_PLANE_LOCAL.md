@@ -7,7 +7,7 @@ The control plane is a local frontend for the shipped backend truth surface. It 
 Run the dashboard from the repository root:
 
 ```powershell
-npm --prefix web/controlplane run start
+npm run start
 ```
 
 This command builds the TeraJS dashboard, starts the loopback backend if it is not already running, then serves the built dashboard at `127.0.0.1:4174`. Stopping the command also stops the backend it started.
@@ -17,7 +17,7 @@ This command builds the TeraJS dashboard, starts the loopback backend if it is n
 Run backend truth only, without the dashboard UI:
 
 ```powershell
-npm --prefix web/controlplane run headless
+npm run headless
 ```
 
 Use this for terminal-only or MCP-adjacent workflows that only need the local HTTP truth routes.
@@ -27,7 +27,7 @@ Use this for terminal-only or MCP-adjacent workflows that only need the local HT
 Show the dashboard-style usage snapshot in the terminal:
 
 ```powershell
-cargo run -p mcp-server -- --cli usage [repo-root] [memory-query]
+npm run usage -- [repo-root] [memory-query]
 ```
 
 The reply includes a status line, MCP tool usage distribution, provider-call sparkline values, system health, local usage counts, and collapsed section headers.
@@ -60,19 +60,19 @@ The shipped HTTP routes are:
 Build the control plane:
 
 ```powershell
-npm --prefix web/controlplane run build
+npm run ui:build
 ```
 
 Run the dashboard dev loop when editing the UI:
 
 ```powershell
-npm --prefix web/controlplane run dev
+npm run dev
 ```
 
 Run only the frontend dev server when the backend is already managed separately:
 
 ```powershell
-npm --prefix web/controlplane run dev:frontend
+npm run dev:frontend
 ```
 
 The dashboard server binds to `127.0.0.1:4174` and proxies the shipped backend JSON routes to `127.0.0.1:3030` for local preview only.
@@ -86,7 +86,7 @@ The frontend reads the backend truth surface. If it cannot reach the backend URL
 
 ## Customization
 
-The dashboard is source-customizable. Edit files under `web/controlplane/src`, then rerun `npm --prefix web/controlplane run start` to rebuild and serve the local dashboard.
+The dashboard is source-customizable. Edit files under `web/controlplane/src`, then rerun `npm run start` to rebuild and serve the local dashboard.
 
 ## Boundaries
 

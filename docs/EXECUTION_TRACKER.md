@@ -37,6 +37,7 @@ Recently completed slices:
 | Smarter local dashboard startup | Shipped | The control-plane dev command now starts the loopback HTTP backend when needed before launching the dashboard. |
 | Product-grade dashboard run modes | Shipped | The normal dashboard command now builds and serves production assets, with separate headless and UI-dev modes. |
 | Console usage snapshot | Shipped | The CLI now exposes a compact dashboard-style `usage` snapshot with status, tool usage, provider calls, and local counts. |
+| Friendly root commands | Shipped | Root `npm run` aliases now expose dashboard, headless, usage, truth, sync, context, and UI build commands without long prefixes. |
 
 ## Completed Slice
 
@@ -1006,6 +1007,61 @@ Proof:
 - `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
 - `scripts\release-check.ps1` passed after the mobile-first SVG console redesign.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with a permission error.
+
+## Completed Slice
+
+### T139: Friendly Root Commands
+
+Status: done
+
+Goal: replace long first-run command prefixes with short root `npm run` aliases while keeping the underlying Cargo and control-plane commands intact.
+
+Allowed files:
+
+- `package.json`
+- `README.md`
+- `docs/CONTROL_PLANE_LOCAL.md`
+- `docs/MCP_CLIENT_CONFIG.md`
+- `docs/MCP_TOOL_REFERENCE.md`
+- `docs/PLATFORM_SURFACES.md`
+- `docs/TROUBLESHOOTING.md`
+- `scripts/bootstrap.ps1`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not change backend contracts, MCP schemas, HTTP routes, dashboard behavior, provider boundaries, hosted state, telemetry, auth, billing, cloud sync, or release automation.
+
+Validation:
+
+```powershell
+npm run truth
+npm run usage
+npm run start -- --help
+npm run ui:build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `npm run start`, `npm run headless`, `npm run usage`, `npm run truth`, `npm run register`, `npm run sync`, `npm run search`, `npm run context`, `npm run handoff`, and `npm run state` are available from the repo root.
+- README quickstart and repo usage examples use the friendly aliases.
+- Control-plane docs use the friendly aliases for dashboard, headless, usage, build, and dev paths.
+- Bootstrap next-command output points users at `npm run truth`, `npm run usage`, and `npm run start`.
+- Full release-check passes after the alias polish.
+
+Proof:
+
+- `npm run truth` passed and returned backend truth.
+- `npm run usage` passed and returned the console usage snapshot.
+- `npm run start -- --help` passed and shows the dashboard/headless/dev modes.
+- `npm run ui:build` passed.
+- `npm run ui:test` passed with 12 tests.
+- `scripts\check-line-counts.ps1` passed with 98 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed after the friendly root command aliases.
 
 ## Completed Slice
 

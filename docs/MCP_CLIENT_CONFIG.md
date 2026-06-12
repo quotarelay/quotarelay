@@ -85,7 +85,7 @@ Before configuring a client, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
-cargo run -p mcp-server -- --cli truth
+npm run truth
 ```
 
 To prove the installed command:
