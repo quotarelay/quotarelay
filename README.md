@@ -149,6 +149,7 @@ npm run ui:build
 - `docs/LOCAL_STATE_PRIVACY.md`: what `.quotarelay` stores locally and what not to commit.
 - `docs/KNOWN_LIMITATIONS.md`: local-only boundaries, indexing limits, provider/network non-goals, and control-plane limits.
 - `docs/PUBLICATION_CHECKLIST.md`: public push/release checklist.
+- `docs/RELEASE_FLOW.md`: version, release-prep, package, and local tag flow.
 - `docs/GITHUB_ABOUT.md`: suggested GitHub About description and topics.
 
 ## Boundaries

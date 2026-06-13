@@ -19,6 +19,11 @@
     "dev:frontend": "npm --prefix web/controlplane run dev:frontend",
     "ui:build": "npm --prefix web/controlplane run build",
     "ui:test": "npm --prefix web/controlplane run test",
-    "release-check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\release-check.ps1"
+    "release-check": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\release-check.ps1",
+    "release:version": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\assert-release-version.ps1",
+    "release:prep": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\prepare-release.ps1",
+    "release:audit": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\prepare-release.ps1 -Audit",
+    "release:package": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\prepare-release.ps1 -BuildLocalPackage",
+    "release:tag": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\tag-release.ps1"
   }
 }

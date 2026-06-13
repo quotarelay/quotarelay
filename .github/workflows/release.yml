@@ -1,0 +1,55 @@
+name: Release Validation
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version without the v prefix
+        required: true
+        default: 0.1.0
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Validate release surface
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: web/controlplane/package-lock.json
+
+      - name: Install frontend dependencies
+        run: npm.cmd --prefix web/controlplane ci
+
+      - name: Assert release version
+        shell: pwsh
+        run: |
+          $version = "${{ github.event.inputs.version }}"
+          if (-not $version) {
+            $version = "${{ github.ref_name }}".TrimStart("v")
+          }
+          powershell -NoProfile -ExecutionPolicy Bypass -File scripts\assert-release-version.ps1 -Version $version
+
+      - name: Release check
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+
+      - name: Local package
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1
+
+      - name: Upload local package
+        uses: actions/upload-artifact@v4
+        with:
+          name: quotarelay-local-package
+          path: target/local-package/*.zip
+          if-no-files-found: error

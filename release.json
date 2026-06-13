@@ -1,0 +1,23 @@
+{
+  "version": "0.1.0",
+  "tag": "v0.1.0",
+  "name": "Quotarelay 0.1.0",
+  "draft": true,
+  "prerelease": false,
+  "local_only": true,
+  "publish": false,
+  "topics": [
+    "mcp",
+    "model-context-protocol",
+    "coding-agents",
+    "ai-agents",
+    "context-engine",
+    "local-first",
+    "developer-tools",
+    "rust",
+    "token-optimization",
+    "repo-indexing",
+    "agent-memory",
+    "handoff"
+  ]
+}

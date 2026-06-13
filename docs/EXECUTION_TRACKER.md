@@ -38,6 +38,7 @@ Recently completed slices:
 | Product-grade dashboard run modes | Shipped | The normal dashboard command now builds and serves production assets, with separate headless and UI-dev modes. |
 | Console usage snapshot | Shipped | The CLI now exposes a compact dashboard-style `usage` snapshot with status, tool usage, provider calls, and local counts. |
 | Friendly root commands | Shipped | Root `npm run` aliases now expose dashboard, headless, usage, truth, sync, context, and UI build commands without long prefixes. |
+| Release automation flow | Shipped | Release metadata, version assertion, release prep, local package, explicit tag, and tag-triggered validation workflow are now wired without publishing or deployment. |
 
 ## Completed Slice
 
@@ -1007,6 +1008,68 @@ Proof:
 - `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
 - `scripts\release-check.ps1` passed after the mobile-first SVG console redesign.
 - Local preview responded with HTTP 200; in-app browser visual QA was attempted but still failed in this Windows sandbox with a permission error.
+
+## Completed Slice
+
+### T140: Release Automation Flow
+
+Status: done
+
+Goal: set the release version/tag flags and add a safe automated release-prep flow that validates versions, runs release checks, builds local artifacts, and supports explicit maintainer tag creation without publishing or deployment.
+
+Allowed files:
+
+- `release.json`
+- `package.json`
+- `.github/workflows/release.yml`
+- `scripts/assert-release-version.ps1`
+- `scripts/prepare-release.ps1`
+- `scripts/tag-release.ps1`
+- `scripts/release-check.ps1`
+- `docs/RELEASE_FLOW.md`
+- `docs/VERSIONING.md`
+- `docs/PUBLICATION_CHECKLIST.md`
+- `docs/KNOWN_LIMITATIONS.md`
+- `README.md`
+- `docs/EXECUTION_TRACKER.md`
+
+Non-goals:
+
+- Do not publish a GitHub Release, push tags, deploy services, expose non-loopback HTTP, add hosted state, add telemetry, add provider calls, add package-manager publishing, or claim production hosted readiness.
+
+Validation:
+
+```powershell
+npm run release:version
+npm run release:prep -- -SkipReleaseCheck
+npm run release:tag -- -Help
+npm run ui:test
+npm run ui:build
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
+```
+
+Completion bar:
+
+- `release.json` defines version `0.1.0`, tag `v0.1.0`, draft/prerelease/local-only/publish flags, and GitHub topics.
+- `scripts\assert-release-version.ps1` verifies release metadata against Cargo, package, README, changelog, versioning docs, and local package metadata.
+- `scripts\prepare-release.ps1` runs version assertion, release-check, optional audit, optional local package build, and prints the owner-approved tag/push commands.
+- `scripts\tag-release.ps1` creates only a local annotated tag after explicit `-ConfirmTag`, clean worktree, version assertion, and release-check.
+- `.github/workflows/release.yml` validates `v*` tags and workflow-dispatch release candidates, then uploads a local package artifact without publishing a GitHub Release.
+- Full release-check passes after the release automation flow.
+
+Proof:
+
+- `npm run release:version` passed and confirmed version `0.1.0`, tag `v0.1.0`, draft `true`, prerelease `false`, local-only `true`, and publish `false`.
+- `npm run release:prep -- -SkipReleaseCheck` passed and printed the owner-approved local tag and push commands.
+- `npm run release:tag -- -Help` passed without creating a tag.
+- `npm run ui:test` passed with 12 tests.
+- `npm run ui:build` passed.
+- `scripts\check-line-counts.ps1` passed with 101 checked source files.
+- `scripts\public-surface-scan.ps1` passed with `{ "ok": true }`.
+- `scripts\release-check.ps1` passed with the new release version manifest step.
+- `npm run release:package -- -SkipReleaseCheck` passed and created `target\local-package\quotarelay-0.1.0-local.zip`.
 
 ## Completed Slice
 

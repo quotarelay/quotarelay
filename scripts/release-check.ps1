@@ -29,6 +29,10 @@ Invoke-ReleaseStep "clean check" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1 @cleanArgs
 }
 
+Invoke-ReleaseStep "release version manifest" {
+    powershell -NoProfile -ExecutionPolicy Bypass -File scripts\assert-release-version.ps1
+}
+
 Invoke-ReleaseStep "local demo smoke" {
     powershell -NoProfile -ExecutionPolicy Bypass -File scripts\demo-local.ps1
 }
