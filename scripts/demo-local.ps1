@@ -42,37 +42,47 @@ function Invoke-McpBatch {
         cargo build -p mcp-server | Out-Null
     }
 
-    $frame = ConvertTo-FramedJson -Requests $Requests
-    $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
-    $startInfo.FileName = $server
-    $startInfo.UseShellExecute = $false
-    $startInfo.RedirectStandardInput = $true
-    $startInfo.RedirectStandardOutput = $true
-    $startInfo.RedirectStandardError = $true
-    $startInfo.CreateNoWindow = $true
+    $responses = @()
+    foreach ($request in $Requests) {
+        $frame = ConvertTo-FramedJson -Requests @($request)
+        $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = $server
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardInput = $true
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $startInfo.CreateNoWindow = $true
 
-    $process = [System.Diagnostics.Process]::Start($startInfo)
-    $stdoutTask = $process.StandardOutput.ReadToEndAsync()
-    $stderrTask = $process.StandardError.ReadToEndAsync()
-    $bytes = [Text.Encoding]::UTF8.GetBytes($frame)
-    $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
-    $process.StandardInput.Close()
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $bytes = [Text.Encoding]::UTF8.GetBytes($frame)
+        $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+        $process.StandardInput.Close()
 
-    if (-not $process.WaitForExit(60000)) {
-        $process.Kill()
-        throw "mcp-server did not exit after demo batch"
+        if (-not $process.WaitForExit(60000)) {
+            $process.Kill()
+            throw "mcp-server did not exit after demo request"
+        }
+
+        $raw = $stdoutTask.Result
+        $stderr = $stderrTask.Result
+        if ($process.ExitCode -ne 0) {
+            throw "mcp-server demo request failed with exit code $($process.ExitCode): $stderr"
+        }
+
+        $payloads = $raw -split 'Content-Length: \d+\r?\n\r?\n' |
+            Where-Object { $_.Trim().StartsWith("{") }
+
+        $payloadArray = @($payloads)
+        if ($payloadArray.Count -ne 1) {
+            throw "mcp-server demo request returned $($payloadArray.Count) responses"
+        }
+
+        $responses += ($payloadArray[0] | ConvertFrom-Json)
     }
 
-    $raw = $stdoutTask.Result
-    $stderr = $stderrTask.Result
-    if ($process.ExitCode -ne 0) {
-        throw "mcp-server demo batch failed with exit code $($process.ExitCode): $stderr"
-    }
-
-    $payloads = $raw -split 'Content-Length: \d+\r?\n\r?\n' |
-        Where-Object { $_.Trim().StartsWith("{") }
-
-    return $payloads | ForEach-Object { $_ | ConvertFrom-Json }
+    return ,$responses
 }
 
 function Get-ToolPayload {
