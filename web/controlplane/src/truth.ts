@@ -1,3 +1,5 @@
+import { toTruthSummaryItems, type TruthSummaryItem } from './truthSummary'
+
 export type ToolDescriptor = {
   name?: string
   description?: string
@@ -131,6 +133,7 @@ export type TruthPageState = {
   fetchError: string
   backendTools: ToolDescriptor[]
   proofs: BackendProof[]
+  truthSummary: TruthSummaryItem[]
   retrievalTruth: RetrievalTruthItem[]
   configTruth: RetrievalTruthItem[]
   cliCommands: Array<{
@@ -294,6 +297,11 @@ export async function loadBackendTruth(
       fetchError: '',
       backendTools: Array.isArray(payload?.tools) ? payload.tools : [],
       proofs: Array.isArray(payload?.proofs) ? payload.proofs : [],
+      truthSummary: toTruthSummaryItems(
+        Array.isArray(payload?.tools) ? payload.tools : [],
+        normalizedRetrieval,
+        payload?.cli ?? null
+      ),
       retrievalTruth: toRetrievalTruthItems(normalizedRetrieval),
       configTruth: toConfigTruthItems(payload?.config ?? null),
       cliCommands: Array.isArray(payload?.cli?.commands) ? payload.cli.commands : []
@@ -304,6 +312,7 @@ export async function loadBackendTruth(
       fetchError: error instanceof Error ? error.message : 'Failed to load /truth',
       backendTools: [],
       proofs: [],
+      truthSummary: [],
       retrievalTruth: [],
       configTruth: [],
       cliCommands: []

@@ -2,6 +2,8 @@
 
 Quotarelay runs as a local stdio MCP server. Any client that supports a command plus argument list for stdio MCP servers can launch it from this checkout.
 
+Quotarelay is an agent-facing MCP tool, not a desktop or mobile app. Native companion apps are deferred unless users later need a wrapper for local service management or one-click client setup.
+
 ## Server Command
 
 From the repository root:
@@ -22,6 +24,31 @@ For clients that need command and args split:
 The same verified local command/args payload is checked in at `examples/mcp-client-presets/generic-stdio.json`.
 
 This configuration starts the MCP server only. It does not start the HTTP control plane, install packages, publish artifacts, or contact model providers.
+
+Use this source-run configuration first when evaluating Quotarelay from a checkout. It is the most portable setup because the client only needs Cargo plus the checkout working directory.
+
+## Installed Command
+
+For a source-first local install smoke, run:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
+```
+
+That script runs `cargo install --path apps/mcp-server --root target\install-smoke --debug --force --locked --offline` and proves the installed `quotarelay-mcp --cli truth` command works. Run `scripts\bootstrap.ps1` first on a fresh checkout so Cargo dependencies are available locally.
+
+For clients that launch an installed command:
+
+```json
+{
+  "command": "quotarelay-mcp",
+  "args": []
+}
+```
+
+The installed-command preset is checked in at `examples/mcp-client-presets/installed-stdio.json`.
+
+Use this installed-command configuration only after `scripts\install-smoke.ps1` passes and the MCP client can resolve `quotarelay-mcp` from its own environment. If the client cannot see that command, use the source-run preset or configure the client PATH/cwd according to its own documentation.
 
 ## Windows Path Examples
 
@@ -58,13 +85,25 @@ Before configuring a client, run:
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
-cargo run -p mcp-server -- --cli truth
+npm run truth
+```
+
+To prove the installed command:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\install-smoke.ps1
+```
+
+To prove both checked-in stdio presets launch and respond to MCP `initialize`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\mcp-preset-smoke.ps1
 ```
 
 For a fuller repo check:
 
 ```powershell
-powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
 ```
 
 ## Stdio Troubleshooting
@@ -72,6 +111,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File scripts\clean-check.ps1
 | Symptom | Check |
 |---|---|
 | Client cannot start server | Run `cargo run -p mcp-server` from the checkout and confirm Cargo can build locally. |
+| Installed command is missing | Run `scripts\install-smoke.ps1` and point the client at the installed `quotarelay-mcp` command or use the source-run preset. |
 | Client starts in the wrong folder | Add `cwd` if the client supports it, or use an absolute path to the checkout before launching. |
 | Tool calls cannot find repo state | Confirm the `root` or `repo_root` argument points at the same local path used for sync/register. |
 | Search returns no results | Run `sync_repo` first; the index is explicit and local. |

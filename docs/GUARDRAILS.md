@@ -2,7 +2,7 @@
 
 - `README.md` documents shipped behavior only.
 - `docs/TRUTH_MATRIX.md` separates shipped local behavior, next useful work, deferred platform decisions, and explicit non-goals.
-- `EXECUTION_TRACKER.md` is the active local execution mirror.
+- `docs/EXECUTION_TRACKER.md` is the active local execution mirror.
 - `docs/VISION.md` is directional only.
 - Handlers and routes stay thin; persistence and retrieval logic belong in backend crates.
 - The control plane must not invent live savings, health, or readiness state.
@@ -10,8 +10,8 @@
 - Prefer local filesystem state and explicit contracts over convenience abstractions.
 - Do not publish, deploy, or run release automation from the agent.
 - Free solo-developer local usefulness is a product requirement, not a trial stub.
-- Team and enterprise monetization work must build on shared guardrails, decision memory, validation recipes, onboarding, auditability, support, and savings proof.
-- Do not drift toward provider forwarding, hosted tenancy, telemetry, or cloud sync unless `docs/DECISIONS.md` and `EXECUTION_TRACKER.md` explicitly open that work.
+- Team and enterprise monetization work is deferred; current work must strengthen local adoption, shared guardrails, decision memory, validation recipes, onboarding, and savings proof inside the free core.
+- Do not drift toward provider forwarding, hosted tenancy, telemetry, or cloud sync unless `docs/DECISIONS.md` and `docs/EXECUTION_TRACKER.md` explicitly open that work.
 - Do not add auth, operator identity, audit logs, BYOK key storage, provider capability truth, or multi-user behavior without an explicit decision slice.
 - Do not claim token savings from pricing or billing. Only claim local context reduction that the repo can estimate or prove.
 
@@ -39,7 +39,7 @@
 - Target source files at 500 lines or fewer.
 - New source files must not exceed 500 lines.
 - Existing source files over 500 lines are legacy-debt files, not acceptable growth targets.
-- If a slice touches an oversized source file, the agent must either extract a cohesive seam into a smaller module during the same slice or record an explicit blocker/refactor follow-up in `EXECUTION_TRACKER.md`.
+- If a slice touches an oversized source file, the agent must either extract a cohesive seam into a smaller module during the same slice or record an explicit blocker/refactor follow-up in `docs/EXECUTION_TRACKER.md`.
 - Do not add unrelated behavior to oversized files just because they already contain adjacent code.
 - Tests may exceed 500 lines only when the test module is split by behavior and the production seam remains small; prefer focused test modules over one giant test pile.
 - Generated lockfiles and machine-generated artifacts are exempt from the 500-line source-file limit, but agents must not hand-edit them except through the owning package tool.

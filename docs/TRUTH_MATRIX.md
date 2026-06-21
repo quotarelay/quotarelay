@@ -1,6 +1,6 @@
 # Quotarelay Truth Matrix
 
-This matrix separates what is shipped from what is queued or deferred. It is a planning guardrail, not a marketing page.
+This matrix separates what is shipped, useful next work, and deferred platform decisions. It is a planning guardrail, not a marketing page.
 
 ## Shipped Local Behavior
 
@@ -13,11 +13,14 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Memory | Durable local memory supports write/read/update/delete/search/export/import under `.quotarelay`. Empty memory search is rejected instead of dumping notes. |
 | Cache | Local retrieval caches can be inspected, cleared, reused, invalidated by explicit sync, and recovered from corrupt JSON by operator action. |
 | Token-saving clarity | Context and handoff packets expose local raw bytes considered, included bytes, approximate tokens, reduction ratio, cache status, stale status, omissions, and one-command demo output without provider billing claims. |
+| Handoff templates | Local handoff packets can include bug fix, feature slice, review, refactor, or release focus guidance without hosted sync or source upload. |
+| Savings reports | Local context-run history can be aggregated into byte, approximate-token, cache, stale, and omission metadata without snippets, telemetry, or provider billing claims. |
+| Onboarding packs | Local MCP onboarding packs summarize repo-shape metadata, validation commands, handoff templates, and privacy notes without source snippets or upload. |
 | Team policy profiles | Local `.quotarelay` policy profiles can store guardrails, validation recipes, MCP client presets, and explicit source-upload preference without hosted sync. |
 | Truth surfaces | HTTP `/truth`, CLI `truth`, OpenAPI, and control-plane truth rendering mirror shipped backend capability only. |
 | Guardrails | Source files are expected to stay under 500 lines unless generated or explicitly exempted. |
 | Public guidance | `AGENTS.md`, `CONTRIBUTING.md`, `SUPPORT.md`, `SECURITY.md`, versioning docs, deployment-readiness docs, `LICENSE`, and `NOTICE` define the public operating surface. |
-| Commercial posture | Apache-2.0 local core stays useful; paid value is planned around hosted/team/enterprise coordination, governance, integrations, support, and deployment. |
+| Open-source posture | Apache-2.0 local core is the complete adoption surface; hosted coordination remains deferred planning and must not gate local usefulness. |
 
 ## Next Useful Work
 
@@ -25,7 +28,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 |---|---|
 | Public launch | Keep README, SECURITY, support, agent guidance, public homepage, release notes, and known limitations aligned with shipped local behavior. |
 | Proof suite | Keep one local proof path covering register, sync, memory, assemble, cache hit visibility, savings estimates, CLI, HTTP truth, and control-plane rendering. |
-| Hosted/team planning | Keep paid surfaces focused on coordination, shared policy, aggregate savings reporting, auditability, integrations, support, and deployment management. |
+| Adoption proof | Keep the public surface focused on clone, install, sync, assemble, memory, cache, handoff, onboarding, control-plane truth, and release validation. |
 | Deployment readiness | Close private deployment decisions, signing/provenance choices, rollout/rollback expectations, and container proof tests before shipping customer-managed deployment behavior. |
 
 ## Deferred Platform Decisions
@@ -37,7 +40,7 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Provider routing | Closed; Quotarelay is not a provider gateway. |
 | BYOK | Decision only until storage rules are approved; no provider calls or forwarding. |
 | Cloud sync | Closed for MVP; local-first state remains the default. |
-| Enterprise packaging | Future work may add private deployment guidance, auditability, and support paths after local MVP release readiness. |
+| Enterprise packaging | Deferred; future work may add private deployment guidance, auditability, and support paths only after local open-source adoption proof is strong. |
 | Hosted deployment | Deferred until auth, TLS, identity, audit, state, rollout, rollback, and monitoring controls are designed and implemented. |
 | Hosted team control plane | Deferred until organization login, roles, policy storage, shared memory workflow, audit events, and privacy boundaries are implemented. |
 
@@ -48,6 +51,6 @@ This matrix separates what is shipped from what is queued or deferred. It is a p
 | Fake savings | Do not claim exact provider billing savings from local byte or approximate token estimates. |
 | Fake readiness | Do not render health, progress, or readiness state that the backend does not expose. |
 | Unbounded context | Do not dump full repos, memory stores, cache files, or histories into agents. |
-| Provider forwarding | Do not route model calls or store provider keys unless decision docs and tracker slices explicitly open that work. |
+| Provider forwarding | Do not route model calls or store provider keys unless `docs/DECISIONS.md` and `docs/EXECUTION_TRACKER.md` explicitly open that work. |
 | Hidden automation | Do not silently refresh, clear, sync, or repair local state without operator action. |
 | Monolith drift | Keep adapters thin and business rules in engine/service modules under the line-count guardrail. |

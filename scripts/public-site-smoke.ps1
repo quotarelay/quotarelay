@@ -37,7 +37,7 @@ foreach ($route in @("src/pages/index.tera", "src/pages/control-plane.tera")) {
 $indexHtml = Get-Content $indexPath -Raw
 foreach ($needle in @(
         "<title>Quotarelay</title>",
-        "Local-first context compression for coding agents"
+        "Apache-2.0 local MCP context compression for coding agents"
     )) {
     if (-not $indexHtml.Contains($needle)) {
         throw "built index.html is missing expected public metadata: $needle"
@@ -47,11 +47,53 @@ foreach ($needle in @(
 $assetDir = Join-Path $distRoot "assets"
 $routeAssets = Get-ChildItem $assetDir -Filter "*.js" | Where-Object {
     (Get-Content $_.FullName -Raw).Contains("/control-plane") -or
-    (Get-Content $_.FullName -Raw).Contains("Public product homepage for Quotarelay")
+    (Get-Content $_.FullName -Raw).Contains("Local MCP context dashboard")
 }
 
 if ($routeAssets.Count -eq 0) {
     throw "built assets do not include public/control-plane route metadata"
+}
+
+$assetText = ($routeAssets | ForEach-Object { Get-Content $_.FullName -Raw }) -join "`n"
+foreach ($needle in @(
+        "Local MCP dashboard",
+        "Backend:",
+        "Repo:",
+        "Context:",
+        "Memory:",
+        "MCP tool usage",
+        "MCP tool usage pie chart",
+        "Provider calls",
+        "Recent runs",
+        "Memory matches",
+        "System",
+        "Light",
+        "Dark",
+        "Backend offline",
+        "Provider calls",
+        "Cache",
+        "Repository",
+        "Boundaries"
+    )) {
+    if (-not $assetText.Contains($needle)) {
+        throw "built assets are missing expected agent-tool positioning: $needle"
+    }
+}
+
+$publicText = "$indexHtml`n$assetText"
+foreach ($blocked in @(
+        "Start a paid trial",
+        "paid plan required",
+        "pricing tier",
+        "requires hosted login",
+        "exact provider billing savings",
+        "guaranteed savings",
+        "production hosted ready",
+        "SOC 2 compliant"
+    )) {
+    if ($publicText.Contains($blocked)) {
+        throw "built public site includes blocked overclaim or paid-gate language: $blocked"
+    }
 }
 
 [PSCustomObject]@{

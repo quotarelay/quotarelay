@@ -11,8 +11,10 @@ $PackageRoot = Join-Path $RepoRoot "target\local-package"
 $StageRoot = Join-Path $PackageRoot $PackageName
 $ArchivePath = Join-Path $PackageRoot "$PackageName.zip"
 $BinarySource = Join-Path $RepoRoot "target\debug\mcp-server.exe"
+$BrandedBinarySource = Join-Path $RepoRoot "target\debug\quotarelay-mcp.exe"
 $BinaryTargetDir = Join-Path $StageRoot "bin"
 $BinaryTarget = Join-Path $BinaryTargetDir "mcp-server.exe"
+$BrandedBinaryTarget = Join-Path $BinaryTargetDir "quotarelay-mcp.exe"
 
 function Invoke-PackageStep {
     param(
@@ -76,6 +78,7 @@ Invoke-PackageStep "Prepare package directory" {
 
 Invoke-PackageStep "Copy local artifacts" {
     Copy-Item -LiteralPath $BinarySource -Destination $BinaryTarget
+    Copy-Item -LiteralPath $BrandedBinarySource -Destination $BrandedBinaryTarget
     Copy-Item -LiteralPath "README.md" -Destination (Join-Path $StageRoot "README.md")
     Copy-Item -LiteralPath "CHANGELOG.md" -Destination (Join-Path $StageRoot "CHANGELOG.md")
     Copy-Item -LiteralPath "LICENSE" -Destination (Join-Path $StageRoot "LICENSE")
@@ -101,27 +104,34 @@ Invoke-PackageStep "Write local run notes" {
         "Run backend truth from this extracted package:",
         "",
         "````powershell",
-        ".\bin\mcp-server.exe --cli truth",
+        ".\bin\quotarelay-mcp.exe --cli truth",
+        "````",
+        "",
+        "Show the console usage snapshot:",
+        "",
+        "````powershell",
+        ".\bin\quotarelay-mcp.exe --cli usage",
         "````",
         "",
         "Run the local HTTP truth surface:",
         "",
         "````powershell",
-        ".\bin\mcp-server.exe --http 127.0.0.1:3030",
+        ".\bin\quotarelay-mcp.exe --http 127.0.0.1:3030",
         "````",
         "",
-        "The control-plane static build is copied to `controlplane-dist` when the package script runs without `-SkipFrontend`.",
+        "Headless mode is the HTTP truth command above. The control-plane static build is copied to `controlplane-dist` when the package script runs without `-SkipFrontend`.",
         "",
         "Repository sync, context assembly, memory, cache, and registered repository state remain local and explicit."
     ) | Set-Content -LiteralPath (Join-Path $StageRoot "RUNNING_LOCAL.md") -Encoding UTF8
 }
 
 Invoke-PackageStep "Package backend truth smoke" {
-    & $BinaryTarget --cli truth | Out-Null
+    & $BrandedBinaryTarget --cli truth | Out-Null
 }
 
 Invoke-PackageStep "Package contents smoke" {
     Assert-PackageFile -RelativePath "README.md"
+    Assert-PackageFile -RelativePath "bin\quotarelay-mcp.exe"
     Assert-PackageFile -RelativePath "CHANGELOG.md"
     Assert-PackageFile -RelativePath "LICENSE"
     Assert-PackageFile -RelativePath "NOTICE"

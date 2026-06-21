@@ -1,8 +1,8 @@
 use std::io::Cursor;
 
-use serde_json::json;
+use serde_json::{json, Value};
 
-use super::common::decode_response;
+use super::common::{decode_response, decode_responses, json_rpc_request, temp_repo};
 use crate::run_stdio;
 
 #[test]
@@ -20,6 +20,24 @@ fn responds_to_initialize_over_stdio() {
 }
 
 #[test]
+fn accepts_bom_prefixed_content_length_over_stdio() {
+    let request = r#"{"jsonrpc":"2.0","id":10,"method":"initialize","params":{}}"#;
+    let framed = format!(
+        "\u{feff}Content-Length: {}\r\n\r\n{}",
+        request.len(),
+        request
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("stdio transport should accept a leading BOM");
+
+    let response = decode_response(&output);
+    assert_eq!(response["id"], 10);
+    assert_eq!(response["result"]["serverInfo"]["name"], "quotarelay");
+}
+
+#[test]
 fn responds_to_tool_call_over_stdio() {
     let request = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"bootstrap_status","arguments":{}}}"#;
     let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);
@@ -32,6 +50,72 @@ fn responds_to_tool_call_over_stdio() {
     assert_eq!(
         response["result"]["content"][0]["text"],
         "quotarelay bootstrap"
+    );
+}
+
+#[test]
+fn malformed_tool_calls_return_explicit_text_without_panic() {
+    let repo_root = temp_repo();
+    let missing_name = json_rpc_request(20, "tools/call", json!({}));
+    let unknown_tool = json_rpc_request(
+        21,
+        "tools/call",
+        json!({
+            "name": "not_a_real_tool",
+            "arguments": {}
+        }),
+    );
+    let missing_root = json_rpc_request(
+        22,
+        "tools/call",
+        json!({
+            "name": "assemble_context",
+            "arguments": {
+                "query": "needle"
+            }
+        }),
+    );
+    let invalid_mode = json_rpc_request(
+        23,
+        "tools/call",
+        json!({
+            "name": "assemble_context",
+            "arguments": {
+                "root": repo_root.to_string_lossy(),
+                "mode": "everything",
+                "query": "needle"
+            }
+        }),
+    );
+    let framed = format!(
+        "Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}Content-Length: {}\r\n\r\n{}",
+        missing_name.len(),
+        missing_name,
+        unknown_tool.len(),
+        unknown_tool,
+        missing_root.len(),
+        missing_root,
+        invalid_mode.len(),
+        invalid_mode
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("malformed tool calls should still produce responses");
+
+    let responses = decode_responses(&output);
+    let response_text = |index: usize| {
+        responses[index]["result"]["content"][0]["text"]
+            .as_str()
+            .expect("tool response text should exist")
+    };
+
+    assert_eq!(response_text(0), "missing tool name");
+    assert_eq!(response_text(1), "unknown tool: not_a_real_tool");
+    assert_eq!(response_text(2), "tool requires a string root");
+    assert_eq!(
+        response_text(3),
+        "assemble_context mode must be one of exact_search, overview, task_capsule, diff_aware; got everything"
     );
 }
 
@@ -85,6 +169,8 @@ fn tools_list_exposes_current_backend_truth_surface() {
             "context_feedback_write",
             "context_feedback_list",
             "validation_recommend",
+            "savings_report",
+            "onboarding_pack",
             "multi_repo_assemble_context",
             "assemble_context",
             "handoff_packet",
@@ -99,4 +185,126 @@ fn tools_list_exposes_current_backend_truth_surface() {
         assemble_tool["inputSchema"]["properties"]["mode"]["enum"],
         json!(["exact_search", "overview", "task_capsule", "diff_aware"])
     );
+
+    let handoff_tool = tools
+        .iter()
+        .find(|tool| tool["name"] == "handoff_packet")
+        .expect("handoff_packet tool should exist");
+    assert_eq!(
+        handoff_tool["inputSchema"]["properties"]["template"]["enum"],
+        json!([
+            "general",
+            "bug_fix",
+            "feature_slice",
+            "review",
+            "refactor",
+            "release"
+        ])
+    );
+}
+
+#[test]
+fn tools_list_schemas_are_closed_and_have_stable_required_fields() {
+    let request = r#"{"jsonrpc":"2.0","id":13,"method":"tools/list","params":{}}"#;
+    let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output).expect("tools list should succeed");
+
+    let response = decode_response(&output);
+    let tools = response["result"]["tools"]
+        .as_array()
+        .expect("tools should be an array");
+    let expected_required: &[(&str, &[&str])] = &[
+        ("bootstrap_status", &[]),
+        ("sync_repo", &["root"]),
+        ("repo_inventory", &["root"]),
+        ("repo_map", &["root"]),
+        ("inspect_local_state", &["root"]),
+        ("cache_inspect", &["root"]),
+        ("cache_clear", &["root"]),
+        ("register_repository", &["root", "repo_root"]),
+        ("list_repositories", &["root"]),
+        ("repository_state", &["root"]),
+        ("repository_detail", &["root", "repo_root"]),
+        ("repository_update_metadata", &["root", "repo_root", "name"]),
+        ("remove_repository", &["root", "repo_root"]),
+        ("workspace_profile_save", &["root", "name", "repo_roots"]),
+        ("workspace_profile_list", &["root"]),
+        ("team_policy_profile_save", &["root", "name"]),
+        ("team_policy_profile_list", &["root"]),
+        ("search_code", &["root", "query"]),
+        ("memory_write", &["root", "title", "content"]),
+        ("memory_read", &["root", "id"]),
+        ("memory_update", &["root", "id"]),
+        ("memory_delete", &["root", "id"]),
+        ("memory_export", &["root"]),
+        ("memory_import", &["root", "payload"]),
+        ("memory_search", &["root", "query"]),
+        ("context_run_detail", &["root", "generated_at_epoch_ms"]),
+        ("context_run_history", &["root"]),
+        (
+            "context_feedback_write",
+            &["root", "generated_at_epoch_ms", "rating", "reason"],
+        ),
+        ("context_feedback_list", &["root"]),
+        ("validation_recommend", &["paths"]),
+        ("savings_report", &["root"]),
+        ("onboarding_pack", &["root"]),
+        (
+            "multi_repo_assemble_context",
+            &["root", "repo_roots", "query"],
+        ),
+        ("assemble_context", &["root"]),
+        ("handoff_packet", &["root", "active_task"]),
+    ];
+
+    for tool in tools {
+        let name = tool["name"].as_str().expect("tool name should exist");
+        let description = tool["description"]
+            .as_str()
+            .expect("tool description should exist");
+        assert!(
+            description.len() >= 20,
+            "{name} should have a useful description"
+        );
+
+        let schema = &tool["inputSchema"];
+        assert_eq!(schema["type"], "object", "{name} schema should be object");
+        assert_eq!(
+            schema["additionalProperties"], false,
+            "{name} schema should reject undeclared fields"
+        );
+
+        let properties = schema["properties"]
+            .as_object()
+            .expect("schema properties should be an object");
+        let required = required_fields(schema);
+        for field in &required {
+            assert!(
+                properties.contains_key(*field),
+                "{name} requires undeclared field {field}"
+            );
+        }
+
+        let expected = expected_required
+            .iter()
+            .find(|(expected_name, _)| *expected_name == name)
+            .map(|(_, fields)| *fields)
+            .expect("tool required fields should be locked");
+        assert_eq!(required, expected, "{name} required fields changed");
+    }
+}
+
+fn required_fields(schema: &Value) -> Vec<&str> {
+    schema
+        .get("required")
+        .and_then(Value::as_array)
+        .map(|fields| {
+            fields
+                .iter()
+                .map(|field| field.as_str().expect("required field should be string"))
+                .collect()
+        })
+        .unwrap_or_default()
 }

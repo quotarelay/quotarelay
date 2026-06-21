@@ -31,8 +31,8 @@ export const deploymentSurfaces: DeploymentSurface[] = [
     title: 'Local MCP engine',
     status: 'available',
     target: 'stdio MCP + CLI',
-    localPreview: 'cargo run -p mcp-server -- --cli truth',
-    deploymentBoundary: 'Local binary or package artifact; no hosted tenancy.'
+    localPreview: 'cargo run -p mcp-server -- --cli truth or installed quotarelay-mcp --cli truth',
+    deploymentBoundary: 'Agent-facing local MCP tool; no native desktop/mobile app or hosted tenancy.'
   },
   {
     id: 'hosted-team-console',
@@ -52,11 +52,11 @@ export const deploymentSurfaces: DeploymentSurface[] = [
   },
   {
     id: 'native-companion',
-    title: 'Native companion previews',
+    title: 'Native desktop and mobile apps',
     status: 'deferred',
-    target: 'Android / iOS',
-    localPreview: 'Not shipped; evaluate only if a mobile/operator companion becomes useful',
-    deploymentBoundary: 'Must not imply source sync, hosted tenancy, or mobile secret storage without a threat model.'
+    target: 'Desktop / Android / iOS',
+    localPreview: 'Not shipped; evaluate only if users need a companion wrapper around the MCP engine',
+    deploymentBoundary: 'Must not become the primary product or imply source sync, hosted tenancy, or local secret storage without a threat model.'
   }
 ]
 

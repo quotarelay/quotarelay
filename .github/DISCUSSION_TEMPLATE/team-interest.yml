@@ -1,0 +1,28 @@
+title: "Team interest: "
+labels:
+  - team-interest
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this to describe team needs for hosted coordination. Please do not include private source, secrets, internal URLs, `.quotarelay` state, or raw context packets.
+  - type: textarea
+    id: need
+    attributes:
+      label: Team need
+      description: What would make Quotarelay useful for your team?
+  - type: checkboxes
+    id: paid-surfaces
+    attributes:
+      label: Interesting paid surfaces
+      options:
+        - label: Shared policy and guardrail packs
+        - label: Shared decision memory workflow
+        - label: Aggregate savings and cache metrics
+        - label: Auditability and admin controls
+        - label: Private deployment or support
+  - type: textarea
+    id: privacy
+    attributes:
+      label: Privacy constraints
+      description: Describe source-upload, metadata, compliance, or retention constraints at a high level.

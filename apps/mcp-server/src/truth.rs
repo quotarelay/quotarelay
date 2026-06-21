@@ -99,6 +99,14 @@ pub(crate) fn backend_truth_payload() -> BackendTruthPayload {
                 command: "cargo test -p mcp-server local_cli_team_policy_save_and_list_are_stable_json",
             },
             BackendProof {
+                id: "savings_report",
+                command: "cargo test -p mcp-server savings_report_works_over_stdio_without_snippets",
+            },
+            BackendProof {
+                id: "onboarding_pack",
+                command: "cargo test -p mcp-server onboarding_pack_works_over_stdio_without_source_dump",
+            },
+            BackendProof {
                 id: "repository_state",
                 command:
                     "cargo test -p mcp-server repository_state_tool_reports_sync_and_recent_run_truth_over_stdio",
@@ -146,6 +154,10 @@ fn cli_truth() -> CliTruth {
                 command: "cargo run -p mcp-server -- --cli truth",
             },
             CliCommandTruth {
+                label: "Console usage",
+                command: "cargo run -p mcp-server -- --cli usage [repo-root] [memory-query]",
+            },
+            CliCommandTruth {
                 label: "Register repository",
                 command: "cargo run -p mcp-server -- --cli register <state-root> <repo-root>",
             },
@@ -175,6 +187,10 @@ fn cli_truth() -> CliTruth {
                 command: "cargo run -p mcp-server -- --cli feedback-list <repo-root> [limit]",
             },
             CliCommandTruth {
+                label: "Savings report",
+                command: "cargo run -p mcp-server -- --cli savings-report <repo-root> [limit]",
+            },
+            CliCommandTruth {
                 label: "Assemble context",
                 command: "cargo run -p mcp-server -- --cli assemble <repo-root> <query>",
             },
@@ -182,6 +198,11 @@ fn cli_truth() -> CliTruth {
                 label: "Agent handoff",
                 command:
                     "cargo run -p mcp-server -- --cli handoff <repo-root> <active-task> exact_search <query>",
+            },
+            CliCommandTruth {
+                label: "Templated handoff",
+                command:
+                    "cargo run -p mcp-server -- --cli handoff-template <repo-root> <active-task> review exact_search <query>",
             },
         ],
     }

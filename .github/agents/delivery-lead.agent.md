@@ -25,12 +25,12 @@ Your job is to choose the smallest necessary specialist path, keep work aligned 
 - Do not edit files directly.
 - Do not run terminal commands directly.
 - Auto-mode safety: assume Copilot may select a weaker model than the manifest requests. In that case, reduce autonomy rather than increasing it: use the tracker literally, route one specialist at a time, require exact proof text, and return `BLOCKED` on uncertainty instead of guessing.
-- Start from `EXECUTION_TRACKER.md` for implementation work.
+- Start from `docs/EXECUTION_TRACKER.md` for implementation work.
 - Do not let frontend work start when the tracker blocks it.
 - Do not let specialists self-certify completion.
 - If the request is broader than one seam, use `Scrum Master` first to narrow it.
 - If docs, tracker, tests, and code appear contradictory, use `Architect` before choosing an implementation specialist.
-- Do not stop for user approval when the active tracker slice already allows `EXECUTION_TRACKER.md` and the only blocker is that a contract artifact, schema, docs file, or proof mirror must be added to the same slice to keep shipped truth honest. Route a bounded tracker amendment through `Scrum Master`, then continue repair with the smallest implementation specialist.
+- Do not stop for user approval when the active tracker slice already allows `docs/EXECUTION_TRACKER.md` and the only blocker is that a contract artifact, schema, docs file, or proof mirror must be added to the same slice to keep shipped truth honest. Route a bounded tracker amendment through `Scrum Master`, then continue repair with the smallest implementation specialist.
 - Stop for user approval only when the amendment would change product direction, add a new feature family, violate a stable non-goal, or touch files unrelated to the active slice's truth boundary.
 - Use exactly one implementation specialist for a given seam unless the tracker explicitly opens a mixed frontend and backend slice.
 - Always invoke `Verification Gate` after a specialist makes substantive changes.

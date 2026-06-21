@@ -2,10 +2,13 @@ use std::io;
 
 mod args;
 mod cli;
+mod cli_usage;
 mod extra_tools;
 mod feedback_args;
 mod http;
 mod mcp_transport;
+mod onboarding_args;
+mod savings_args;
 mod team_policy_args;
 mod tool_calls;
 mod tools;

@@ -42,11 +42,47 @@ function Invoke-McpBatch {
         cargo build -p mcp-server | Out-Null
     }
 
-    $raw = ConvertTo-FramedJson -Requests $Requests | & $server | Out-String
-    $payloads = $raw -split 'Content-Length: \d+\r?\n\r?\n' |
-        Where-Object { $_.Trim().StartsWith("{") }
+    $responses = @()
+    foreach ($request in $Requests) {
+        $frame = ConvertTo-FramedJson -Requests @($request)
+        $startInfo = [System.Diagnostics.ProcessStartInfo]::new()
+        $startInfo.FileName = $server
+        $startInfo.UseShellExecute = $false
+        $startInfo.RedirectStandardInput = $true
+        $startInfo.RedirectStandardOutput = $true
+        $startInfo.RedirectStandardError = $true
+        $startInfo.CreateNoWindow = $true
 
-    return $payloads | ForEach-Object { $_ | ConvertFrom-Json }
+        $process = [System.Diagnostics.Process]::Start($startInfo)
+        $stdoutTask = $process.StandardOutput.ReadToEndAsync()
+        $stderrTask = $process.StandardError.ReadToEndAsync()
+        $bytes = [Text.Encoding]::UTF8.GetBytes($frame)
+        $process.StandardInput.BaseStream.Write($bytes, 0, $bytes.Length)
+        $process.StandardInput.Close()
+
+        if (-not $process.WaitForExit(60000)) {
+            $process.Kill()
+            throw "mcp-server did not exit after demo request"
+        }
+
+        $raw = $stdoutTask.Result
+        $stderr = $stderrTask.Result
+        if ($process.ExitCode -ne 0) {
+            throw "mcp-server demo request failed with exit code $($process.ExitCode): $stderr"
+        }
+
+        $payloads = $raw -split 'Content-Length: \d+\r?\n\r?\n' |
+            Where-Object { $_.Trim().StartsWith("{") }
+
+        $payloadArray = @($payloads)
+        if ($payloadArray.Count -ne 1) {
+            throw "mcp-server demo request returned $($payloadArray.Count) responses"
+        }
+
+        $responses += ($payloadArray[0] | ConvertFrom-Json)
+    }
+
+    return ,$responses
 }
 
 function Get-ToolPayload {
@@ -95,10 +131,24 @@ $requests = @(
     }
     New-DemoRequest 7 "assemble_context" @{
         root = $repoRoot
+        mode = "exact_search"
+        query = "needle"
+        limit = 2
+    }
+    New-DemoRequest 8 "handoff_packet" @{
+        root = $repoRoot
+        active_task = "Continue the local demo needle workflow"
+        template = "feature_slice"
+        mode = "exact_search"
+        query = "needle"
+        limit = 2
+    }
+    New-DemoRequest 9 "assemble_context" @{
+        root = $repoRoot
         mode = "overview"
         limit = 2
     }
-    New-DemoRequest 8 "cache_inspect" @{
+    New-DemoRequest 10 "cache_inspect" @{
         root = $repoRoot
     }
 )
@@ -110,8 +160,10 @@ $inventory = Get-ToolPayload $responses[2]
 $memoryWrite = Get-ToolPayload $responses[3]
 $memorySearch = Get-ToolPayload $responses[4]
 $exact = Get-ToolPayload $responses[5]
-$overview = Get-ToolPayload $responses[6]
-$cache = Get-ToolPayload $responses[7]
+$exactRepeat = Get-ToolPayload $responses[6]
+$handoff = Get-ToolPayload $responses[7]
+$overview = Get-ToolPayload $responses[8]
+$cache = Get-ToolPayload $responses[9]
 $truth = cargo run -p mcp-server -- --cli truth | ConvertFrom-Json
 
 $summary = [ordered]@{
@@ -124,10 +176,15 @@ $summary = [ordered]@{
     exact_mode = $exact.mode
     exact_snippets = $exact.snippets.Count
     exact_memory_notes = $exact.memory_notes.Count
+    first_exact_cache_status = $exact.cache_status.kind
+    repeated_exact_cache_status = $exactRepeat.cache_status.kind
+    handoff_template = $handoff.template
+    handoff_validation_commands = $handoff.validation_commands.Count
     overview_documents = $overview.documents.Count
     cache_exact_items = $cache.exact_search_cache.item_count
     cache_capsule_items = $cache.retrieval_capsule_cache.item_count
     truth_tool_count = $truth.result.truth.tools.Count
+    provider_calls = "none"
 }
 
 $summary | ConvertTo-Json -Depth 6

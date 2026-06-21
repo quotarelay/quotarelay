@@ -6,11 +6,51 @@ Quotarelay is local-first. Most issues are caused by missing explicit setup step
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
-cargo run -p mcp-server -- --cli truth
-cargo run -p mcp-server -- --cli state <repo_root>
+npm run truth
+npm run state -- <repo_root>
 ```
 
 Use `state` to inspect bounded local presence and counts. It does not dump file contents, memory contents, or cache payloads.
+
+## Fresh Machine Setup
+
+Run bootstrap before deeper checks:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1
+```
+
+If `rustc` or `cargo` is not found, install or repair the Rust toolchain and restart the terminal so `cargo` is on `PATH`. If Rust is installed but only this shell is stale, start a new shell and rerun bootstrap.
+
+If `npm` is not found, install or repair Node.js and restart the terminal. For a backend-only check, run bootstrap with `-SkipFrontend`:
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File scripts\bootstrap.ps1 -SkipFrontend
+```
+
+If frontend commands fail after a clean checkout, run `npm --prefix web/controlplane ci` when registry access is available, then rerun bootstrap or `scripts\release-check.ps1`.
+
+## Wrong Working Directory
+
+Most source-run commands expect the Quotarelay checkout as the current directory. From elsewhere, either change into the checkout first or configure the MCP client `cwd` field.
+
+```powershell
+npm run truth
+```
+
+If a client cannot start the source-run preset, confirm the same command works in a normal terminal from the checkout.
+
+## Installed Command Not On PATH
+
+`scripts\install-smoke.ps1` installs into `target\install-smoke\bin` and proves the command there. That directory is intentionally local to the repo and is not a global installer.
+
+Use the full local path when testing directly:
+
+```powershell
+target\install-smoke\bin\quotarelay-mcp.exe --cli truth
+```
+
+For an MCP client, use `examples/mcp-client-presets/installed-stdio.json` only after the client can resolve `quotarelay-mcp` from its environment. Otherwise use the source-run preset with `cargo`.
 
 ## Missing Index
 

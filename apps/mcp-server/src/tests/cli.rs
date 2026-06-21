@@ -210,6 +210,7 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
     assert!(handoff["ok"].as_bool().unwrap_or(false));
     assert_eq!(handoff["command"], "handoff");
     assert_eq!(handoff["result"]["handoff"]["active_task"], "Continue T102");
+    assert_eq!(handoff["result"]["handoff"]["template"], "general");
     assert_eq!(
         handoff["result"]["handoff"]["context"]["snippets"]
             .as_array()
@@ -217,6 +218,62 @@ fn local_cli_uses_stable_json_success_and_error_contract() {
         Some(1)
     );
     assert!(handoff["result"]["handoff"]["validation_commands"].is_array());
+
+    output.clear();
+    super::run_cli(
+        [
+            "handoff-template".to_string(),
+            repo_root.to_string_lossy().to_string(),
+            "Review T102".to_string(),
+            "review".to_string(),
+            "exact_search".to_string(),
+            "needle".to_string(),
+            "2".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli handoff-template should succeed");
+
+    let templated: Value =
+        serde_json::from_slice(&output).expect("templated handoff payload should parse");
+    assert!(templated["ok"].as_bool().unwrap_or(false));
+    assert_eq!(templated["command"], "handoff-template");
+    assert_eq!(templated["result"]["handoff"]["template"], "review");
+    assert!(templated["result"]["handoff"]["template_focus"]
+        .as_array()
+        .map(|items| {
+            items
+                .iter()
+                .any(|item| item.as_str().unwrap_or("").contains("findings"))
+        })
+        .unwrap_or(false));
+
+    output.clear();
+    super::run_cli(
+        [
+            "savings-report".to_string(),
+            repo_root.to_string_lossy().to_string(),
+            "10".to_string(),
+        ],
+        &mut output,
+    )
+    .expect("cli savings-report should succeed");
+
+    let savings: Value = serde_json::from_slice(&output).expect("savings payload should parse");
+    assert!(savings["ok"].as_bool().unwrap_or(false));
+    assert_eq!(savings["command"], "savings-report");
+    assert!(
+        savings["result"]["savings_report"]["raw_bytes_considered"]
+            .as_u64()
+            .unwrap_or(0)
+            >= savings["result"]["savings_report"]["included_bytes"]
+                .as_u64()
+                .unwrap_or(0)
+    );
+    assert!(savings["result"]["savings_report"]["note"]
+        .as_str()
+        .unwrap_or("")
+        .contains("not provider billing"));
 
     output.clear();
     super::run_cli(

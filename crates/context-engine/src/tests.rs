@@ -4,6 +4,7 @@ mod context;
 mod feedback;
 mod handoff;
 mod memory;
+mod onboarding;
 mod repositories;
 mod state;
 mod validation;

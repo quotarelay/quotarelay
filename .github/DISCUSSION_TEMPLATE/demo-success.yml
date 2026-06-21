@@ -1,0 +1,23 @@
+title: "Demo success: "
+labels:
+  - demo-success
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for trying Quotarelay. Please share only non-sensitive details; do not paste private source, `.quotarelay` state, secrets, or raw context packets.
+  - type: input
+    id: os
+    attributes:
+      label: Operating system
+      description: Example: Windows 11, macOS, Ubuntu.
+  - type: textarea
+    id: path
+    attributes:
+      label: What worked?
+      description: Which install or demo path did you run?
+  - type: textarea
+    id: proof
+    attributes:
+      label: Local proof observed
+      description: Share high-level savings/cache/stale proof only, without repository contents.

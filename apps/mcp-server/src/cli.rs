@@ -2,15 +2,17 @@ use std::io::{self, Write};
 use std::path::PathBuf;
 
 use context_engine::{
-    assemble_handoff_packet, context_feedback_list, context_feedback_write, inspect_local_state,
-    invalidate_exact_match_cache, list_team_policy_profiles, recommend_validation,
-    register_repository, retrieve_context, save_team_policy_profile, ContextFeedbackRating,
+    assemble_handoff_packet, assemble_handoff_packet_with_template, context_feedback_list,
+    context_feedback_write, inspect_local_state, invalidate_exact_match_cache,
+    list_team_policy_profiles, parse_handoff_template, recommend_validation, register_repository,
+    retrieve_context, save_team_policy_profile, savings_report, ContextFeedbackRating,
     RetrievalMode,
 };
 use repo_index::{repo_map, search_code, sync_repo};
 use serde_json::{json, Value};
 
 use crate::backend_truth_payload;
+use crate::cli_usage::run_cli_usage;
 
 pub fn run_cli<I, S, W>(args: I, mut stdout: W) -> io::Result<()>
 where
@@ -35,12 +37,15 @@ where
         "validate" => run_cli_validate(&mut args_iter),
         "feedback-write" => run_cli_feedback_write(&mut args_iter),
         "feedback-list" => run_cli_feedback_list(&mut args_iter),
+        "savings-report" => run_cli_savings_report(&mut args_iter),
         "team-policy-save" => run_cli_team_policy_save(&mut args_iter),
         "team-policy-list" => run_cli_team_policy_list(&mut args_iter),
         "search" => run_cli_search(&mut args_iter),
         "assemble" => run_cli_assemble(&mut args_iter),
         "handoff" => run_cli_handoff(&mut args_iter),
+        "handoff-template" => run_cli_handoff_template(&mut args_iter),
         "truth" => Ok(json!({"truth": backend_truth_payload()})),
+        "usage" => run_cli_usage(&mut args_iter),
         _ => {
             return write_cli_error(
                 &mut stdout,
@@ -164,6 +169,19 @@ where
     Ok(json!({"feedback": result}))
 }
 
+fn run_cli_savings_report<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let limit = parse_cli_limit(args, 10)?;
+    let report = savings_report(&PathBuf::from(&root), limit)
+        .map_err(|error| format!("savings-report failed: {error}"))?;
+
+    Ok(json!({"savings_report": report}))
+}
+
 fn run_cli_team_policy_save<I, S>(args: &mut I) -> Result<Value, String>
 where
     I: Iterator<Item = S>,
@@ -268,6 +286,42 @@ where
     let packet = assemble_handoff_packet(
         &PathBuf::from(&root),
         &active_task,
+        parse_retrieval_mode_from_str(&mode)?,
+        query.as_deref(),
+        limit,
+    )
+    .map_err(|error| format!("handoff failed: {error}"))?;
+    Ok(json!({"handoff": packet}))
+}
+
+fn run_cli_handoff_template<I, S>(args: &mut I) -> Result<Value, String>
+where
+    I: Iterator<Item = S>,
+    S: AsRef<str>,
+{
+    let root = parse_cli_arg(args, "root")?;
+    let active_task = parse_cli_arg(args, "active_task")?;
+    let template_name = parse_cli_arg(args, "template")?;
+    let template = parse_handoff_template(&template_name)
+        .ok_or_else(|| format!("handoff template is not supported: {template_name}"))?;
+    let mode = parse_cli_arg(args, "mode")?;
+    let (query, limit) = match mode.as_str() {
+        "overview" => (None, parse_cli_limit(args, 3)?),
+        "diff_aware" => parse_cli_optional_query_and_limit(args, 3)?,
+        "exact_search" | "task_capsule" => {
+            let query = parse_cli_arg(args, "query")?;
+            (Some(query), parse_cli_limit(args, 3)?)
+        }
+        other => {
+            return Err(format!(
+            "handoff mode must be exact_search, overview, task_capsule, or diff_aware; got {other}"
+        ))
+        }
+    };
+    let packet = assemble_handoff_packet_with_template(
+        &PathBuf::from(&root),
+        &active_task,
+        template,
         parse_retrieval_mode_from_str(&mode)?,
         query.as_deref(),
         limit,

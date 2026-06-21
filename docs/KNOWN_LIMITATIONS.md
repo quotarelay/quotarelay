@@ -22,7 +22,9 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 - Context assembly is bounded by fixed item and byte limits and explains inclusion and omission reasons.
 - The shipped MVP does not claim exact tokenizer output, provider billing reduction, pricing impact, or guaranteed savings.
 - Token-saving work is limited to local, explainable context reduction. Current byte counts, approximate-token estimates, and reduction ratios are local approximations, not provider tokenizer or billing truth.
-- Local savings demos are local fixtures only; they are not real-world billing benchmarks or provider traces.
+- Local demos and savings benchmarks are local fixtures only; they are not real-world billing benchmarks, provider traces, or guarantees.
+- Local savings reports summarize context-run metadata only; they do not include source snippets, telemetry, provider traces, or billing data.
+- Local onboarding packs summarize repo-shape and validation metadata only; they do not upload source code or dump repository contents.
 - Decision and guardrail memory profiles prioritize local notes in bounded packets, but they do not enforce policy or override tracker/docs truth.
 - Stale context detection is read-only. It reports changed, missing, or new files relative to the last explicit sync; it does not watch files, refresh caches, or sync automatically.
 
@@ -43,13 +45,14 @@ This page describes current local MVP boundaries. It is not a roadmap promise an
 
 - Quotarelay does not run background schedulers, background sync workers, automatic cache warming, or silent state repair.
 - Cache clearing and corrupt JSON recovery are explicit operator actions.
-- Release, publish, deploy, push, tag, and installer automation are outside the shipped local MVP.
-- Apache-2.0 permits third-party commercial use; Quotarelay monetization should come from hosted product, support, enterprise controls, integrations, policy, deployment, branding, and execution rather than source-code exclusivity.
-- Hosted login, team management, shared policy, shared memory, and enterprise audit surfaces are planned commercial layers, not shipped local MVP behavior.
+- Release validation and local package prep are automated, but publishing, deployment, package-manager publishing, tag pushing, and installer automation remain outside the shipped local MVP.
+- Local tag creation requires an explicit maintainer command after release checks pass.
+- Apache-2.0 permits third-party commercial use; current public positioning prioritizes adoption of the complete local MVP.
+- Hosted login, team management, shared policy, shared memory, and enterprise audit surfaces are deferred planning topics, not shipped local MVP behavior.
 
 ## Deferred platform work
 
-These areas remain closed until `docs/DECISIONS.md` and `EXECUTION_TRACKER.md` explicitly open future slices:
+These areas remain closed until `docs/DECISIONS.md` and `docs/EXECUTION_TRACKER.md` explicitly open future slices:
 
 - Auth and local control-plane protection.
 - Hosted multi-user tenancy.

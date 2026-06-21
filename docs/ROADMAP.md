@@ -1,8 +1,8 @@
 # Roadmap
 
-This roadmap locks the product path. It is not a shipped-behavior document; `README.md` remains the source for what works today, and `EXECUTION_TRACKER.md` remains the active execution queue.
+This roadmap locks the product path. It is not a shipped-behavior document; `README.md` remains the source for what works today, and `docs/EXECUTION_TRACKER.md` remains the active execution queue.
 
-For a compact shipped/queued/deferred boundary, see `docs/TRUTH_MATRIX.md`.
+For a compact shipped/next/deferred boundary, see `docs/TRUTH_MATRIX.md`.
 
 ## North star
 
@@ -72,27 +72,28 @@ Success measure:
 - Savings are described as local byte/approximate-token reduction, not provider billing guarantees.
 - Cache hits and stale states are visible enough that operators can trust when local work was reused.
 
-## Phase 3: Team Layer
+## Deferred Team Layer
 
-Goal: let teams share the brain of the repo while each developer can keep code local.
+Goal, when reopened later: let teams share the brain of the repo while each developer can keep code local.
 
 Core outcomes:
 
 - Team profile config for repo groups, default retrieval limits, validation recipes, and guardrails.
 - Local team policy profiles for guardrails, validation recipes, MCP client presets, and explicit source-upload preference.
 - Shared decision memory that agents load before edits.
-- Handoff packet templates for bug fix, feature slice, review, refactor, and release work.
+- Local handoff packet templates for bug fix, feature slice, review, refactor, and release work.
 - MCP client presets for verified local setups.
-- Team-visible savings reports generated from local runs.
+- Team-visible savings reports generated from local run metadata.
+- Local onboarding packs generated from repo metadata, validation commands, handoff templates, and privacy notes.
 
 Boundary:
 
 - Team sharing should prefer checked-in or explicit local configuration.
 - Do not upload source code or local state by default.
 
-## Phase 4: Enterprise Layer
+## Deferred Enterprise Layer
 
-Goal: monetize governance, scale, support, and auditability without weakening the free core.
+Goal, when reopened later: support governance, scale, support, and auditability without weakening the free core.
 
 Potential outcomes after decision slices approve them:
 
@@ -114,9 +115,9 @@ Still gated:
 
 ## Monetization Lock
 
-The free core must remain valuable for regular developers.
+The free local core is the product to adopt now. It must remain valuable for regular developers and must not become a trial stub.
 
-Paid value should come from:
+Any future hosted or support value is sidelined until adoption proves what users need. If reopened later, it should come from:
 
 - Collaboration.
 - Governance.
@@ -127,7 +128,7 @@ Paid value should come from:
 - Support.
 - Enterprise assurance.
 
-Do not make the free version a crippled demo. Community trust and solo-developer adoption are part of the business strategy.
+Do not make the free version a crippled demo. Community trust and solo-developer adoption are the current strategy.
 
 See `docs/COMMERCIAL_STRATEGY.md` for the open-core gating model, hosted management surface, and savings metrics boundaries.
 

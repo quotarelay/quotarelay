@@ -52,6 +52,42 @@ pub(crate) fn validation_recommend_tool() -> Value {
     })
 }
 
+pub(crate) fn savings_report_tool() -> Value {
+    json!({
+        "name": "savings_report",
+        "description": "Returns local aggregate savings metadata from bounded context-run history without uploading source, snippets, or local state.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "limit": { "type": "integer", "minimum": 1, "maximum": 10 }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
+pub(crate) fn onboarding_pack_tool() -> Value {
+    json!({
+        "name": "onboarding_pack",
+        "description": "Returns a bounded local onboarding pack with repo-shape metadata, validation commands, handoff templates, and privacy notes without uploading source.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "root": { "type": "string" },
+                "touched_paths": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "maxItems": 20
+                }
+            },
+            "required": ["root"],
+            "additionalProperties": false
+        }
+    })
+}
+
 pub(crate) fn team_policy_profile_save_tool() -> Value {
     json!({
         "name": "team_policy_profile_save",

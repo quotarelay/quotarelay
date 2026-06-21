@@ -46,7 +46,7 @@ async fn backend_truth_endpoint_exposes_current_contract() {
 
     assert_eq!(
         payload["tools"].as_array().map(|items| items.len()),
-        Some(33)
+        Some(35)
     );
     assert_eq!(
         payload["retrieval"]["modes"],
@@ -158,6 +158,8 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "context_feedback_write",
             "context_feedback_list",
             "validation_recommend",
+            "savings_report",
+            "onboarding_pack",
             "multi_repo_assemble_context",
             "assemble_context",
             "handoff_packet",
@@ -218,6 +220,8 @@ async fn backend_truth_contract_locks_shipped_fields_and_ids() {
             "registered_repositories",
             "team_policy_profiles",
             "team_policy_cli",
+            "savings_report",
+            "onboarding_pack",
             "repository_state",
             "local_operator_workflow",
         ]

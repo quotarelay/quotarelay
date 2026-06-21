@@ -5,7 +5,10 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "start": "node dev-with-backend.mjs",
+    "headless": "node dev-with-backend.mjs --headless",
+    "dev": "node dev-with-backend.mjs --dev",
+    "dev:frontend": "vite",
     "build": "vite build",
     "test": "vitest run",
     "preview": "vite preview"

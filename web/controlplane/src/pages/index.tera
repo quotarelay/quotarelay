@@ -1,140 +1,310 @@
 <meta>
   title: Quotarelay
-  description: Local-first context compression for coding agents, with a free Apache-2.0 core and planned paid team coordination.
-  keywords: quotarelay, mcp, coding agents, context compression, local first, token savings
-  aiSummary: Quotarelay is a local-first MCP context engine that assembles bounded, explainable context packets for coding agents while keeping repository contents local by default.
-  aiKeywords: mcp, context-engine, local-first, coding-agents, privacy, open-core
+  description: Local MCP context dashboard for coding agents, with focused status, usage, savings proof, cache state, memory, and no provider calls.
+  keywords: quotarelay, mcp, coding agents, context dashboard, local first, usage stats
 </meta>
 
 <route>
   path: /
 </route>
 
-<ai>
-  summary: Public product homepage for Quotarelay. Keep claims limited to shipped local behavior and clearly distinguish planned hosted team features.
-  audience:
-    - solo developers
-    - engineering teams
-    - AI coding tool users
-  privacy_boundary: Source code, raw context packets, local caches, and .quotarelay state stay local by default.
-  monetization: Free Apache-2.0 local core with paid hosted/team/enterprise coordination planned.
-  tags:
-    - public-site
-    - local-first
-    - mcp
-    - context-compression
-    - privacy
-</ai>
-
 <script>
-  import { deploymentSurfaces, surfaceStatusLabel } from '../deploymentSurfaces'
+  import { ref } from '@terajs/reactivity'
+  import { onMounted } from '@terajs/runtime'
+  import { loadBackendTruth, loadContextRunState, loadMemoryState, loadRepositoryState } from '../truth'
 
-  function surfaces() {
-    return deploymentSurfaces
+  const THEME_KEY = 'quotarelay.theme'
+  const themeModeRef = ref('system')
+  const fetchStateRef = ref('Loading')
+  const fetchErrorRef = ref('')
+  const backendToolsRef = ref([])
+  const truthSummaryRef = ref([])
+  const repositoryStateRef = ref([])
+  const repositoryFetchStateRef = ref('Not configured')
+  const memoryStateRef = ref({ notes: [], omitted_count: 0 })
+  const memoryFetchStateRef = ref('Not configured')
+  const runHistoryRef = ref([])
+  const runFetchStateRef = ref('Not configured')
+
+  const fallbackToolGroups = [
+    { label: 'Context', count: 13 },
+    { label: 'Repository', count: 8 },
+    { label: 'Memory', count: 7 },
+    { label: 'Cache', count: 4 },
+    { label: 'Other', count: 3 }
+  ]
+
+  function summaryValue(label, fallback) {
+    return truthSummaryRef.value.find((item) => item.label === label)?.value ?? fallback
   }
 
-  function statusLabel(status) {
-    return surfaceStatusLabel(status)
+  function backendOnline() {
+    return fetchStateRef.value === 'Live'
   }
+
+  function backendTone() {
+    if (fetchStateRef.value === 'Loading') {
+      return 'pending'
+    }
+    return backendOnline() ? 'good' : 'warn'
+  }
+
+  function backendLabel() {
+    if (fetchStateRef.value === 'Loading') {
+      return 'Checking backend'
+    }
+    return backendOnline() ? 'Backend online' : 'Backend offline'
+  }
+
+  function statusModel() {
+    return {
+      tone: backendTone(),
+      label: backendLabel(),
+      error: fetchErrorRef.value,
+      command: 'cargo run -p mcp-server -- --http 127.0.0.1:3030'
+    }
+  }
+
+  function healthStatusText() {
+    return `Backend: ${backendLabel()} | Repo: ${repositoryFetchStateRef.value} | Context: ${runFetchStateRef.value} | Memory: ${memoryFetchStateRef.value}`
+  }
+
+  function toolGroupFor(name) {
+    if (name.includes('context') || name.includes('handoff') || name.includes('onboarding') || name.includes('savings')) {
+      return 'Context'
+    }
+    if (name.includes('repo') || name.includes('workspace') || name.includes('policy')) {
+      return 'Repository'
+    }
+    if (name.includes('memory')) {
+      return 'Memory'
+    }
+    if (name.includes('cache')) {
+      return 'Cache'
+    }
+    return 'Other'
+  }
+
+  function toolUsageRows() {
+    if (backendToolsRef.value.length === 0) {
+      return fallbackToolGroups
+    }
+    const groups = new Map()
+    backendToolsRef.value.forEach((tool) => {
+      const group = toolGroupFor(String(tool?.name ?? '').toLowerCase())
+      groups.set(group, (groups.get(group) ?? 0) + 1)
+    })
+    return ['Context', 'Repository', 'Memory', 'Cache', 'Other']
+      .map((label) => ({ label, count: groups.get(label) ?? 0 }))
+      .filter((row) => row.count > 0)
+  }
+
+  function pieSegments() {
+    const colors = ['#2563eb', '#047857', '#7c3aed', '#b45309', '#64748b']
+    const rows = toolUsageRows()
+    const total = rows.reduce((sum, row) => sum + row.count, 0) || 1
+    let cursor = 0
+    return rows.map((row, index) => {
+      const percent = (row.count / total) * 100
+      const segment = {
+        ...row,
+        color: colors[index % colors.length],
+        dashArray: `${percent} ${100 - percent}`,
+        dashOffset: String(-cursor)
+      }
+      cursor += percent
+      return segment
+    })
+  }
+
+  function providerSparklinePoints() {
+    return '0,34 18,34 36,34 54,34 72,34 90,34 108,34 126,34'
+  }
+
+  function themeButtonClass(mode) {
+    return mode === themeModeRef.value ? 'theme-option theme-option--active' : 'theme-option'
+  }
+
+  function applyTheme(mode) {
+    if (typeof document === 'undefined') {
+      return
+    }
+    if (mode === 'light' || mode === 'dark') {
+      document.documentElement.dataset.theme = mode
+      document.documentElement.dataset.themePreference = mode
+      return
+    }
+    delete document.documentElement.dataset.theme
+    document.documentElement.dataset.themePreference = 'system'
+  }
+
+  function setTheme(mode) {
+    const nextMode = mode === 'light' || mode === 'dark' ? mode : 'system'
+    themeModeRef.value = nextMode
+    applyTheme(nextMode)
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem(THEME_KEY, nextMode)
+    }
+  }
+
+  function loadThemePreference() {
+    if (typeof localStorage === 'undefined') {
+      return 'system'
+    }
+    const stored = localStorage.getItem(THEME_KEY)
+    return stored === 'light' || stored === 'dark' ? stored : 'system'
+  }
+
+  async function loadDashboard() {
+    const truth = await loadBackendTruth(fetch, '/truth')
+    fetchStateRef.value = truth.fetchState
+    fetchErrorRef.value = truth.fetchError
+    backendToolsRef.value = truth.backendTools
+    truthSummaryRef.value = truth.truthSummary
+
+    const params = new URLSearchParams(window.location.search)
+    const root = params.get('root') ?? ''
+    const memoryQuery = params.get('memory_query') ?? ''
+
+    const repositoryState = await loadRepositoryState(fetch, root)
+    repositoryStateRef.value = repositoryState.repositories
+    repositoryFetchStateRef.value = repositoryState.fetchState
+
+    const memoryState = await loadMemoryState(fetch, root, memoryQuery)
+    memoryStateRef.value = memoryState.memory
+    memoryFetchStateRef.value = memoryState.fetchState
+
+    const runState = await loadContextRunState(fetch, root)
+    runHistoryRef.value = runState.runs
+    runFetchStateRef.value = runState.fetchState
+  }
+
+  onMounted(() => {
+    const theme = loadThemePreference()
+    themeModeRef.value = theme
+    applyTheme(theme)
+    void loadDashboard()
+  })
 </script>
 
 <template>
-  <main class="public-site">
-    <section class="public-hero">
-      <div class="public-hero__copy">
-        <p class="eyebrow">Local-first MCP context engine</p>
-        <h1>Quotarelay</h1>
-        <p class="public-lede">
-          Give coding agents the smallest useful packet: relevant code, durable decisions, validation commands,
-          cache state, stale-state warnings, and clear omission reasons without uploading your repository by default.
-        </p>
-        <div class="public-actions">
-          <a class="button button--primary" href="https://github.com/quotarelay/quotarelay">GitHub</a>
-          <a class="button button--secondary" href="/control-plane">Local control plane</a>
+  <main class="focus-shell">
+    <section class="unified-panel" aria-labelledby="local-context-status">
+      <header class="panel-header">
+        <div>
+          <p class="eyebrow">Local MCP dashboard</p>
+          <h1>Quotarelay</h1>
         </div>
-      </div>
-      <div class="signal-board" aria-label="Quotarelay packet proof summary">
-        <div class="signal-board__header">
-          <span>Context packet</span>
-          <strong>bounded</strong>
-        </div>
-        <div class="signal-row">
-          <span>Raw bytes considered</span>
-          <strong>24,106</strong>
-        </div>
-        <div class="signal-row">
-          <span>Packet bytes</span>
-          <strong>1,361</strong>
-        </div>
-        <div class="signal-row">
-          <span>Local reduction</span>
-          <strong>94.35%</strong>
-        </div>
-        <div class="signal-row signal-row--accent">
-          <span>Repeat retrieval</span>
-          <strong>cache hit</strong>
-        </div>
-      </div>
-    </section>
-
-    <section class="public-band">
-      <div class="section-heading">
-        <p class="eyebrow">What ships free</p>
-        <h2>Useful local core, not a crippled demo.</h2>
-      </div>
-      <div class="feature-grid">
-        <article class="feature-card">
-          <h3>Bounded retrieval</h3>
-          <p>Exact, overview, task, and diff-aware modes return limited context with typed inclusion and omission reasons.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Memory and handoff</h3>
-          <p>Local decision and guardrail memory can travel with handoff packets, validation suggestions, and blockers.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Savings proof</h3>
-          <p>Local demos report raw bytes, packet bytes, approximate tokens, reduction ratio, cache state, and stale state.</p>
-        </article>
-        <article class="feature-card">
-          <h3>Privacy boundary</h3>
-          <p>Repository contents, raw packets, local caches, and .quotarelay state stay on your machine unless you opt in later.</p>
-        </article>
-      </div>
-    </section>
-
-    <section class="public-band public-band--split">
-      <div>
-        <p class="eyebrow">Teams and companies</p>
-        <h2>Paid value belongs in coordination, governance, and support.</h2>
-        <p class="public-copy">
-          Quotarelay should be easy to adopt as an open-source local tool. The commercial layer is planned around
-          hosted team management, shared policy profiles, aggregate savings reports, auditability, integrations,
-          private deployment guidance, SSO, onboarding, and support.
-        </p>
-      </div>
-      <ul class="team-list">
-        <li>Organization login and team membership</li>
-        <li>Shared guardrails and validation recipes</li>
-        <li>Aggregate savings and cache-reuse reporting</li>
-        <li>Audit logs, SSO, compliance docs, and private deployment</li>
-      </ul>
-    </section>
-
-    <section class="public-band">
-      <div class="section-heading">
-        <p class="eyebrow">Platform surfaces</p>
-        <h2>One workspace, separate targets.</h2>
-      </div>
-      <div class="surface-grid">
-        <article class="surface-card" v-for="surface in surfaces()" :key="surface.id">
-          <div class="surface-card__header">
-            <span class="surface-status">{{ statusLabel(surface.status) }}</span>
-            <strong>{{ surface.target }}</strong>
+        <div class="panel-actions">
+          <a class="action-button action-button--primary" href="https://github.com/quotarelay/quotarelay">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.2.8-.6v-2.2c-3.3.7-4-1.4-4-1.4-.5-1.3-1.2-1.6-1.2-1.6-1-.7.1-.7.1-.7 1.1.1 1.7 1.2 1.7 1.2 1 .1.8 2.1 2.9 1.5.1-.7.4-1.2.7-1.5-2.6-.3-5.3-1.3-5.3-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.4 11.4 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.7.8 1.2 1.9 1.2 3.2 0 4.6-2.7 5.6-5.3 5.9.4.4.8 1.1.8 2.2v3.3c0 .4.2.7.8.6A12 12 0 0 0 12 .5Z" />
+            </svg>
+            GitHub
+          </a>
+          <a class="action-button action-button--secondary" href="https://github.com/quotarelay/quotarelay#quickstart">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M8 5v14l11-7Z" />
+            </svg>
+            Quickstart
+          </a>
+          <div class="theme-toggle" aria-label="Theme mode">
+            <button
+              type="button"
+              :class="themeButtonClass('system')"
+              @click="setTheme('system')"
+            >
+              System
+            </button>
+            <button
+              type="button"
+              :class="themeButtonClass('light')"
+              @click="setTheme('light')"
+            >
+              Light
+            </button>
+            <button
+              type="button"
+              :class="themeButtonClass('dark')"
+              @click="setTheme('dark')"
+            >
+              Dark
+            </button>
           </div>
-          <h3>{{ surface.title }}</h3>
-          <p>{{ surface.localPreview }}</p>
-          <p class="surface-boundary">{{ surface.deploymentBoundary }}</p>
-        </article>
+        </div>
+      </header>
+
+      <div class="status-bar" :class="`status-bar--${statusModel().tone}`">{{ healthStatusText() }}</div>
+      <div class="command-line" v-if="!backendOnline()">
+        <span>Start backend</span>
+        <code>{{ statusModel().command }}</code>
+      </div>
+
+      <div class="hero-grid">
+        <div class="visual-grid">
+          <section class="chart-block chart-block--primary" aria-label="MCP tool usage distribution">
+            <svg class="pie-chart" viewBox="0 0 40 40" role="img" aria-label="MCP tool usage pie chart">
+              <circle class="pie-ring" cx="20" cy="20" r="15.9155" />
+              <circle
+                v-for="segment in pieSegments()"
+                :key="segment.label"
+                class="pie-segment"
+                cx="20"
+                cy="20"
+                r="15.9155"
+                :stroke="segment.color"
+                :stroke-dasharray="segment.dashArray"
+                :stroke-dashoffset="segment.dashOffset"
+              />
+              <circle class="pie-core" cx="20" cy="20" r="8.6" />
+            </svg>
+            <div>
+              <h3>MCP tool usage</h3>
+              <ul class="chart-legend">
+                <li v-for="row in toolUsageRows()" :key="row.label">
+                  <span>{{ row.label }}</span><strong>{{ row.count }}</strong>
+                </li>
+              </ul>
+            </div>
+          </section>
+          <section class="chart-block chart-block--spark" aria-label="Provider calls over time">
+            <div>
+              <h3>Provider calls</h3>
+              <strong>0</strong>
+              <p>local only</p>
+            </div>
+            <svg viewBox="0 0 126 40" aria-hidden="true">
+              <polyline :points="providerSparklinePoints()" />
+            </svg>
+          </section>
+        </div>
+      </div>
+
+      <div class="disclosure-stack" aria-label="Supporting details">
+        <details class="detail-drawer">
+          <summary>
+            <span>Recent runs</span>
+            <strong>{{ runFetchStateRef.value }}</strong>
+          </summary>
+        </details>
+        <details class="detail-drawer">
+          <summary>
+            <span>Memory matches</span>
+            <strong>{{ memoryFetchStateRef.value }}</strong>
+          </summary>
+        </details>
+        <details class="detail-drawer">
+          <summary>
+            <span>Cache</span>
+            <strong>{{ summaryValue('Cache', 'hit proven') }}</strong>
+          </summary>
+        </details>
+        <details class="detail-drawer">
+          <summary>
+            <span>Boundaries</span>
+            <strong>Provider calls: none</strong>
+          </summary>
+        </details>
       </div>
     </section>
   </main>

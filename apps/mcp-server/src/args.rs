@@ -1,19 +1,19 @@
 use std::path::PathBuf;
 
 use context_engine::{
-    assemble_context_for_registered_repositories, assemble_handoff_packet, clear_retrieval_caches,
-    context_run_detail, context_run_history, inspect_local_state, inspect_retrieval_caches,
-    invalidate_exact_match_cache, list_registered_repositories, list_workspace_profiles,
-    memory_delete, memory_export, memory_import, memory_read, memory_search,
-    memory_update_with_profile, memory_write_with_profile, register_repository,
-    registered_repository_detail, registered_repository_state, remove_registered_repository,
-    retrieve_context, save_workspace_profile, update_registered_repository_metadata,
-    CacheClearResult, CacheInspection, ContextAssembly, HandoffPacket, MemoryDeleteResult,
-    MemoryExportPayload, MemoryExportResult, MemoryImportResult, MemoryNote, MemoryProfile,
-    MemorySearchResult, MemoryUpdateResult, MemoryWriteResult, MultiRepositoryContextAssembly,
-    RegisteredRepository, RegisteredRepositoryState, RepositoryMetadataUpdateResult,
-    RepositoryRegistrationResult, RepositoryRemovalResult, RetrievalMode, RetrievedContext,
-    WorkspaceProfile, WorkspaceProfileSaveResult,
+    assemble_context_for_registered_repositories, assemble_handoff_packet_with_template,
+    clear_retrieval_caches, context_run_detail, context_run_history, inspect_local_state,
+    inspect_retrieval_caches, invalidate_exact_match_cache, list_registered_repositories,
+    list_workspace_profiles, memory_delete, memory_export, memory_import, memory_read,
+    memory_search, memory_update_with_profile, memory_write_with_profile, parse_handoff_template,
+    register_repository, registered_repository_detail, registered_repository_state,
+    remove_registered_repository, retrieve_context, save_workspace_profile,
+    update_registered_repository_metadata, CacheClearResult, CacheInspection, ContextAssembly,
+    HandoffPacket, MemoryDeleteResult, MemoryExportPayload, MemoryExportResult, MemoryImportResult,
+    MemoryNote, MemoryProfile, MemorySearchResult, MemoryUpdateResult, MemoryWriteResult,
+    MultiRepositoryContextAssembly, RegisteredRepository, RegisteredRepositoryState,
+    RepositoryMetadataUpdateResult, RepositoryRegistrationResult, RepositoryRemovalResult,
+    RetrievalMode, RetrievedContext, WorkspaceProfile, WorkspaceProfileSaveResult,
 };
 use repo_index::{repo_inventory, repo_map, search_code, sync_repo};
 use serde_json::Value;
@@ -413,7 +413,17 @@ pub(crate) fn handoff_packet_from_args(arguments: &Value) -> Result<HandoffPacke
         .and_then(|value| usize::try_from(value).ok())
         .unwrap_or(3);
 
-    assemble_handoff_packet(&root, active_task, mode, query, limit)
+    let template = arguments
+        .get("template")
+        .and_then(Value::as_str)
+        .map(|value| {
+            parse_handoff_template(value)
+                .ok_or_else(|| format!("handoff_packet template is not supported: {value}"))
+        })
+        .transpose()?
+        .unwrap_or_default();
+
+    assemble_handoff_packet_with_template(&root, active_task, template, mode, query, limit)
         .map_err(|error| format!("handoff_packet failed: {error}"))
 }
 

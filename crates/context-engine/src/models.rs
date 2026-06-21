@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
 
+use crate::handoff::HandoffTemplate;
+
 pub(crate) const MAX_SNIPPET_PACK_BYTES: usize = 160;
 pub(crate) const MAX_DOCUMENT_PACK_BYTES: usize = 640;
 pub(crate) const MAX_MEMORY_PACK_BYTES: usize = 320;
@@ -181,6 +183,10 @@ pub struct ContextStaleStatus {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HandoffPacket {
     pub active_task: String,
+    #[serde(default)]
+    pub template: HandoffTemplate,
+    #[serde(default)]
+    pub template_focus: Vec<String>,
     pub context: RetrievedContext,
     pub memory_decisions: Vec<ContextMemoryNote>,
     pub validation_commands: Vec<HandoffValidationCommand>,

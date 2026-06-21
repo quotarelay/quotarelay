@@ -9,20 +9,26 @@ mod feedback;
 mod handoff;
 mod memory;
 mod models;
+mod onboarding;
 mod repositories;
 mod retrieval;
+mod savings;
 mod storage;
 mod team_policy;
 mod validation;
 
 pub use diff::assemble_diff_aware;
 pub use feedback::{context_feedback_list, context_feedback_write};
-pub use handoff::assemble_handoff_packet;
+pub use handoff::{
+    assemble_handoff_packet, assemble_handoff_packet_with_template, parse_handoff_template,
+    HandoffTemplate,
+};
 pub use memory::{
     memory_delete, memory_export, memory_import, memory_read, memory_search, memory_update,
     memory_update_with_profile, memory_write, memory_write_with_profile,
 };
 pub use models::*;
+pub use onboarding::{onboarding_pack, OnboardingPack};
 pub use repositories::{
     assemble_context_for_registered_repositories, list_registered_repositories,
     list_workspace_profiles, register_repository, registered_repository_detail,
@@ -34,6 +40,7 @@ pub use retrieval::{
     context_run_history, invalidate_exact_match_cache, retrieval_truth, retrieve_context,
 };
 pub(crate) use retrieval::{fit_within_budget, normalize_query};
+pub use savings::{savings_report, SavingsReport};
 pub(crate) use storage::*;
 pub use storage::{clear_retrieval_caches, inspect_local_state, inspect_retrieval_caches};
 pub use team_policy::{list_team_policy_profiles, save_team_policy_profile};

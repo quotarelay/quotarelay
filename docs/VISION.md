@@ -6,7 +6,7 @@ It should greatly reduce unnecessary model context by helping agents retrieve, c
 
 The product is for developers and teams using AI coding agents on real codebases, especially large or important repos where context bloat, repeated file scans, and agent drift waste time and model tokens.
 
-The free core should remain genuinely useful for regular developers. Monetization should come from team and enterprise needs: shared guardrails, shared decision memory, validation recipes, onboarding packs, auditability, support, and savings proof at organizational scale.
+The free Apache-2.0 local core is the adoption product, not a trial stub. Hosted, team, and enterprise ideas stay sidelined until the local MVP proves regular developer adoption.
 
 Long-range direction:
 
@@ -26,8 +26,8 @@ Long-range direction:
 
 1. Local MVP: a self-hosted MCP/CLI context engine for repo sync, bounded retrieval, durable memory, cache/state inspection, and honest control-plane truth.
 2. Token-saving workflow: context budget estimates, agent handoff packets, decision memory, stale context detection, diff-aware retrieval, repo map summaries, validation recommendations, and local savings benchmarks.
-3. Team layer: checked-in or shared team profiles for guardrails, approved validation commands, decision memory, MCP client presets, and onboarding templates.
-4. Enterprise layer: policy controls, audit logs, admin-managed profiles, support, private deployment guidance, and security/compliance documentation.
+3. Deferred team layer: checked-in or shared team profiles for guardrails, approved validation commands, decision memory, MCP client presets, and onboarding templates after local adoption proof.
+4. Deferred enterprise layer: policy controls, audit logs, admin-managed profiles, support, private deployment guidance, and security/compliance documentation after explicit future planning.
 
 ## Product locks
 
@@ -37,4 +37,4 @@ Long-range direction:
 - Quotarelay is not a fake token-savings dashboard.
 - Quotarelay should prove local context reduction with bounded byte/token estimates and local benchmarks, without claiming exact provider billing savings.
 
-This document is directional only. Shipped behavior is documented in `README.md` and the current execution mirror in `EXECUTION_TRACKER.md`.
+This document is directional only. Shipped behavior is documented in `README.md` and the current execution mirror in `docs/EXECUTION_TRACKER.md`.

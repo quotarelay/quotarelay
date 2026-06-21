@@ -49,6 +49,9 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 | Cache inspection and clear | Shipped local MVP behavior | Cache inspect/clear, corrupt cache errors, canonicalization, separation, and sync invalidation are tested. |
 | Cache hit visibility | Shipped local token-saver behavior | Context packs expose hit, miss, or not-applicable cache status; cache clear reports cleared or empty state. |
 | Savings clarity surface | Shipped local token-saver behavior | Context and handoff packets expose raw bytes considered, included bytes, approximate tokens, local reduction ratio, cache status, stale status, and omissions. |
+| Handoff templates | Shipped local team-layer behavior | Handoff packets can carry local bug fix, feature slice, review, refactor, and release focus guidance without hosted sync or source upload. |
+| Savings reports | Shipped local team-layer behavior | Recent context-run history can be aggregated into bounded local savings metadata without snippets, telemetry, or provider billing claims. |
+| Onboarding packs | Shipped local team-layer behavior | MCP onboarding packs summarize bounded repo-shape metadata, validation commands, handoff templates, and privacy notes without source snippets or upload. |
 | Ambiguous request clarification | Shipped local token-saver behavior | Underspecified exact/task context and handoff requests return bounded clarification questions instead of broad repo dumps. |
 | Repository registration and profiles | Shipped local MVP behavior | Registration, dedupe, removal, metadata rename, detail lookup, bounded listing, and workspace profiles are tested. |
 | Truth surfaces | Shipped local MVP behavior | `/truth`, CLI truth, OpenAPI mirror, and control-plane rendering are constrained to shipped backend behavior. |
@@ -56,16 +59,16 @@ The token-saving release path is releasable when Quotarelay can prove, locally a
 | Context feedback | Shipped local token-saver behavior | Records bounded useful/not-useful feedback locally for context packs; it is inspectable and does not change ranking. |
 | Token-saver acceptance benchmark | Shipped local token-saver behavior | `scripts/token-saver-benchmark.ps1` compares raw fixture bytes against exact, overview, handoff, and diff-aware packets with cache assertions and no provider calls. |
 | One-command clean check | Shipped local validation behavior | `scripts/clean-check.ps1` runs fmt check, line-count guardrail, Rust package tests, and control-plane build. |
-| Fresh checkout bootstrap | Local release blocker | T82 must provide a local bootstrap check that does not mutate global state or require external services. |
-| MCP client configuration | Local release blocker | T83 must document verified local client setup, state-root guidance, Windows path examples, and troubleshooting. |
-| Example workspace and demo | Local release blocker | T84 must provide a tiny local example plus a no-service demo script. |
-| Operator quickstart | Local release blocker | T85 must make README usable from clone to first context pack using shipped commands only. |
-| Troubleshooting and recovery | Local release blocker | T86 must document corrupt JSON recovery, cache clear, missing index, missing repo, and Windows path handling. |
-| Local privacy and security note | Local release blocker | T87 must state what is stored under `.quotarelay`, what is not sent, and current limitations without encryption/auth claims. |
-| OpenAPI release contract freeze | Local release blocker | T88 must freeze shipped HTTP schema without adding auth, deployment, or fake readiness fields. |
-| Release validation suite | Local release blocker | T89 must provide a release validation command that builds on local clean-check and demo proof. |
-| Control-plane local run instructions | Local release blocker | T90 must document running backend HTTP truth and the control plane locally. |
-| Version metadata and notes | Local release blocker | T91-T93 must align version metadata, changelog/release notes, and known limitations. |
-| Release blocker triage and dry run | Local release blocker | T94-T100 must finish blocker triage, artifact smoke, release candidate dry run, final review, commit plan, and go/no-go. |
+| Fresh checkout bootstrap | Shipped local release behavior | T82 added a local bootstrap check that does not mutate global state or require external services. |
+| MCP client configuration | Shipped local release behavior | T83 documents verified local client setup, state-root guidance, Windows path examples, and troubleshooting. |
+| Example workspace and demo | Shipped local release behavior | T84 added a tiny local example plus a no-service demo script. |
+| Operator quickstart | Shipped local release behavior | T85 made README usable from clone to first context pack using shipped commands only. |
+| Troubleshooting and recovery | Shipped local release behavior | T86 documents corrupt JSON recovery, cache clear, missing index, missing repo, and Windows path handling. |
+| Local privacy and security note | Shipped local release behavior | T87 states what is stored under `.quotarelay`, what is not sent, and current limitations without encryption/auth claims. |
+| OpenAPI release contract freeze | Shipped local release behavior | T88 froze the shipped HTTP schema without adding auth, deployment, or fake readiness fields. |
+| Release validation suite | Shipped local release behavior | T89 provides a release validation command that builds on local clean-check and demo proof. |
+| Control-plane local run instructions | Shipped local release behavior | T90 documents running backend HTTP truth and the control plane locally. |
+| Version metadata and notes | Shipped local release behavior | T91-T93 align version metadata, changelog/release notes, and known limitations. |
+| Release blocker triage and dry run | Shipped local release behavior | T94-T100 completed blocker triage, artifact smoke, release candidate dry run, final review, commit plan, and go/no-go. |
 | Auth, multi-user tenancy, BYOK, provider routing, cloud sync | Deferred platform capability | Closed by decisions until explicit decision slices open them; not required for local MVP releasability. |
-| Token-saving clarity and benchmarks | Post-core token-saver release path | T101-T114 add local estimates, handoff packets, stale/diff context, repo maps, validation recommendations, cache visibility, savings clarity, and demos without provider billing claims. |
+| Token-saving clarity and benchmarks | Shipped local token-saver behavior | T101-T114 added local estimates, handoff packets, stale/diff context, repo maps, validation recommendations, cache visibility, savings clarity, and demos without provider billing claims. |
