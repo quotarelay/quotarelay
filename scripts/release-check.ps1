@@ -60,7 +60,28 @@ Invoke-ReleaseStep "public surface scan" {
 }
 
 Invoke-ReleaseStep "docs sanity" {
-    rg -n "local MVP|Deferred platform|provider billing|docs/TRUTH_MATRIX.md|docs/LOCAL_STATE_PRIVACY.md|docs/TROUBLESHOOTING.md" README.md docs
+    $docFiles = @("README.md") + @(
+        Get-ChildItem -LiteralPath "docs" -Recurse -File |
+            ForEach-Object { $_.FullName }
+    )
+    $requiredPatterns = @(
+        "local MVP",
+        "Deferred platform",
+        "provider billing",
+        "docs/TRUTH_MATRIX.md",
+        "docs/LOCAL_STATE_PRIVACY.md",
+        "docs/TROUBLESHOOTING.md"
+    )
+
+    foreach ($pattern in $requiredPatterns) {
+        $matches = Select-String -LiteralPath $docFiles -Pattern $pattern -SimpleMatch
+        if (-not $matches) {
+            throw "docs sanity did not find required public-surface text: $pattern"
+        }
+        $matches | Select-Object -First 5 | ForEach-Object {
+            Write-Output "$($_.Path):$($_.LineNumber):$($_.Line.Trim())"
+        }
+    }
 }
 
 Write-Output ""
