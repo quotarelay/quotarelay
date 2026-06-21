@@ -18,6 +18,15 @@ The manifest also records the GitHub About topics from `docs/GITHUB_ABOUT.md`.
 
 ## Maintainer Commands
 
+Pull requests and pushes to `main` run the release-candidate gate in CI:
+
+- `scripts\release-check.ps1`
+- `scripts\local-package.ps1`
+- local package artifact upload
+- dependency audit
+
+The post-merge maintainer step is only the irreversible release action: create and push the version tag after the release-candidate checks pass.
+
 Check that all version surfaces agree:
 
 ```powershell

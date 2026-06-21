@@ -11,7 +11,7 @@ permissions:
 
 jobs:
   verify:
-    name: Verify local surface
+    name: Verify release candidate
     runs-on: windows-latest
     steps:
       - name: Checkout
@@ -27,26 +27,18 @@ jobs:
       - name: Install frontend dependencies
         run: npm.cmd --prefix web/controlplane ci
 
-      - name: Rust format
-        run: cargo fmt --all --check
+      - name: Release check
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\release-check.ps1
 
-      - name: Source line-count guardrail
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\check-line-counts.ps1
+      - name: Local package
+        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\local-package.ps1
 
-      - name: Rust tests
-        run: cargo test --workspace
-
-      - name: Frontend tests
-        run: npm.cmd --prefix web/controlplane run test -- --run
-
-      - name: Frontend build
-        run: npm.cmd --prefix web/controlplane run build
-
-      - name: Public site smoke
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-site-smoke.ps1 -SkipBuild
-
-      - name: Public surface scan
-        run: powershell -NoProfile -ExecutionPolicy Bypass -File scripts\public-surface-scan.ps1
+      - name: Upload local package
+        uses: actions/upload-artifact@v4
+        with:
+          name: quotarelay-pr-local-package
+          path: target/local-package/*.zip
+          if-no-files-found: error
 
       - name: Dependency audit
         run: npm.cmd --prefix web/controlplane audit --audit-level=moderate
