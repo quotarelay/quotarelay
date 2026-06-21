@@ -20,6 +20,24 @@ fn responds_to_initialize_over_stdio() {
 }
 
 #[test]
+fn accepts_bom_prefixed_content_length_over_stdio() {
+    let request = r#"{"jsonrpc":"2.0","id":10,"method":"initialize","params":{}}"#;
+    let framed = format!(
+        "\u{feff}Content-Length: {}\r\n\r\n{}",
+        request.len(),
+        request
+    );
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(framed.into_bytes()), &mut output)
+        .expect("stdio transport should accept a leading BOM");
+
+    let response = decode_response(&output);
+    assert_eq!(response["id"], 10);
+    assert_eq!(response["result"]["serverInfo"]["name"], "quotarelay");
+}
+
+#[test]
 fn responds_to_tool_call_over_stdio() {
     let request = r#"{"jsonrpc":"2.0","id":2,"method":"tools/call","params":{"name":"bootstrap_status","arguments":{}}}"#;
     let framed = format!("Content-Length: {}\r\n\r\n{}", request.len(), request);

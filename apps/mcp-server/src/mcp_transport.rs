@@ -34,7 +34,11 @@ fn read_message<R: BufRead>(reader: &mut R) -> io::Result<Option<String>> {
 
         saw_header = true;
         let mut parts = trimmed.splitn(2, ':');
-        let name = parts.next().unwrap_or_default().trim();
+        let name = parts
+            .next()
+            .unwrap_or_default()
+            .trim_start_matches('\u{feff}')
+            .trim();
         let value = parts.next().unwrap_or_default().trim();
 
         if name.eq_ignore_ascii_case("Content-Length") {
