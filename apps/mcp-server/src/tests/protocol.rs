@@ -20,6 +20,32 @@ fn responds_to_initialize_over_stdio() {
 }
 
 #[test]
+fn accepts_newline_delimited_initialize_and_tools_list_over_stdio() {
+    let initialize = r#"{"jsonrpc":"2.0","id":1,"method":"initialize","params":{}}"#;
+    let initialized = r#"{"jsonrpc":"2.0","method":"notifications/initialized","params":{}}"#;
+    let tools_list = r#"{"jsonrpc":"2.0","id":2,"method":"tools/list","params":{}}"#;
+    let input = format!("{initialize}\n{initialized}\n{tools_list}\n");
+    let mut output = Vec::new();
+
+    run_stdio(Cursor::new(input.into_bytes()), &mut output)
+        .expect("newline-delimited stdio transport should succeed");
+
+    let responses = String::from_utf8(output)
+        .expect("line response should be utf8")
+        .lines()
+        .map(|line| serde_json::from_str::<Value>(line).expect("line response should be json"))
+        .collect::<Vec<_>>();
+    assert_eq!(responses.len(), 2);
+    assert_eq!(responses[0]["id"], 1);
+    assert_eq!(responses[0]["result"]["serverInfo"]["name"], "quotarelay");
+    assert_eq!(responses[1]["id"], 2);
+    assert_eq!(
+        responses[1]["result"]["tools"][0]["name"],
+        "bootstrap_status"
+    );
+}
+
+#[test]
 fn accepts_bom_prefixed_content_length_over_stdio() {
     let request = r#"{"jsonrpc":"2.0","id":10,"method":"initialize","params":{}}"#;
     let framed = format!(
