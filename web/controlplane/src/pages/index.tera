@@ -25,6 +25,8 @@
   const memoryFetchStateRef = ref('Not configured')
   const runHistoryRef = ref([])
   const runFetchStateRef = ref('Not configured')
+  const rootRef = ref('')
+  const memoryQueryRef = ref('')
 
   const fallbackToolGroups = [
     { label: 'Context', count: 13 },
@@ -66,7 +68,81 @@
   }
 
   function healthStatusText() {
-    return `Backend: ${backendLabel()} | Repo: ${repositoryFetchStateRef.value} | Context: ${runFetchStateRef.value} | Memory: ${memoryFetchStateRef.value}`
+    return `Backend: ${backendLabel()} | Repo: ${repoStatusLabel()} | Context: ${contextStatusLabel()} | Memory: ${memoryStatusLabel()}`
+  }
+
+  function repoStatusLabel() {
+    if (rootRef.value.trim() === '') {
+      return 'Not configured'
+    }
+    if (repositoryFetchStateRef.value !== 'Live') {
+      return repositoryFetchStateRef.value
+    }
+    return repositoryStateRef.value.length > 0
+      ? `${repositoryStateRef.value.length} registered`
+      : 'Root loaded'
+  }
+
+  function contextStatusLabel() {
+    if (rootRef.value.trim() === '') {
+      return 'Not configured'
+    }
+    if (runFetchStateRef.value !== 'Live') {
+      return runFetchStateRef.value
+    }
+    return `${runHistoryRef.value.length} runs`
+  }
+
+  function memoryStatusLabel() {
+    if (rootRef.value.trim() === '' || memoryQueryRef.value.trim() === '') {
+      return 'Not configured'
+    }
+    if (memoryFetchStateRef.value !== 'Live') {
+      return memoryFetchStateRef.value
+    }
+    return `${memoryStateRef.value.notes.length} matches`
+  }
+
+  function statusBarClass() {
+    return `status-bar status-bar--${statusModel().tone}`
+  }
+
+  function activeRootLabel() {
+    if (rootRef.value.trim() === '') {
+      return 'No root'
+    }
+    return rootRef.value.split(/[\\/]/).filter(Boolean).pop() ?? rootRef.value
+  }
+
+  function cacheSummary() {
+    const runs = runHistoryRef.value
+    if (runs.length === 0) {
+      return summaryValue('Cache', 'not loaded')
+    }
+    const hits = runs.filter((run) => run?.cache_status?.kind === 'hit').length
+    const misses = runs.filter((run) => run?.cache_status?.kind === 'miss').length
+    return `${hits} hit / ${misses} miss`
+  }
+
+  function bestReductionLabel() {
+    const ratios = runHistoryRef.value
+      .map((run) => Number(run?.budget?.estimated_reduction_ratio ?? 0))
+      .filter((ratio) => ratio > 0)
+    if (ratios.length === 0) {
+      return 'no runs'
+    }
+    return `${(Math.max(...ratios) * 100).toFixed(1)}%`
+  }
+
+  function recentRunRows() {
+    return runHistoryRef.value.slice(0, 3).map((run) => ({
+      query: run?.query ?? 'context run',
+      cache: run?.cache_status?.kind ?? 'unknown',
+      reduction: run?.budget?.estimated_reduction_ratio
+        ? `${(Number(run.budget.estimated_reduction_ratio) * 100).toFixed(1)}%`
+        : 'n/a',
+      snippets: Array.isArray(run?.snippets) ? run.snippets.length : 0
+    }))
   }
 
   function toolGroupFor(name) {
@@ -165,6 +241,8 @@
     const params = new URLSearchParams(window.location.search)
     const root = params.get('root') ?? ''
     const memoryQuery = params.get('memory_query') ?? ''
+    rootRef.value = root
+    memoryQueryRef.value = memoryQuery
 
     const repositoryState = await loadRepositoryState(fetch, root)
     repositoryStateRef.value = repositoryState.repositories
@@ -234,11 +312,34 @@
         </div>
       </header>
 
-      <div class="status-bar" :class="`status-bar--${statusModel().tone}`">{{ healthStatusText() }}</div>
+      <div :class="statusBarClass()">{{ healthStatusText() }}</div>
       <div class="command-line" v-if="!backendOnline()">
         <span>Start backend</span>
         <code>{{ statusModel().command }}</code>
       </div>
+
+      <section class="usage-strip" aria-label="Live usage stats">
+        <div>
+          <span>Root</span>
+          <strong>{{ activeRootLabel() }}</strong>
+        </div>
+        <div>
+          <span>Recent runs</span>
+          <strong>{{ runHistoryRef.value.length }}</strong>
+        </div>
+        <div>
+          <span>Memory matches</span>
+          <strong>{{ memoryStateRef.value.notes.length }}</strong>
+        </div>
+        <div>
+          <span>Cache hits</span>
+          <strong>{{ cacheSummary() }}</strong>
+        </div>
+        <div>
+          <span>Best reduction</span>
+          <strong>{{ bestReductionLabel() }}</strong>
+        </div>
+      </section>
 
       <div class="hero-grid">
         <div class="visual-grid">
@@ -284,19 +385,35 @@
         <details class="detail-drawer">
           <summary>
             <span>Recent runs</span>
-            <strong>{{ runFetchStateRef.value }}</strong>
+            <strong>{{ contextStatusLabel() }}</strong>
           </summary>
+          <ul class="detail-list">
+            <li v-for="run in recentRunRows()" :key="`${run.query}-${run.cache}-${run.reduction}`">
+              <span>{{ run.query }}</span>
+              <strong>{{ run.cache }} · {{ run.reduction }} · {{ run.snippets }} snippets</strong>
+            </li>
+          </ul>
         </details>
         <details class="detail-drawer">
           <summary>
             <span>Memory matches</span>
-            <strong>{{ memoryFetchStateRef.value }}</strong>
+            <strong>{{ memoryStatusLabel() }}</strong>
           </summary>
+          <ul class="detail-list">
+            <li v-for="note in memoryStateRef.value.notes" :key="note.id">
+              <span>{{ note.title }}</span>
+              <strong>{{ note.profile ?? 'memory' }}</strong>
+            </li>
+            <li v-if="memoryStateRef.value.notes.length === 0">
+              <span>{{ memoryQueryRef.value || 'No query' }}</span>
+              <strong>0 matches</strong>
+            </li>
+          </ul>
         </details>
         <details class="detail-drawer">
           <summary>
             <span>Cache</span>
-            <strong>{{ summaryValue('Cache', 'hit proven') }}</strong>
+            <strong>{{ cacheSummary() }}</strong>
           </summary>
         </details>
         <details class="detail-drawer">

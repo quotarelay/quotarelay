@@ -179,9 +179,34 @@ code {
 }
 .hero-grid,
 .visual-grid,
-.disclosure-stack {
+.disclosure-stack,
+.usage-strip {
   display: grid;
   gap: 18px;
+}
+.usage-strip {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--dash-border);
+  padding-bottom: 18px;
+}
+.usage-strip div {
+  min-width: 0;
+}
+.usage-strip span,
+.detail-list span {
+  display: block;
+  color: var(--dash-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.usage-strip strong {
+  display: block;
+  margin-top: 4px;
+  color: var(--dash-text);
+  font-size: 1.02rem;
+  overflow-wrap: anywhere;
 }
 .chart-block {
   align-items: center;
@@ -265,6 +290,24 @@ code {
   font-size: 0.88rem;
   text-align: right;
 }
+.detail-list {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0 0 16px;
+  list-style: none;
+}
+.detail-list li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+.detail-list strong {
+  color: var(--dash-success);
+  font-size: 0.84rem;
+  text-align: right;
+}
 .compat-panel h1 {
   margin-top: 8px;
   font-size: 2rem;
@@ -304,6 +347,9 @@ code {
   }
   .hero-grid {
     grid-template-columns: minmax(0, 1fr);
+  }
+  .usage-strip {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
   .visual-grid {
     grid-template-columns: minmax(0, 1fr) 240px;
